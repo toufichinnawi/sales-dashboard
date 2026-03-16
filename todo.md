@@ -152,3 +152,6 @@
 - [x] Add "Send Brochure" button on Leads page (header bulk + per-lead)
 - [x] Build email/notification flow to send brochure link to leads
 - [x] Include brochure content in the outreach message
+
+## Bug Fixes
+- [x] Fix SQL error in getDashboardStats monthly revenue query (orders.status → inArray with proper column reference)

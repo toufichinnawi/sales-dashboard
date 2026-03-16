@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, sql, desc, count } from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, count, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -267,7 +267,7 @@ export async function getDashboardStats() {
     .from(orders)
     .where(and(
       gte(orders.createdAt, thisMonthStart),
-      sql`${orders.status} IN ('delivered', 'paid')`
+      inArray(orders.status, ['delivered', 'paid'])
     ));
 
   // Last month revenue for comparison
@@ -277,7 +277,7 @@ export async function getDashboardStats() {
     .where(and(
       gte(orders.createdAt, lastMonthStart),
       lte(orders.createdAt, lastMonthEnd),
-      sql`${orders.status} IN ('delivered', 'paid')`
+      inArray(orders.status, ['delivered', 'paid'])
     ));
 
   // Active customers count
@@ -313,7 +313,7 @@ export async function getDashboardStats() {
   const pipelineResult = await db
     .select({ total: sql<string>`COALESCE(SUM(${orders.total}), 0)` })
     .from(orders)
-    .where(sql`${orders.status} IN ('pending', 'confirmed', 'preparing')`);
+    .where(inArray(orders.status, ['pending', 'confirmed', 'preparing']));
 
   // Lead conversion rate
   const totalLeads = await db.select({ count: sql<number>`COUNT(*)` }).from(leads);
@@ -336,7 +336,7 @@ export async function getDashboardStats() {
       orderCount: sql<number>`COUNT(*)`,
     })
     .from(orders)
-    .where(sql`${orders.status} IN ('delivered', 'paid')`)
+    .where(inArray(orders.status, ['delivered', 'paid']))
     .groupBy(sql`DATE_FORMAT(${orders.createdAt}, '%Y-%m')`)
     .orderBy(sql`DATE_FORMAT(${orders.createdAt}, '%Y-%m')`);
 
@@ -362,7 +362,7 @@ export async function getDashboardStats() {
       orderCount: sql<number>`COUNT(*)`,
     })
     .from(orders)
-    .where(sql`${orders.status} IN ('delivered', 'paid')`)
+    .where(inArray(orders.status, ['delivered', 'paid']))
     .groupBy(orders.customerId)
     .orderBy(sql`SUM(${orders.total}) DESC`)
     .limit(5);
