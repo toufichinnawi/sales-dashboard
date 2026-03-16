@@ -33,3 +33,24 @@
 - [x] Update dashboard with real contact info
 - [x] Save checkpoint
 - [x] Add founder story section to landing page — Rosie's mission to share Montreal bagels with the world
+
+## Orders System & Manual Lead Entry
+- [x] Create customers table in database
+- [x] Create orders table in database (with order items)
+- [x] Push database migrations
+- [x] Build tRPC routes for customers CRUD
+- [x] Build tRPC routes for orders CRUD (create, list, update status, delete)
+- [x] Add "Add Lead Manually" dialog to Leads page
+- [x] Build Orders page with full CRUD UI
+- [x] Add Orders nav item to sidebar
+- [x] Add "Create Order" dialog with product selection, quantities, delivery date
+- [x] Add order status tracking (Pending → Confirmed → Delivered → Paid)
+- [x] Write vitest tests for orders API (23/23 passed)
+- [x] Test end-to-end
+- [x] Save checkpoint
+
+## Customers Page
+- [x] Build Customers page with full CRUD (add, edit, view, delete)
+- [x] Add Customers nav item to sidebar
+- [x] Convert lead to customer workflow
+- [x] Customer detail view with order history

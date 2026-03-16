@@ -1,12 +1,12 @@
 /**
  * Leads — Hinnawi Bros Bagels Wholesale
  * View and manage incoming leads from the wholesale landing page contact form.
- * Requires authentication to access.
+ * Includes "Add Lead Manually" dialog and "Convert to Customer" workflow.
  */
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,9 +17,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyMedia,
+} from "@/components/ui/empty";
 import {
   Table,
   TableBody,
@@ -43,6 +50,8 @@ import {
   AlertCircle,
   UserCheck,
   Sparkles,
+  Plus,
+  UserPlus,
 } from "lucide-react";
 import {
   Tooltip,
@@ -60,22 +69,69 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 const statusConfig: Record<
   string,
   { label: string; color: string; icon: React.ElementType }
 > = {
-  new: { label: "New", color: "bg-blue-100 text-blue-800 border-blue-200", icon: Sparkles },
-  contacted: { label: "Contacted", color: "bg-amber-100 text-amber-800 border-amber-200", icon: Mail },
-  qualified: { label: "Qualified", color: "bg-violet-100 text-violet-800 border-violet-200", icon: UserCheck },
-  converted: { label: "Converted", color: "bg-emerald-100 text-emerald-800 border-emerald-200", icon: CheckCircle2 },
-  lost: { label: "Lost", color: "bg-red-100 text-red-800 border-red-200", icon: XCircle },
+  new: {
+    label: "New",
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+    icon: Sparkles,
+  },
+  contacted: {
+    label: "Contacted",
+    color: "bg-amber-100 text-amber-800 border-amber-200",
+    icon: Mail,
+  },
+  qualified: {
+    label: "Qualified",
+    color: "bg-violet-100 text-violet-800 border-violet-200",
+    icon: UserCheck,
+  },
+  converted: {
+    label: "Converted",
+    color: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    icon: CheckCircle2,
+  },
+  lost: {
+    label: "Lost",
+    color: "bg-red-100 text-red-800 border-red-200",
+    icon: XCircle,
+  },
+};
+
+const emptyForm = {
+  name: "",
+  business: "",
+  email: "",
+  phone: "",
+  message: "",
+  source: "manual",
 };
 
 export default function Leads() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [addOpen, setAddOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertLead, setConvertLead] = useState<any>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [convertForm, setConvertForm] = useState({
+    segment: "cafe" as string,
+    address: "",
+    notes: "",
+  });
 
   const { data: leads, isLoading, error } = trpc.leads.list.useQuery();
   const utils = trpc.useUtils();
@@ -90,7 +146,7 @@ export default function Leads() {
     },
   });
 
-  const deleteLead = trpc.leads.delete.useMutation({
+  const deleteLeadMut = trpc.leads.delete.useMutation({
     onSuccess: () => {
       utils.leads.list.invalidate();
       toast.success("Lead deleted");
@@ -99,6 +155,66 @@ export default function Leads() {
       toast.error("Failed to delete lead", { description: err.message });
     },
   });
+
+  const createLeadMut = trpc.leads.create.useMutation({
+    onSuccess: () => {
+      utils.leads.list.invalidate();
+      setAddOpen(false);
+      setForm(emptyForm);
+      toast.success("Lead added successfully!");
+    },
+    onError: (err) => {
+      toast.error("Failed to add lead", { description: err.message });
+    },
+  });
+
+  const createCustomerMut = trpc.customers.create.useMutation({
+    onSuccess: () => {
+      if (convertLead) {
+        updateStatus.mutate({ id: convertLead.id, status: "converted" });
+      }
+      utils.customers.list.invalidate();
+      setConvertOpen(false);
+      setConvertLead(null);
+      toast.success("Lead converted to customer!");
+    },
+    onError: (err) => {
+      toast.error("Failed to convert lead", { description: err.message });
+    },
+  });
+
+  const handleAddLead = (e: React.FormEvent) => {
+    e.preventDefault();
+    createLeadMut.mutate({
+      name: form.name,
+      business: form.business,
+      email: form.email,
+      phone: form.phone || undefined,
+      message: form.message || undefined,
+      source: "manual",
+    });
+  };
+
+  const handleConvert = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!convertLead) return;
+    createCustomerMut.mutate({
+      businessName: convertLead.business,
+      contactName: convertLead.name,
+      email: convertLead.email,
+      phone: convertLead.phone || undefined,
+      address: convertForm.address || undefined,
+      segment: convertForm.segment as any,
+      notes: convertForm.notes || undefined,
+      status: "active",
+    });
+  };
+
+  const openConvertDialog = (lead: any) => {
+    setConvertLead(lead);
+    setConvertForm({ segment: "cafe", address: "", notes: "" });
+    setConvertOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -113,8 +229,12 @@ export default function Leads() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
-          <p className="text-muted-foreground">Please log in to view leads.</p>
-          <p className="text-xs text-muted-foreground mt-1">{error.message}</p>
+          <p className="text-muted-foreground">
+            Please log in to view leads.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {error.message}
+          </p>
         </div>
       </div>
     );
@@ -153,18 +273,124 @@ export default function Leads() {
     <div className="space-y-6">
       {/* Header */}
       <div className="px-4 md:px-6 pt-6">
-        <div className="flex items-center gap-3 mb-1">
-          <Inbox className="h-6 w-6 text-amber-700" />
-          <h1 className="font-display text-xl font-bold tracking-tight">
-            Incoming Leads
-          </h1>
-          <Badge variant="secondary" className="font-data text-xs">
-            {leads?.length ?? 0} total
-          </Badge>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <Inbox className="h-6 w-6 text-amber-700" />
+              <h1 className="font-display text-xl font-bold tracking-tight">
+                Incoming Leads
+              </h1>
+              <Badge variant="secondary" className="font-data text-xs">
+                {leads?.length ?? 0} total
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Manage leads from the wholesale page, phone calls, and meetings
+            </p>
+          </div>
+
+          {/* Add Lead Manually Button */}
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-amber-700 hover:bg-amber-800 text-white">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Lead Manually
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="font-display">
+                  Add Lead Manually
+                </DialogTitle>
+                <DialogDescription>
+                  Enter details from a phone call, meeting, or referral.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddLead} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Contact Name *</Label>
+                    <Input
+                      placeholder="e.g. Jean Tremblay"
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm({ ...form, name: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Business Name *</Label>
+                    <Input
+                      placeholder="e.g. Café du Plateau"
+                      value={form.business}
+                      onChange={(e) =>
+                        setForm({ ...form, business: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Email *</Label>
+                    <Input
+                      type="email"
+                      placeholder="jean@cafe.com"
+                      value={form.email}
+                      onChange={(e) =>
+                        setForm({ ...form, email: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Phone</Label>
+                    <Input
+                      placeholder="514-555-1234"
+                      value={form.phone}
+                      onChange={(e) =>
+                        setForm({ ...form, phone: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Notes / Message</Label>
+                  <Textarea
+                    placeholder="How did you meet? What are they interested in?"
+                    value={form.message}
+                    onChange={(e) =>
+                      setForm({ ...form, message: e.target.value })
+                    }
+                    rows={3}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-amber-700 hover:bg-amber-800 text-white"
+                    disabled={createLeadMut.isPending}
+                  >
+                    {createLeadMut.isPending ? (
+                      <Spinner className="h-4 w-4 mr-2" />
+                    ) : (
+                      <Plus className="h-4 w-4 mr-2" />
+                    )}
+                    Add Lead
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Leads submitted through the wholesale landing page contact form
-        </p>
       </div>
 
       <div className="px-4 md:px-6 space-y-5 pb-6">
@@ -176,7 +402,9 @@ export default function Leads() {
               <Card
                 key={key}
                 className={`border-border/50 py-0 cursor-pointer transition-colors hover:border-amber-300 ${
-                  statusFilter === key ? "border-amber-500 bg-amber-50/30" : ""
+                  statusFilter === key
+                    ? "border-amber-500 bg-amber-50/30"
+                    : ""
                 }`}
                 onClick={() =>
                   setStatusFilter(statusFilter === key ? "all" : key)
@@ -240,7 +468,7 @@ export default function Leads() {
                   </EmptyTitle>
                   <EmptyDescription>
                     {leads?.length === 0
-                      ? "Share your wholesale landing page to start receiving leads. When someone fills out the contact form, they'll appear here."
+                      ? 'Click "Add Lead Manually" to enter your first lead, or share your wholesale landing page to start receiving leads.'
                       : "Try adjusting your search or status filter."}
                   </EmptyDescription>
                 </EmptyHeader>
@@ -259,16 +487,19 @@ export default function Leads() {
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-44">
                       Business
                     </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24">
+                      Source
+                    </TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28">
                       Status
                     </TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider">
                       Message
                     </TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-40">
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-36">
                       Received
                     </TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24 text-right">
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28 text-right">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -313,6 +544,14 @@ export default function Leads() {
                             <Building2 className="h-3 w-3 text-muted-foreground" />
                             <span className="text-sm">{lead.business}</span>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] capitalize"
+                          >
+                            {lead.source || "website"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Select
@@ -376,40 +615,61 @@ export default function Leads() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-600"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete this lead?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently remove {lead.name} from{" "}
-                                  {lead.business} from your leads. This action
-                                  cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    deleteLead.mutate({ id: lead.id })
-                                  }
-                                  className="bg-red-600 hover:bg-red-700"
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Convert to Customer */}
+                            {lead.status !== "converted" && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                    onClick={() => openConvertDialog(lead)}
+                                  >
+                                    <UserPlus className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Convert to Customer
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            {/* Delete */}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-600"
                                 >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete this lead?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently remove {lead.name}{" "}
+                                    from {lead.business} from your leads. This
+                                    action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      deleteLeadMut.mutate({ id: lead.id })
+                                    }
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -420,6 +680,93 @@ export default function Leads() {
           </Card>
         )}
       </div>
+
+      {/* Convert to Customer Dialog */}
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-emerald-600" />
+              Convert to Customer
+            </DialogTitle>
+            <DialogDescription>
+              {convertLead && (
+                <>
+                  Convert <strong>{convertLead.name}</strong> from{" "}
+                  <strong>{convertLead.business}</strong> into an active
+                  customer.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleConvert} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Business Segment *</Label>
+              <Select
+                value={convertForm.segment}
+                onValueChange={(v) =>
+                  setConvertForm({ ...convertForm, segment: v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cafe">Cafe</SelectItem>
+                  <SelectItem value="restaurant">Restaurant</SelectItem>
+                  <SelectItem value="hotel">Hotel</SelectItem>
+                  <SelectItem value="grocery">Grocery Store</SelectItem>
+                  <SelectItem value="catering">Catering Company</SelectItem>
+                  <SelectItem value="university">University</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Delivery Address</Label>
+              <Input
+                placeholder="123 Rue Saint-Laurent, Montreal"
+                value={convertForm.address}
+                onChange={(e) =>
+                  setConvertForm({ ...convertForm, address: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Notes</Label>
+              <Textarea
+                placeholder="Delivery preferences, order frequency, etc."
+                value={convertForm.notes}
+                onChange={(e) =>
+                  setConvertForm({ ...convertForm, notes: e.target.value })
+                }
+                rows={3}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setConvertOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={createCustomerMut.isPending}
+              >
+                {createCustomerMut.isPending ? (
+                  <Spinner className="h-4 w-4 mr-2" />
+                ) : (
+                  <UserPlus className="h-4 w-4 mr-2" />
+                )}
+                Convert to Customer
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

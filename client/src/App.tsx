@@ -12,6 +12,8 @@ import Team from "./pages/Team";
 import Analytics from "./pages/Analytics";
 import Prospects from "./pages/Prospects";
 import Leads from "./pages/Leads";
+import Customers from "./pages/Customers";
+import Orders from "./pages/Orders";
 import WholesaleLanding from "./pages/WholesaleLanding";
 
 function DashboardRouter() {
@@ -25,6 +27,8 @@ function DashboardRouter() {
         <Route path={"/analytics"} component={Analytics} />
         <Route path={"/prospects"} component={Prospects} />
         <Route path={"/leads"} component={Leads} />
+        <Route path={"/customers"} component={Customers} />
+        <Route path={"/orders"} component={Orders} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>

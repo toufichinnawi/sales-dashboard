@@ -15,6 +15,13 @@
       "when": 1773665916979,
       "tag": "0001_fancy_leopardon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1773673436914,
+      "tag": "0002_square_marvel_boy",
+      "breakpoints": true
     }
   ]
 }

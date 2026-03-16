@@ -17,6 +17,8 @@ import {
   Search,
   ChevronRight,
   Cookie,
+  Building2,
+  ShoppingBag,
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,15 +44,29 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { kpiData, formatCurrency, formatPercent } from "@/lib/data";
 
-const navItems = [
-  { path: "/", label: "Overview", icon: LayoutDashboard },
-  { path: "/pipeline", label: "Pipeline", icon: GitBranch },
-  { path: "/deals", label: "Accounts", icon: Briefcase },
-  { path: "/team", label: "Team", icon: Users },
-  { path: "/analytics", label: "Analytics", icon: BarChart3 },
-  { path: "/prospects", label: "Prospects", icon: Target },
-  { path: "/leads", label: "Leads", icon: Inbox },
+const navSections = [
+  {
+    label: "Sales Operations",
+    items: [
+      { path: "/", label: "Overview", icon: LayoutDashboard },
+      { path: "/leads", label: "Leads", icon: Inbox },
+      { path: "/customers", label: "Customers", icon: Building2 },
+      { path: "/orders", label: "Orders", icon: ShoppingBag },
+    ],
+  },
+  {
+    label: "Analytics & Pipeline",
+    items: [
+      { path: "/pipeline", label: "Pipeline", icon: GitBranch },
+      { path: "/deals", label: "Accounts", icon: Briefcase },
+      { path: "/team", label: "Team", icon: Users },
+      { path: "/analytics", label: "Analytics", icon: BarChart3 },
+      { path: "/prospects", label: "Prospects", icon: Target },
+    ],
+  },
 ];
+
+const allNavItems = navSections.flatMap((s) => s.items);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -73,29 +89,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Separator className="mx-3 w-auto" />
 
         <SidebarContent className="pt-2">
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground/70">
-              Navigation
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {navItems.map((item) => (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location === item.path}
-                      tooltip={item.label}
-                    >
-                      <Link to={item.path}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="text-[13px]">{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {navSections.map((section) => (
+            <SidebarGroup key={section.label}>
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground/70">
+                {section.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {section.items.map((item) => (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location === item.path}
+                        tooltip={item.label}
+                      >
+                        <Link to={item.path}>
+                          <item.icon className="h-4 w-4" />
+                          <span className="text-[13px]">{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
 
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground/70">
@@ -153,7 +171,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-muted-foreground text-xs">Wholesale</span>
             <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
             <span className="font-medium text-xs">
-              {navItems.find((n) => n.path === location)?.label || "Overview"}
+              {allNavItems.find((n) => n.path === location)?.label || "Overview"}
             </span>
           </nav>
 
