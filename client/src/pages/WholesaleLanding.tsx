@@ -458,6 +458,34 @@ export default function WholesaleLanding() {
         </div>
       </section>
 
+      {/* ─── Founder Story ─── */}
+      <section className="py-20 bg-stone-50">
+        <div className="max-w-4xl mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
+            <p className="text-xs uppercase tracking-[0.3em] text-stone-400 mb-3">Notre Histoire · Our Story</p>
+            <h2 className="text-3xl md:text-4xl font-light tracking-tight mb-6">
+              Un message de <span className="font-semibold">Rosie.</span>
+            </h2>
+            <div className="max-w-2xl mx-auto space-y-4">
+              <p className="text-stone-600 leading-relaxed text-base">
+                "Chez Hinnawi Bros, on fait des bagels depuis des ann\u00e9es avec une seule obsession : que chaque bouch\u00e9e soit parfaite. Roul\u00e9s \u00e0 la main, bouillis au chaudron, cuits au four \u2014 aucun raccourci. On a lanc\u00e9 le programme de vente en gros parce qu'on veut que tout le monde puisse go\u00fbter ce qui rend les bagels montr\u00e9alais si sp\u00e9ciaux. Notre r\u00eave? Que chaque caf\u00e9, restaurant et h\u00f4tel serve des bagels dont ils sont fiers."
+              </p>
+              <p className="text-stone-400 italic text-sm leading-relaxed">
+                "At Hinnawi Bros, we've been making bagels for years with one obsession: making every bite perfect. Hand-rolled, kettle-boiled, oven-baked \u2014 no shortcuts. We launched our wholesale program because we want everyone to taste what makes Montreal bagels so special. Our dream? That every cafe, restaurant, and hotel serves bagels they're proud of."
+              </p>
+              <p className="text-stone-900 font-semibold mt-6">\u2014 Rosie Manneh, Fondatrice / Founder</p>
+              <p className="text-sm text-stone-400">733 Cathcart, Montr\u00e9al</p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ─── Contact / CTA ─── */}
       <section id="contact" className="py-20">
         <div className="max-w-6xl mx-auto px-4">
@@ -479,7 +507,7 @@ export default function WholesaleLanding() {
                   </div>
                   <div>
                     <p className="text-xs text-stone-400">Appelez-nous · Call us</p>
-                    <p className="text-sm font-medium">(514) 555-BAGEL</p>
+                    <p className="text-sm font-medium">(514) 571-7672</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -488,7 +516,7 @@ export default function WholesaleLanding() {
                   </div>
                   <div>
                     <p className="text-xs text-stone-400">Écrivez-nous · Email us</p>
-                    <p className="text-sm font-medium">wholesale@hinnawibros.com</p>
+                    <p className="text-sm font-medium">Rosalyn@wineandmore.com</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -496,8 +524,8 @@ export default function WholesaleLanding() {
                     <MapPin className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-xs text-stone-400">Visitez-nous · Visit us</p>
-                    <p className="text-sm font-medium">Montréal, QC</p>
+                    <p className="text-xs text-stone-400">Notre adresse · Our Address</p>
+                    <p className="text-sm font-medium">733 Cathcart, Montréal</p>
                   </div>
                 </div>
               </div>

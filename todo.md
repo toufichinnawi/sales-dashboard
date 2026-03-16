@@ -25,3 +25,11 @@
 - [x] Match typography and color palette to main Squarespace site
 - [x] Test the redesigned landing page
 - [x] Save checkpoint and deliver with publishing instructions
+
+## Rosie's Contact Info Update
+- [x] Update landing page phone to 514-571-7672
+- [x] Update landing page email to Rosalyn@wineandmore.com
+- [x] Update landing page address to 733 Cathcart, Montreal
+- [x] Update dashboard with real contact info
+- [x] Save checkpoint
+- [x] Add founder story section to landing page — Rosie's mission to share Montreal bagels with the world
