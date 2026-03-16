@@ -1,0 +1,26 @@
+{
+  "query": "SELECT id, realmId, companyName, isActive, accessTokenExpiresAt, refreshTokenExpiresAt FROM qb_connections;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT id, realmId, companyName, isActive, accessTokenExpiresAt, refreshTokenExpiresAt FROM qb_connections;",
+  "rows": [
+    {
+      "id": "1",
+      "realmId": "9341456522572832",
+      "companyName": "NULL",
+      "isActive": "0",
+      "accessTokenExpiresAt": "2026-03-16 20:06:33",
+      "refreshTokenExpiresAt": "2026-06-25 19:06:33"
+    },
+    {
+      "id": "2",
+      "realmId": "193514694951044",
+      "companyName": "Hinnawi Bros Bagel & Cafe",
+      "isActive": "1",
+      "accessTokenExpiresAt": "2026-03-16 21:00:04",
+      "refreshTokenExpiresAt": "2026-06-25 20:00:04"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trealmId\tcompanyName\tisActive\taccessTokenExpiresAt\trefreshTokenExpiresAt\n1\t9341456522572832\tNULL\t0\t2026-03-16 20:06:33\t2026-06-25 19:06:33\n2\t193514694951044\tHinnawi Bros Bagel & Cafe\t1\t2026-03-16 21:00:04\t2026-06-25 20:00:04\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

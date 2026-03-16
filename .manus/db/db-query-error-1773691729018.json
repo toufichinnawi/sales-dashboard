@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, syncType, customersSynced, invoicesSynced, paymentsSynced, LEFT(errorMessage, 200) as errMsg, startedAt, completedAt FROM qb_sync_log ORDER BY id DESC LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT id, syncType, customersSynced, invoicesSynced, paymentsSynced, LEFT(errorMessage, 200) as errMsg, startedAt, completedAt FROM qb_sync_log ORDER BY id DESC LIMIT 3;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'customerssynced' in 'field list'"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "query": "SELECT id, connectionId, syncType, syncStatus, customersCreated, customersUpdated, ordersCreated, ordersUpdated, paymentsProcessed, CASE WHEN errorMessage IS NULL THEN 'none' WHEN LENGTH(errorMessage) = 0 THEN 'empty' ELSE SUBSTRING(errorMessage, 1, 80) END as err, startedAt FROM qb_sync_log ORDER BY id ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT id, connectionId, syncType, syncStatus, customersCreated, customersUpdated, ordersCreated, ordersUpdated, paymentsProcessed, CASE WHEN errorMessage IS NULL THEN 'none' WHEN LENGTH(errorMessage) = 0 THEN 'empty' ELSE SUBSTRING(errorMessage, 1, 80) END as err, startedAt FROM qb_sync_log ORDER BY id ASC;",
+  "rows": [
+    {
+      "id": "1",
+      "connectionId": "1",
+      "syncType": "full",
+      "syncStatus": "completed",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "err": "Customer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f",
+      "startedAt": "2026-03-16 19:07:07"
+    },
+    {
+      "id": "2",
+      "connectionId": "1",
+      "syncType": "full",
+      "syncStatus": "completed",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "err": "Customer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f",
+      "startedAt": "2026-03-16 19:08:09"
+    },
+    {
+      "id": "3",
+      "connectionId": "1",
+      "syncType": "full",
+      "syncStatus": "completed",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "err": "Customer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f",
+      "startedAt": "2026-03-16 19:08:20"
+    },
+    {
+      "id": "4",
+      "connectionId": "1",
+      "syncType": "full",
+      "syncStatus": "completed",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "err": "Customer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f",
+      "startedAt": "2026-03-16 19:08:50"
+    },
+    {
+      "id": "5",
+      "connectionId": "1",
+      "syncType": "full",
+      "syncStatus": "completed",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "err": "Customer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f",
+      "startedAt": "2026-03-16 19:09:06"
+    },
+    {
+      "id": "6",
+      "connectionId": "2",
+      "syncType": "full",
+      "syncStatus": "running",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "err": "none",
+      "startedAt": "2026-03-16 20:02:00"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tconnectionId\tsyncType\tsyncStatus\tcustomersCreated\tcustomersUpdated\tordersCreated\tordersUpdated\tpaymentsProcessed\terr\tstartedAt\n1\t1\tfull\tcompleted\t0\t0\t0\t0\t0\tCustomer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f\t2026-03-16 19:07:07\n2\t1\tfull\tcompleted\t0\t0\t0\t0\t0\tCustomer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f\t2026-03-16 19:08:09\n3\t1\tfull\tcompleted\t0\t0\t0\t0\t0\tCustomer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f\t2026-03-16 19:08:20\n4\t1\tfull\tcompleted\t0\t0\t0\t0\t0\tCustomer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f\t2026-03-16 19:08:50\n5\t1\tfull\tcompleted\t0\t0\t0\t0\t0\tCustomer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"f\t2026-03-16 19:09:06\n6\t2\tfull\trunning\t0\t0\t0\t0\t0\tnone\t2026-03-16 20:02:00\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

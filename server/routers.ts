@@ -60,10 +60,17 @@ export const appRouter = router({
   // ─── DASHBOARD ───────────────────────────────────────────────────────────
 
   dashboard: router({
-    stats: protectedProcedure.query(async () => {
-      const stats = await getDashboardStats();
-      return stats;
-    }),
+    stats: protectedProcedure
+      .input(
+        z.object({
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+        }).optional()
+      )
+      .query(async ({ input }) => {
+        const stats = await getDashboardStats(input ?? undefined);
+        return stats;
+      }),
   }),
 
   // ─── LEADS ────────────────────────────────────────────────────────────────

@@ -252,74 +252,87 @@ export async function getOrdersByCustomerId(customerId: number): Promise<Order[]
 
 // ─── Dashboard Stats (Live Data) ─────────────────────────────────────────
 
-export async function getDashboardStats() {
+export async function getDashboardStats(dateRange?: { startDate?: string; endDate?: string }) {
   const db = await getDb();
   if (!db) return null;
 
   const now = new Date();
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-  // Current month revenue (paid + delivered orders)
-  const thisMonthRevenue = await db
+  // If date range is provided, use it; otherwise default to current month
+  const hasDateFilter = dateRange?.startDate && dateRange?.endDate;
+  const filterStart = hasDateFilter ? new Date(dateRange.startDate!) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const filterEnd = hasDateFilter ? new Date(new Date(dateRange.endDate!).getTime() + 24 * 60 * 60 * 1000 - 1) : now;
+
+  // Calculate comparison period (same duration before the filter period)
+  const filterDuration = filterEnd.getTime() - filterStart.getTime();
+  const compStart = new Date(filterStart.getTime() - filterDuration);
+  const compEnd = new Date(filterStart.getTime() - 1);
+
+  // Revenue in selected period (paid + delivered orders)
+  const periodRevenue = await db
     .select({ total: sql<string>`COALESCE(SUM(${orders.total}), 0)` })
     .from(orders)
     .where(and(
-      gte(orders.createdAt, thisMonthStart),
+      gte(orders.createdAt, filterStart),
+      lte(orders.createdAt, filterEnd),
       inArray(orders.status, ['delivered', 'paid'])
     ));
 
-  // Last month revenue for comparison
-  const lastMonthRevenue = await db
+  // Comparison period revenue
+  const compRevenue = await db
     .select({ total: sql<string>`COALESCE(SUM(${orders.total}), 0)` })
     .from(orders)
     .where(and(
-      gte(orders.createdAt, lastMonthStart),
-      lte(orders.createdAt, lastMonthEnd),
+      gte(orders.createdAt, compStart),
+      lte(orders.createdAt, compEnd),
       inArray(orders.status, ['delivered', 'paid'])
     ));
 
-  // Active customers count
+  // Active customers count (not date-filtered — always shows total)
   const activeCustomersResult = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(customers)
     .where(eq(customers.status, "active"));
 
-  // Total orders this month
-  const thisMonthOrders = await db
-    .select({ count: sql<number>`COUNT(*)`, total: sql<string>`COALESCE(SUM(${orders.total}), 0)` })
-    .from(orders)
-    .where(gte(orders.createdAt, thisMonthStart));
-
-  // Last month orders for comparison
-  const lastMonthOrders = await db
+  // Orders in selected period
+  const periodOrders = await db
     .select({ count: sql<number>`COUNT(*)`, total: sql<string>`COALESCE(SUM(${orders.total}), 0)` })
     .from(orders)
     .where(and(
-      gte(orders.createdAt, lastMonthStart),
-      lte(orders.createdAt, lastMonthEnd)
+      gte(orders.createdAt, filterStart),
+      lte(orders.createdAt, filterEnd)
     ));
 
-  // Weekly dozens (sum of quantity from order items in last 7 days)
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const weeklyDozensResult = await db
+  // Comparison period orders
+  const compOrders = await db
+    .select({ count: sql<number>`COUNT(*)`, total: sql<string>`COALESCE(SUM(${orders.total}), 0)` })
+    .from(orders)
+    .where(and(
+      gte(orders.createdAt, compStart),
+      lte(orders.createdAt, compEnd)
+    ));
+
+  // Dozens in selected period (sum of quantity from order items)
+  const dozensResult = await db
     .select({ total: sql<string>`COALESCE(SUM(${orderItems.quantity}), 0)` })
     .from(orders)
     .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
-    .where(gte(orders.createdAt, weekAgo));
+    .where(and(
+      gte(orders.createdAt, filterStart),
+      lte(orders.createdAt, filterEnd)
+    ));
 
-  // Pipeline value (pending + confirmed orders)
+  // Pipeline value (pending + confirmed orders) — not date-filtered
   const pipelineResult = await db
     .select({ total: sql<string>`COALESCE(SUM(${orders.total}), 0)` })
     .from(orders)
     .where(inArray(orders.status, ['pending', 'confirmed', 'preparing']));
 
-  // Lead conversion rate
+  // Lead conversion rate — not date-filtered
   const totalLeads = await db.select({ count: sql<number>`COUNT(*)` }).from(leads);
   const convertedLeads = await db.select({ count: sql<number>`COUNT(*)` }).from(leads).where(eq(leads.status, "converted"));
 
-  // Pipeline stages from leads
+  // Pipeline stages from leads — not date-filtered
   const leadsByStatus = await db
     .select({
       status: leads.status,
@@ -328,15 +341,18 @@ export async function getDashboardStats() {
     .from(leads)
     .groupBy(leads.status);
 
-  // Monthly revenue for chart (last 12 months)
-  // Use raw SQL to avoid only_full_group_by issue with Drizzle's column aliasing
-  const monthlyRevenueRaw = await db.execute(
-    sql`SELECT DATE_FORMAT(${orders.createdAt}, '%Y-%m') AS \`month\`, COALESCE(SUM(${orders.total}), 0) AS revenue, COUNT(*) AS orderCount FROM ${orders} WHERE ${orders.status} IN ('delivered', 'paid') GROUP BY \`month\` ORDER BY \`month\``
-  );
+  // Monthly revenue for chart — filtered by date range if provided
+  const monthlyRevenueRaw = hasDateFilter
+    ? await db.execute(
+        sql`SELECT DATE_FORMAT(${orders.createdAt}, '%Y-%m') AS \`month\`, COALESCE(SUM(${orders.total}), 0) AS revenue, COUNT(*) AS orderCount FROM ${orders} WHERE ${orders.status} IN ('delivered', 'paid') AND ${orders.createdAt} >= ${filterStart} AND ${orders.createdAt} <= ${filterEnd} GROUP BY \`month\` ORDER BY \`month\``
+      )
+    : await db.execute(
+        sql`SELECT DATE_FORMAT(${orders.createdAt}, '%Y-%m') AS \`month\`, COALESCE(SUM(${orders.total}), 0) AS revenue, COUNT(*) AS orderCount FROM ${orders} WHERE ${orders.status} IN ('delivered', 'paid') GROUP BY \`month\` ORDER BY \`month\``
+      );
   const monthlyRevenueData = (monthlyRevenueRaw[0] as unknown as any[]) || [];
 
-  // Recent orders for activity feed
-  const recentOrders = await db
+  // Recent orders — filtered by date range if provided
+  const recentOrdersQuery = db
     .select({
       id: orders.id,
       orderNumber: orders.orderNumber,
@@ -345,40 +361,66 @@ export async function getDashboardStats() {
       total: orders.total,
       createdAt: orders.createdAt,
     })
-    .from(orders)
-    .orderBy(desc(orders.createdAt))
-    .limit(10);
+    .from(orders);
 
-  // Top customers by total revenue
-  const topCustomers = await db
-    .select({
-      customerId: orders.customerId,
-      totalRevenue: sql<string>`SUM(${orders.total})`,
-      orderCount: sql<number>`COUNT(*)`,
-    })
-    .from(orders)
-    .where(inArray(orders.status, ['delivered', 'paid']))
-    .groupBy(orders.customerId)
-    .orderBy(sql`SUM(${orders.total}) DESC`)
-    .limit(5);
+  const recentOrders = hasDateFilter
+    ? await recentOrdersQuery
+        .where(and(
+          gte(orders.createdAt, filterStart),
+          lte(orders.createdAt, filterEnd)
+        ))
+        .orderBy(desc(orders.createdAt))
+        .limit(10)
+    : await recentOrdersQuery
+        .orderBy(desc(orders.createdAt))
+        .limit(10);
 
-  // Active recurring orders count
+  // Top customers — filtered by date range if provided
+  const topCustomersBase = hasDateFilter
+    ? await db
+        .select({
+          customerId: orders.customerId,
+          totalRevenue: sql<string>`SUM(${orders.total})`,
+          orderCount: sql<number>`COUNT(*)`,
+        })
+        .from(orders)
+        .where(and(
+          inArray(orders.status, ['delivered', 'paid']),
+          gte(orders.createdAt, filterStart),
+          lte(orders.createdAt, filterEnd)
+        ))
+        .groupBy(orders.customerId)
+        .orderBy(sql`SUM(${orders.total}) DESC`)
+        .limit(5)
+    : await db
+        .select({
+          customerId: orders.customerId,
+          totalRevenue: sql<string>`SUM(${orders.total})`,
+          orderCount: sql<number>`COUNT(*)`,
+        })
+        .from(orders)
+        .where(inArray(orders.status, ['delivered', 'paid']))
+        .groupBy(orders.customerId)
+        .orderBy(sql`SUM(${orders.total}) DESC`)
+        .limit(5);
+
+  // Active recurring orders count — not date-filtered
   const activeRecurring = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(recurringOrders)
     .where(eq(recurringOrders.status, "active"));
 
-  const thisMonthRev = Number(thisMonthRevenue[0]?.total ?? 0);
-  const lastMonthRev = Number(lastMonthRevenue[0]?.total ?? 0);
-  const revenueChange = lastMonthRev > 0 ? ((thisMonthRev - lastMonthRev) / lastMonthRev) * 100 : 0;
+  const periodRev = Number(periodRevenue[0]?.total ?? 0);
+  const compRev = Number(compRevenue[0]?.total ?? 0);
+  const revenueChange = compRev > 0 ? ((periodRev - compRev) / compRev) * 100 : 0;
 
-  const thisMonthOrderCount = thisMonthOrders[0]?.count ?? 0;
-  const lastMonthOrderCount = lastMonthOrders[0]?.count ?? 0;
-  const thisMonthTotal = Number(thisMonthOrders[0]?.total ?? 0);
-  const avgOrderSize = thisMonthOrderCount > 0 ? thisMonthTotal / thisMonthOrderCount : 0;
-  const lastMonthTotal = Number(lastMonthOrders[0]?.total ?? 0);
-  const lastAvgOrder = lastMonthOrderCount > 0 ? lastMonthTotal / lastMonthOrderCount : 0;
-  const avgOrderChange = lastAvgOrder > 0 ? ((avgOrderSize - lastAvgOrder) / lastAvgOrder) * 100 : 0;
+  const periodOrderCount = periodOrders[0]?.count ?? 0;
+  const compOrderCount = compOrders[0]?.count ?? 0;
+  const periodTotal = Number(periodOrders[0]?.total ?? 0);
+  const avgOrderSize = periodOrderCount > 0 ? periodTotal / periodOrderCount : 0;
+  const compTotal = Number(compOrders[0]?.total ?? 0);
+  const compAvgOrder = compOrderCount > 0 ? compTotal / compOrderCount : 0;
+  const avgOrderChange = compAvgOrder > 0 ? ((avgOrderSize - compAvgOrder) / compAvgOrder) * 100 : 0;
 
   const totalLeadCount = totalLeads[0]?.count ?? 0;
   const convertedCount = convertedLeads[0]?.count ?? 0;
@@ -386,16 +428,21 @@ export async function getDashboardStats() {
 
   return {
     kpis: {
-      monthlyRevenue: thisMonthRev,
+      monthlyRevenue: periodRev,
       revenueChange: Math.round(revenueChange * 10) / 10,
-      weeklyDozens: Math.round(Number(weeklyDozensResult[0]?.total ?? 0)),
+      weeklyDozens: Math.round(Number(dozensResult[0]?.total ?? 0)),
       activeAccounts: activeCustomersResult[0]?.count ?? 0,
       avgOrderSize: Math.round(avgOrderSize * 100) / 100,
       avgOrderChange: Math.round(avgOrderChange * 10) / 10,
       pipelineValue: Number(pipelineResult[0]?.total ?? 0),
       conversionRate: Math.round(conversionRate * 10) / 10,
-      totalOrders: thisMonthOrderCount,
+      totalOrders: periodOrderCount,
       activeRecurring: activeRecurring[0]?.count ?? 0,
+    },
+    dateRange: {
+      start: filterStart.toISOString(),
+      end: filterEnd.toISOString(),
+      isFiltered: !!hasDateFilter,
     },
     monthlyRevenue: monthlyRevenueData.map((r) => ({
       month: r.month,
@@ -407,7 +454,7 @@ export async function getDashboardStats() {
       count: l.count,
     })),
     recentOrders,
-    topCustomers: topCustomers.map((tc) => ({
+    topCustomers: topCustomersBase.map((tc) => ({
       customerId: tc.customerId,
       totalRevenue: Number(tc.totalRevenue),
       orderCount: tc.orderCount,

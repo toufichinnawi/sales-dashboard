@@ -1,0 +1,49 @@
+{
+  "query": "SELECT id, syncType, syncStatus, customersCreated, customersUpdated, ordersCreated, ordersUpdated, paymentsProcessed, LEFT(errorMessage, 300) as errMsg, startedAt, completedAt FROM qb_sync_log ORDER BY id DESC LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT id, syncType, syncStatus, customersCreated, customersUpdated, ordersCreated, ordersUpdated, paymentsProcessed, LEFT(errorMessage, 300) as errMsg, startedAt, completedAt FROM qb_sync_log ORDER BY id DESC LIMIT 3;",
+  "rows": [
+    {
+      "id": "6",
+      "syncType": "full",
+      "syncStatus": "running",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "errMsg": "NULL",
+      "startedAt": "2026-03-16 20:02:00",
+      "completedAt": "NULL"
+    },
+    {
+      "id": "5",
+      "syncType": "full",
+      "syncStatus": "completed",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "errMsg": "Customer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"fault\":{\"error\":[{\"message\":\"message=ApplicationAuthorizationFailed; errorCode=003100; statusCode=403\",\"detail\":null,\"code\":\"3100\",\"element\":null}],\"type\":\"SERVICE\"},\"report\":null,\"queryResponse\":null,\"batchItemResponse\":",
+      "startedAt": "2026-03-16 19:09:06",
+      "completedAt": "2026-03-16 19:09:09"
+    },
+    {
+      "id": "4",
+      "syncType": "full",
+      "syncStatus": "completed",
+      "customersCreated": "0",
+      "customersUpdated": "0",
+      "ordersCreated": "0",
+      "ordersUpdated": "0",
+      "paymentsProcessed": "0",
+      "errMsg": "Customer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"fault\":{\"error\":[{\"message\":\"message=ApplicationAuthorizationFailed; errorCode=003100; statusCode=403\",\"detail\":null,\"code\":\"3100\",\"element\":null}],\"type\":\"SERVICE\"},\"report\":null,\"queryResponse\":null,\"batchItemResponse\":",
+      "startedAt": "2026-03-16 19:08:50",
+      "completedAt": "2026-03-16 19:08:54"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsyncType\tsyncStatus\tcustomersCreated\tcustomersUpdated\tordersCreated\tordersUpdated\tpaymentsProcessed\terrMsg\tstartedAt\tcompletedAt\n6\tfull\trunning\t0\t0\t0\t0\t0\tNULL\t2026-03-16 20:02:00\tNULL\n5\tfull\tcompleted\t0\t0\t0\t0\t0\tCustomer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"fault\":{\"error\":[{\"message\":\"message=ApplicationAuthorizationFailed; errorCode=003100; statusCode=403\",\"detail\":null,\"code\":\"3100\",\"element\":null}],\"type\":\"SERVICE\"},\"report\":null,\"queryResponse\":null,\"batchItemResponse\":\t2026-03-16 19:09:06\t2026-03-16 19:09:09\n4\tfull\tcompleted\t0\t0\t0\t0\t0\tCustomer sync error: QB Query error 403: {\"warnings\":null,\"intuitObject\":null,\"fault\":{\"error\":[{\"message\":\"message=ApplicationAuthorizationFailed; errorCode=003100; statusCode=403\",\"detail\":null,\"code\":\"3100\",\"element\":null}],\"type\":\"SERVICE\"},\"report\":null,\"queryResponse\":null,\"batchItemResponse\":\t2026-03-16 19:08:50\t2026-03-16 19:08:54\n",
+  "stderr": "",
+  "execution_time_ms": 65
+}

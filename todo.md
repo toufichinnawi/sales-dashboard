@@ -173,3 +173,6 @@
 - [x] Ensure API_BASE uses production QuickBooks endpoint
 - [x] Disconnect old connection and reconnect with production credentials
 - [x] Update dashboard design to match Hinnawi Bros / Bagel Factory brand colors
+- [x] Add date range filter to dashboard backend (dashboard.stats accepts startDate/endDate)
+- [x] Add date range picker UI to dashboard Home page
+- [x] Filter KPIs, revenue chart, recent orders, and top accounts by selected date range

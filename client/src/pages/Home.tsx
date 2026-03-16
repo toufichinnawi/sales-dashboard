@@ -3,7 +3,7 @@
  * Live KPI cards from database, revenue chart, pipeline overview, activity feed, top accounts
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   DollarSign,
   TrendingUp,
@@ -23,11 +23,15 @@ import {
   UtensilsCrossed,
   RefreshCw,
   Repeat,
+  CalendarDays,
+  Filter,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AreaChart,
   Area,
@@ -63,10 +67,67 @@ const SLATE = "#64748B";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/hinnawi-hero-banner-jQuk3nq5Y7HgaMHmi3Jmtv.webp";
 
+// Date range presets
+function getPresetRange(preset: string): { startDate: string; endDate: string } | undefined {
+  const now = new Date();
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  const today = fmt(now);
+
+  switch (preset) {
+    case "today": {
+      return { startDate: today, endDate: today };
+    }
+    case "yesterday": {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return { startDate: fmt(y), endDate: fmt(y) };
+    }
+    case "last7": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 6);
+      return { startDate: fmt(d), endDate: today };
+    }
+    case "last30": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 29);
+      return { startDate: fmt(d), endDate: today };
+    }
+    case "thisMonth": {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { startDate: fmt(s), endDate: today };
+    }
+    case "lastMonth": {
+      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { startDate: fmt(s), endDate: fmt(e) };
+    }
+    case "thisYear": {
+      const s = new Date(now.getFullYear(), 0, 1);
+      return { startDate: fmt(s), endDate: today };
+    }
+    case "all":
+    default:
+      return undefined;
+  }
+}
+
 export default function Home() {
-  const { data: stats, isLoading } = trpc.dashboard.stats.useQuery(undefined, {
-    refetchInterval: 30000, // refresh every 30s
-  });
+  const [activePreset, setActivePreset] = useState<string>("thisMonth");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
+
+  const dateRange = useMemo(() => {
+    if (activePreset === "custom" && customStart && customEnd) {
+      return { startDate: customStart, endDate: customEnd };
+    }
+    return getPresetRange(activePreset);
+  }, [activePreset, customStart, customEnd]);
+
+  const { data: stats, isLoading } = trpc.dashboard.stats.useQuery(
+    dateRange ? { startDate: dateRange.startDate, endDate: dateRange.endDate } : undefined,
+    { refetchInterval: 30000 }
+  );
   const { data: customerList } = trpc.customers.list.useQuery();
 
   // Build a customer name lookup
@@ -115,6 +176,19 @@ export default function Home() {
       </div>
 
       <div className="px-4 md:px-6 space-y-6 pb-6">
+        {/* Date Filter Bar */}
+        <DateFilterBar
+          activePreset={activePreset}
+          setActivePreset={setActivePreset}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          showCustom={showCustom}
+          setShowCustom={setShowCustom}
+          dateRange={dateRange}
+        />
+
         {/* KPI Ticker Row */}
         <KPITicker stats={stats} isLoading={isLoading} hasLiveData={hasLiveData} />
 
@@ -122,7 +196,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left: Charts */}
           <div className="lg:col-span-2 space-y-5">
-            <RevenueChart stats={stats} hasLiveData={hasLiveData} />
+            <RevenueChart stats={stats} hasLiveData={hasLiveData} dateRange={dateRange} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <PipelineFunnel stats={stats} hasLiveData={hasLiveData} />
               <WeeklyActivity />
@@ -140,6 +214,128 @@ export default function Home() {
   );
 }
 
+// ─── Date Filter Bar ────────────────────────────────────────────────────────
+
+const PRESETS = [
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "last7", label: "Last 7 Days" },
+  { key: "last30", label: "Last 30 Days" },
+  { key: "thisMonth", label: "This Month" },
+  { key: "lastMonth", label: "Last Month" },
+  { key: "thisYear", label: "This Year" },
+  { key: "all", label: "All Time" },
+];
+
+function DateFilterBar({
+  activePreset,
+  setActivePreset,
+  customStart,
+  setCustomStart,
+  customEnd,
+  setCustomEnd,
+  showCustom,
+  setShowCustom,
+  dateRange,
+}: {
+  activePreset: string;
+  setActivePreset: (v: string) => void;
+  customStart: string;
+  setCustomStart: (v: string) => void;
+  customEnd: string;
+  setCustomEnd: (v: string) => void;
+  showCustom: boolean;
+  setShowCustom: (v: boolean) => void;
+  dateRange: { startDate: string; endDate: string } | undefined;
+}) {
+  return (
+    <Card className="border-border/50 py-0">
+      <CardContent className="p-3">
+        <div className="flex flex-col gap-2">
+          {/* Preset buttons row */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <CalendarDays className="h-4 w-4 text-muted-foreground mr-1" />
+            {PRESETS.map((p) => (
+              <Button
+                key={p.key}
+                variant={activePreset === p.key ? "default" : "outline"}
+                size="sm"
+                className={`h-7 text-[11px] px-2.5 ${
+                  activePreset === p.key
+                    ? "bg-[#1B2A4A] hover:bg-[#2D4470] text-white"
+                    : ""
+                }`}
+                onClick={() => {
+                  setActivePreset(p.key);
+                  setShowCustom(false);
+                }}
+              >
+                {p.label}
+              </Button>
+            ))}
+            <Button
+              variant={activePreset === "custom" ? "default" : "outline"}
+              size="sm"
+              className={`h-7 text-[11px] px-2.5 ${
+                activePreset === "custom"
+                  ? "bg-[#1B2A4A] hover:bg-[#2D4470] text-white"
+                  : ""
+              }`}
+              onClick={() => {
+                setShowCustom(!showCustom);
+                if (!showCustom) setActivePreset("custom");
+              }}
+            >
+              <Filter className="h-3 w-3 mr-1" />
+              Custom
+            </Button>
+          </div>
+
+          {/* Custom date range inputs */}
+          {showCustom && (
+            <div className="flex items-center gap-2 pl-6">
+              <label className="text-[11px] text-muted-foreground">From</label>
+              <Input
+                type="date"
+                value={customStart}
+                onChange={(e) => {
+                  setCustomStart(e.target.value);
+                  setActivePreset("custom");
+                }}
+                className="h-7 text-[11px] w-36"
+              />
+              <label className="text-[11px] text-muted-foreground">To</label>
+              <Input
+                type="date"
+                value={customEnd}
+                onChange={(e) => {
+                  setCustomEnd(e.target.value);
+                  setActivePreset("custom");
+                }}
+                className="h-7 text-[11px] w-36"
+              />
+              {dateRange && (
+                <Badge variant="secondary" className="text-[10px] h-5 ml-2">
+                  {dateRange.startDate} to {dateRange.endDate}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Active filter indicator */}
+          {!showCustom && dateRange && (
+            <div className="flex items-center gap-1.5 pl-6">
+              <span className="text-[10px] text-muted-foreground">
+                Showing: {dateRange.startDate} to {dateRange.endDate}
+              </span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── KPI Ticker ──────────────────────────────────────────────────────────────
 
 function KPITicker({ stats, isLoading, hasLiveData }: { stats: any; isLoading: boolean; hasLiveData: boolean }) {
@@ -147,13 +343,13 @@ function KPITicker({ stats, isLoading, hasLiveData }: { stats: any; isLoading: b
     if (hasLiveData && stats) {
       return [
         {
-          label: "Monthly Revenue",
+          label: stats.dateRange?.isFiltered ? "Period Revenue" : "Monthly Revenue",
           value: formatCurrency(stats.kpis.monthlyRevenue),
           change: stats.kpis.revenueChange,
           icon: DollarSign,
         },
         {
-          label: "Dozens / Week",
+          label: stats.dateRange?.isFiltered ? "Period Dozens" : "Dozens / Week",
           value: `${stats.kpis.weeklyDozens} dz`,
           change: 0,
           icon: Package,
@@ -266,7 +462,7 @@ function KPITicker({ stats, isLoading, hasLiveData }: { stats: any; isLoading: b
 
 // ─── Revenue Chart ───────────────────────────────────────────────────────────
 
-function RevenueChart({ stats, hasLiveData }: { stats: any; hasLiveData: boolean }) {
+function RevenueChart({ stats, hasLiveData, dateRange }: { stats: any; hasLiveData: boolean; dateRange?: { startDate: string; endDate: string } }) {
   const chartData = useMemo(() => {
     if (hasLiveData && stats?.monthlyRevenue?.length > 0) {
       return stats.monthlyRevenue.map((r: any) => ({
@@ -300,7 +496,7 @@ function RevenueChart({ stats, hasLiveData }: { stats: any; hasLiveData: boolean
             <Badge className="bg-green-600/80 text-white text-[10px] border-0 h-5">Live</Badge>
           ) : (
             <Badge variant="secondary" className="text-[10px] font-data h-5">
-              Apr 2025 – Mar 2026
+              {dateRange ? `${dateRange.startDate} – ${dateRange.endDate}` : "Apr 2025 – Mar 2026"}
             </Badge>
           )}
         </div>
