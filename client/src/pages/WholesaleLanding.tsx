@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -93,12 +94,30 @@ export default function WholesaleLanding() {
     message: "",
   });
 
+  const createLead = trpc.leads.create.useMutation({
+    onSuccess: () => {
+      toast.success("Thank you! We'll be in touch within 24 hours.", {
+        description: "We'll reach out to schedule a free tasting.",
+      });
+      setFormData({ name: "", business: "", email: "", phone: "", message: "" });
+    },
+    onError: (error) => {
+      toast.error("Something went wrong. Please try again.", {
+        description: error.message,
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Thank you! We'll be in touch within 24 hours.", {
-      description: "We'll reach out to schedule a free tasting.",
+    createLead.mutate({
+      name: formData.name,
+      business: formData.business,
+      email: formData.email,
+      phone: formData.phone || undefined,
+      message: formData.message || undefined,
+      source: "wholesale_landing_page",
     });
-    setFormData({ name: "", business: "", email: "", phone: "", message: "" });
   };
 
   return (
@@ -521,13 +540,13 @@ export default function WholesaleLanding() {
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                   />
                 </div>
-                <Button
+                         <Button
                   type="submit"
                   className="w-full bg-amber-800 hover:bg-amber-900 text-white font-semibold"
-                  size="lg"
+                  disabled={createLead.isPending}
                 >
-                  Send Request — It's Free
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  {createLead.isPending ? "Sending..." : "Send Request — It's Free"}
+                  {!createLead.isPending && <ArrowRight className="h-4 w-4 ml-2" />}
                 </Button>
                 <p className="text-[11px] text-muted-foreground text-center">
                   We'll respond within 24 hours. No spam, ever.

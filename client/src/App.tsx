@@ -11,6 +11,7 @@ import Deals from "./pages/Deals";
 import Team from "./pages/Team";
 import Analytics from "./pages/Analytics";
 import Prospects from "./pages/Prospects";
+import Leads from "./pages/Leads";
 import WholesaleLanding from "./pages/WholesaleLanding";
 
 function DashboardRouter() {
@@ -23,14 +24,15 @@ function DashboardRouter() {
         <Route path={"/team"} component={Team} />
         <Route path={"/analytics"} component={Analytics} />
         <Route path={"/prospects"} component={Prospects} />
+        <Route path={"/leads"} component={Leads} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>
   );
 }
-
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/wholesale"} component={WholesaleLanding} />

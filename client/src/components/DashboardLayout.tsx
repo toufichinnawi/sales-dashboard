@@ -11,6 +11,7 @@ import {
   Users,
   BarChart3,
   Target,
+  Inbox,
   Settings,
   Bell,
   Search,
@@ -48,6 +49,7 @@ const navItems = [
   { path: "/team", label: "Team", icon: Users },
   { path: "/analytics", label: "Analytics", icon: BarChart3 },
   { path: "/prospects", label: "Prospects", icon: Target },
+  { path: "/leads", label: "Leads", icon: Inbox },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
