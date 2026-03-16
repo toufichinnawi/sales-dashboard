@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, realmId, companyName, isActive, lastSyncAt, accessTokenExpiresAt, refreshTokenExpiresAt, createdAt FROM qb_connections ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT id, realmId, companyName, isActive, lastSyncAt, accessTokenExpiresAt, refreshTokenExpiresAt, createdAt FROM qb_connections ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "realmId": "9341456522572832",
+      "companyName": "NULL",
+      "isActive": "1",
+      "lastSyncAt": "2026-03-16 19:09:09",
+      "accessTokenExpiresAt": "2026-03-16 20:06:33",
+      "refreshTokenExpiresAt": "2026-06-25 19:06:33",
+      "createdAt": "2026-03-16 19:06:33"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trealmId\tcompanyName\tisActive\tlastSyncAt\taccessTokenExpiresAt\trefreshTokenExpiresAt\tcreatedAt\n1\t9341456522572832\tNULL\t1\t2026-03-16 19:09:09\t2026-03-16 20:06:33\t2026-06-25 19:06:33\t2026-03-16 19:06:33\n",
+  "stderr": "",
+  "execution_time_ms": 117
+}

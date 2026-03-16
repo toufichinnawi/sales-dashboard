@@ -169,3 +169,7 @@
 - [x] Build QuickBooks Settings page (connect, disconnect, sync status, manual sync trigger)
 - [ ] Build auto-sync schedule (every 5 min between 7AM-8PM, plus 9PM and 12AM)
 - [x] Write vitest tests for QB integration (34/34 passed)
+- [x] Update QB_CLIENT_ID and QB_CLIENT_SECRET to Production credentials
+- [x] Ensure API_BASE uses production QuickBooks endpoint
+- [x] Disconnect old connection and reconnect with production credentials
+- [x] Update dashboard design to match Hinnawi Bros / Bagel Factory brand colors

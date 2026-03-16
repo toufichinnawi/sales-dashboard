@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, realmId, companyName, isActive FROM qb_connections;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT id, realmId, companyName, isActive FROM qb_connections;",
+  "rows": [
+    {
+      "id": "1",
+      "realmId": "9341456522572832",
+      "companyName": "NULL",
+      "isActive": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trealmId\tcompanyName\tisActive\n1\t9341456522572832\tNULL\t1\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}

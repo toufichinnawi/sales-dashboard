@@ -5,9 +5,9 @@
 
 /*
  * DESIGN SYSTEM: Hinnawi Bros Bagels — Wholesale Dashboard
- * Warm artisan bakery aesthetic with editorial data precision
+ * Brand identity: Golden Amber (#F5A623) + Dark Navy (#1B2A4A)
  * Typography: DM Sans (display) + IBM Plex Sans (body) + IBM Plex Mono (data)
- * Palette: Warm cream base, amber/brown primary, golden accents
+ * Palette: Warm cream base, golden amber primary, navy accents
  */
 
 @theme inline {
@@ -50,88 +50,92 @@
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-display: 'DM Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
+  /* Brand-specific colors for direct use */
+  --color-brand-gold: oklch(0.78 0.16 80);
+  --color-brand-navy: oklch(0.25 0.06 260);
+  --color-brand-navy-light: oklch(0.35 0.06 260);
 }
 
 :root {
   --radius: 0.5rem;
   /* Warm cream base — like fresh dough */
   --background: oklch(0.975 0.006 75);
-  --foreground: oklch(0.20 0.015 50);
+  --foreground: oklch(0.18 0.03 260);
   /* Card surfaces — warm white */
   --card: oklch(0.993 0.003 75);
-  --card-foreground: oklch(0.20 0.015 50);
+  --card-foreground: oklch(0.18 0.03 260);
   /* Popover */
   --popover: oklch(0.993 0.003 75);
-  --popover-foreground: oklch(0.20 0.015 50);
-  /* Warm amber-brown primary — toasted bagel */
-  --primary: oklch(0.45 0.12 55);
-  --primary-foreground: oklch(0.97 0.005 55);
-  /* Warm light secondary */
-  --secondary: oklch(0.955 0.008 65);
-  --secondary-foreground: oklch(0.35 0.015 50);
+  --popover-foreground: oklch(0.18 0.03 260);
+  /* Golden amber primary — Hinnawi brand gold */
+  --primary: oklch(0.72 0.16 75);
+  --primary-foreground: oklch(0.15 0.03 260);
+  /* Navy-tinted secondary */
+  --secondary: oklch(0.94 0.01 260);
+  --secondary-foreground: oklch(0.25 0.06 260);
   /* Muted tones */
-  --muted: oklch(0.945 0.008 65);
-  --muted-foreground: oklch(0.50 0.015 50);
-  /* Accent */
-  --accent: oklch(0.945 0.008 65);
-  --accent-foreground: oklch(0.20 0.015 50);
+  --muted: oklch(0.94 0.008 75);
+  --muted-foreground: oklch(0.50 0.02 260);
+  /* Navy accent */
+  --accent: oklch(0.94 0.01 260);
+  --accent-foreground: oklch(0.18 0.03 260);
   /* Destructive */
   --destructive: oklch(0.52 0.18 18);
   --destructive-foreground: oklch(0.97 0.005 18);
   /* Borders & inputs — warm stone */
-  --border: oklch(0.90 0.008 65);
-  --input: oklch(0.90 0.008 65);
-  --ring: oklch(0.52 0.12 55);
-  /* Chart colors: amber/brown spectrum */
-  --chart-1: oklch(0.45 0.12 55);
-  --chart-2: oklch(0.58 0.14 65);
-  --chart-3: oklch(0.68 0.10 75);
-  --chart-4: oklch(0.38 0.08 45);
+  --border: oklch(0.90 0.008 75);
+  --input: oklch(0.90 0.008 75);
+  --ring: oklch(0.72 0.16 75);
+  /* Chart colors: brand gold + navy spectrum */
+  --chart-1: oklch(0.72 0.16 75);
+  --chart-2: oklch(0.30 0.06 260);
+  --chart-3: oklch(0.60 0.12 75);
+  --chart-4: oklch(0.45 0.06 260);
   --chart-5: oklch(0.52 0.18 18);
-  /* Sidebar — warm off-white */
-  --sidebar: oklch(0.985 0.004 65);
-  --sidebar-foreground: oklch(0.20 0.015 50);
-  --sidebar-primary: oklch(0.45 0.12 55);
-  --sidebar-primary-foreground: oklch(0.97 0.005 55);
-  --sidebar-accent: oklch(0.945 0.008 65);
-  --sidebar-accent-foreground: oklch(0.20 0.015 50);
-  --sidebar-border: oklch(0.90 0.008 65);
-  --sidebar-ring: oklch(0.52 0.12 55);
+  /* Sidebar — dark navy (brand color) */
+  --sidebar: oklch(0.20 0.04 260);
+  --sidebar-foreground: oklch(0.90 0.01 75);
+  --sidebar-primary: oklch(0.78 0.16 80);
+  --sidebar-primary-foreground: oklch(0.15 0.03 260);
+  --sidebar-accent: oklch(0.26 0.04 260);
+  --sidebar-accent-foreground: oklch(0.95 0.005 75);
+  --sidebar-border: oklch(0.30 0.04 260);
+  --sidebar-ring: oklch(0.78 0.16 80);
 }
 
 .dark {
-  --background: oklch(0.14 0.008 50);
-  --foreground: oklch(0.88 0.008 65);
-  --card: oklch(0.19 0.008 50);
-  --card-foreground: oklch(0.88 0.008 65);
-  --popover: oklch(0.19 0.008 50);
-  --popover-foreground: oklch(0.88 0.008 65);
-  --primary: oklch(0.58 0.14 55);
-  --primary-foreground: oklch(0.14 0.005 55);
-  --secondary: oklch(0.22 0.008 50);
-  --secondary-foreground: oklch(0.75 0.008 65);
-  --muted: oklch(0.25 0.008 50);
-  --muted-foreground: oklch(0.65 0.015 50);
-  --accent: oklch(0.25 0.008 50);
-  --accent-foreground: oklch(0.92 0.005 65);
+  --background: oklch(0.13 0.02 260);
+  --foreground: oklch(0.90 0.01 75);
+  --card: oklch(0.18 0.02 260);
+  --card-foreground: oklch(0.90 0.01 75);
+  --popover: oklch(0.18 0.02 260);
+  --popover-foreground: oklch(0.90 0.01 75);
+  --primary: oklch(0.78 0.16 80);
+  --primary-foreground: oklch(0.15 0.03 260);
+  --secondary: oklch(0.22 0.02 260);
+  --secondary-foreground: oklch(0.80 0.01 75);
+  --muted: oklch(0.25 0.02 260);
+  --muted-foreground: oklch(0.65 0.02 260);
+  --accent: oklch(0.25 0.02 260);
+  --accent-foreground: oklch(0.95 0.005 75);
   --destructive: oklch(0.60 0.18 18);
   --destructive-foreground: oklch(0.97 0.005 18);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.58 0.14 55);
-  --chart-1: oklch(0.58 0.14 55);
-  --chart-2: oklch(0.65 0.12 65);
-  --chart-3: oklch(0.72 0.08 75);
-  --chart-4: oklch(0.45 0.08 45);
+  --ring: oklch(0.78 0.16 80);
+  --chart-1: oklch(0.78 0.16 80);
+  --chart-2: oklch(0.50 0.06 260);
+  --chart-3: oklch(0.65 0.12 75);
+  --chart-4: oklch(0.40 0.06 260);
   --chart-5: oklch(0.60 0.18 18);
-  --sidebar: oklch(0.19 0.008 50);
-  --sidebar-foreground: oklch(0.88 0.008 65);
-  --sidebar-primary: oklch(0.58 0.14 55);
-  --sidebar-primary-foreground: oklch(0.14 0.005 55);
-  --sidebar-accent: oklch(0.25 0.008 50);
-  --sidebar-accent-foreground: oklch(0.97 0.005 65);
+  --sidebar: oklch(0.16 0.02 260);
+  --sidebar-foreground: oklch(0.90 0.01 75);
+  --sidebar-primary: oklch(0.78 0.16 80);
+  --sidebar-primary-foreground: oklch(0.15 0.03 260);
+  --sidebar-accent: oklch(0.22 0.02 260);
+  --sidebar-accent-foreground: oklch(0.95 0.005 75);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.58 0.14 55);
+  --sidebar-ring: oklch(0.78 0.16 80);
 }
 
 @layer base {

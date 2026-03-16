@@ -55,10 +55,11 @@ import {
   type Activity,
 } from "@/lib/data";
 
-const AMBER = "#B45309";
-const AMBER_LIGHT = "#D97706";
-const WARM_BROWN = "#92400E";
-const SLATE = "#78716C";
+const BRAND_GOLD = "#E5A100";
+const BRAND_GOLD_LIGHT = "#F5B800";
+const BRAND_NAVY = "#1B2A4A";
+const BRAND_NAVY_LIGHT = "#2D4470";
+const SLATE = "#64748B";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/hinnawi-hero-banner-jQuk3nq5Y7HgaMHmi3Jmtv.webp";
 
@@ -309,8 +310,8 @@ function RevenueChart({ stats, hasLiveData }: { stats: any; hasLiveData: boolean
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={AMBER} stopOpacity={0.15} />
-                <stop offset="95%" stopColor={AMBER} stopOpacity={0} />
+                <stop offset="5%" stopColor={BRAND_GOLD} stopOpacity={0.15} />
+                <stop offset="95%" stopColor={BRAND_GOLD} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
@@ -350,11 +351,11 @@ function RevenueChart({ stats, hasLiveData }: { stats: any; hasLiveData: boolean
             <Area
               type="monotone"
               dataKey="revenue"
-              stroke={AMBER}
+              stroke={BRAND_GOLD}
               strokeWidth={2}
               fill="url(#revenueGrad)"
-              dot={{ r: 2.5, fill: AMBER, strokeWidth: 0 }}
-              activeDot={{ r: 4, fill: AMBER, strokeWidth: 2, stroke: "#fff" }}
+              dot={{ r: 2.5, fill: BRAND_GOLD, strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: BRAND_GOLD, strokeWidth: 2, stroke: "#fff" }}
             />
             {hasTarget && (
               <Area
@@ -383,7 +384,7 @@ function RevenueChart({ stats, hasLiveData }: { stats: any; hasLiveData: boolean
 // ─── Pipeline Funnel ─────────────────────────────────────────────────────────
 
 function PipelineFunnel({ stats, hasLiveData }: { stats: any; hasLiveData: boolean }) {
-  const colors = [SLATE, "#D4A574", AMBER_LIGHT, AMBER, WARM_BROWN];
+  const colors = [SLATE, BRAND_NAVY_LIGHT, BRAND_GOLD_LIGHT, BRAND_GOLD, BRAND_NAVY];
 
   const data = useMemo(() => {
     if (hasLiveData && stats?.leadsByStatus?.length > 0) {
@@ -492,10 +493,10 @@ function WeeklyActivity() {
                 border: "1px solid #e5e5e5",
               }}
             />
-            <Bar dataKey="calls" fill={WARM_BROWN} radius={[3, 3, 0, 0]} barSize={8} name="Calls" />
-            <Bar dataKey="emails" fill={AMBER} radius={[3, 3, 0, 0]} barSize={8} name="Emails" />
-            <Bar dataKey="tastings" fill={AMBER_LIGHT} radius={[3, 3, 0, 0]} barSize={8} name="Tastings" />
-            <Bar dataKey="deliveries" fill="#D4A574" radius={[3, 3, 0, 0]} barSize={8} name="Deliveries" />
+            <Bar dataKey="calls" fill={BRAND_NAVY} radius={[3, 3, 0, 0]} barSize={8} name="Calls" />
+            <Bar dataKey="emails" fill={BRAND_GOLD} radius={[3, 3, 0, 0]} barSize={8} name="Emails" />
+            <Bar dataKey="tastings" fill={BRAND_GOLD_LIGHT} radius={[3, 3, 0, 0]} barSize={8} name="Tastings" />
+            <Bar dataKey="deliveries" fill={BRAND_NAVY_LIGHT} radius={[3, 3, 0, 0]} barSize={8} name="Deliveries" />
             <Legend
               verticalAlign="top"
               align="right"
@@ -707,7 +708,7 @@ function TopAccounts({ stats, customerMap, hasLiveData }: { stats: any; customer
 function ChangeIndicator({ value }: { value: number }) {
   const positive = value >= 0;
   return (
-    <div className={`flex items-center gap-0.5 ${positive ? "text-amber-800" : "text-red-600"}`}>
+    <div className={`flex items-center gap-0.5 ${positive ? "text-amber-700" : "text-red-600"}`}>
       {positive ? (
         <ArrowUpRight className="h-3 w-3" />
       ) : (
