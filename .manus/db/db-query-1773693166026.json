@@ -1,0 +1,130 @@
+{
+  "query": "SELECT orderNumber, total, orderStatus, createdAt FROM orders WHERE DATE(createdAt) = CURDATE() ORDER BY total DESC LIMIT 20",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT orderNumber, total, orderStatus, createdAt FROM orders WHERE DATE(createdAt) = CURDATE() ORDER BY total DESC LIMIT 20",
+  "rows": [
+    {
+      "orderNumber": "QB-3769",
+      "total": "2368.25",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:19:05"
+    },
+    {
+      "orderNumber": "QB-3736",
+      "total": "2364.50",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:19:07"
+    },
+    {
+      "orderNumber": "QB-3631",
+      "total": "2358.00",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:19:23"
+    },
+    {
+      "orderNumber": "QB-3665",
+      "total": "2348.25",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:19:16"
+    },
+    {
+      "orderNumber": "QB-3611",
+      "total": "2312.50",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:19:24"
+    },
+    {
+      "orderNumber": "QB-5574",
+      "total": "2284.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:03:50"
+    },
+    {
+      "orderNumber": "QB-3799",
+      "total": "2274.50",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:19:04"
+    },
+    {
+      "orderNumber": "QB-5300",
+      "total": "2184.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:03:59"
+    },
+    {
+      "orderNumber": "QB-5425",
+      "total": "2184.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:03:56"
+    },
+    {
+      "orderNumber": "QB-5357",
+      "total": "2179.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:03:59"
+    },
+    {
+      "orderNumber": "QB-4321",
+      "total": "2137.35",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:10:09"
+    },
+    {
+      "orderNumber": "QB-5290",
+      "total": "2134.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:04:03"
+    },
+    {
+      "orderNumber": "QB-6015",
+      "total": "2129.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:03:01"
+    },
+    {
+      "orderNumber": "QB-5297",
+      "total": "2124.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:04:02"
+    },
+    {
+      "orderNumber": "QB-4227",
+      "total": "2120.00",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:10:52"
+    },
+    {
+      "orderNumber": "QB-5767",
+      "total": "2114.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:03:40"
+    },
+    {
+      "orderNumber": "QB-5964",
+      "total": "2109.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:03:26"
+    },
+    {
+      "orderNumber": "QB-5319",
+      "total": "2109.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:04:00"
+    },
+    {
+      "orderNumber": "QB-5880",
+      "total": "2089.30",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:03:32"
+    },
+    {
+      "orderNumber": "QB-4254",
+      "total": "2084.00",
+      "orderStatus": "paid",
+      "createdAt": "2026-03-16 20:10:49"
+    }
+  ],
+  "messages": [],
+  "stdout": "orderNumber\ttotal\torderStatus\tcreatedAt\nQB-3769\t2368.25\tpaid\t2026-03-16 20:19:05\nQB-3736\t2364.50\tpaid\t2026-03-16 20:19:07\nQB-3631\t2358.00\tpaid\t2026-03-16 20:19:23\nQB-3665\t2348.25\tpaid\t2026-03-16 20:19:16\nQB-3611\t2312.50\tpaid\t2026-03-16 20:19:24\nQB-5574\t2284.30\tpaid\t2026-03-16 20:03:50\nQB-3799\t2274.50\tpaid\t2026-03-16 20:19:04\nQB-5300\t2184.30\tpaid\t2026-03-16 20:03:59\nQB-5425\t2184.30\tpaid\t2026-03-16 20:03:56\nQB-5357\t2179.30\tpaid\t2026-03-16 20:03:59\nQB-4321\t2137.35\tpaid\t2026-03-16 20:10:09\nQB-5290\t2134.30\tpaid\t2026-03-16 20:04:03\nQB-6015\t2129.30\tpaid\t2026-03-16 20:03:01\nQB-5297\t2124.30\tpaid\t2026-03-16 20:04:02\nQB-4227\t2120.00\tpaid\t2026-03-16 20:10:52\nQB-5767\t2114.30\tpaid\t2026-03-16 20:03:40\nQB-5964\t2109.30\tpaid\t2026-03-16 20:03:26\nQB-5319\t2109.30\tpaid\t2026-03-16 20:04:00\nQB-5880\t2089.30\tpaid\t2026-03-16 20:03:32\nQB-4254\t2084.00\tpaid\t2026-03-16 20:10:49\n",
+  "stderr": "",
+  "execution_time_ms": 109
+}

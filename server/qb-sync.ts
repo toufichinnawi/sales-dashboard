@@ -266,7 +266,7 @@ export async function syncInvoices(): Promise<{
               .where(eq(orders.id, existingOrder[0].id));
             updated++;
           } else {
-            // Create new order
+            // Create new order — use TxnDate as createdAt so date filters work correctly
             const orderResult = await db.insert(orders).values({
               customerId,
               orderNumber,
@@ -278,6 +278,7 @@ export async function syncInvoices(): Promise<{
               total: String(totalAmt.toFixed(2)),
               notes: `QB Invoice #${invoiceNum} | QB ID: ${inv.Id}`,
               recurringOrderId: null,
+              createdAt: deliveryDate,
             });
 
             const orderId = orderResult[0].insertId;

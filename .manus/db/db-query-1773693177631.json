@@ -1,0 +1,14 @@
+{
+  "query": "SELECT COUNT(*) as cnt, SUM(total) as rev FROM orders WHERE createdAt >= '2026-03-16 00:00:00' AND createdAt <= '2026-03-16 23:59:59' AND orderStatus IN ('delivered', 'paid')",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT COUNT(*) as cnt, SUM(total) as rev FROM orders WHERE createdAt >= '2026-03-16 00:00:00' AND createdAt <= '2026-03-16 23:59:59' AND orderStatus IN ('delivered', 'paid')",
+  "rows": [
+    {
+      "cnt": "3841",
+      "rev": "969281.19"
+    }
+  ],
+  "messages": [],
+  "stdout": "cnt\trev\n3841\t969281.19\n",
+  "stderr": "",
+  "execution_time_ms": 71
+}

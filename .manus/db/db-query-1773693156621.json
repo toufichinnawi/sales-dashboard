@@ -1,0 +1,14 @@
+{
+  "query": "SELECT COUNT(*) as order_count, COALESCE(SUM(total), 0) as total_revenue FROM orders WHERE DATE(createdAt) = CURDATE() AND orderStatus IN ('delivered', 'paid')",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT COUNT(*) as order_count, COALESCE(SUM(total), 0) as total_revenue FROM orders WHERE DATE(createdAt) = CURDATE() AND orderStatus IN ('delivered', 'paid')",
+  "rows": [
+    {
+      "order_count": "3825",
+      "total_revenue": "966435.99"
+    }
+  ],
+  "messages": [],
+  "stdout": "order_count\ttotal_revenue\n3825\t966435.99\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

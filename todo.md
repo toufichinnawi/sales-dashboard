@@ -176,3 +176,6 @@
 - [x] Add date range filter to dashboard backend (dashboard.stats accepts startDate/endDate)
 - [x] Add date range picker UI to dashboard Home page
 - [x] Filter KPIs, revenue chart, recent orders, and top accounts by selected date range
+
+## Bug Fixes
+- [x] Fix date filter showing inflated revenue for "Today" — QB sync was setting createdAt to import time instead of TxnDate; fixed sync + backfilled 3,890 orders

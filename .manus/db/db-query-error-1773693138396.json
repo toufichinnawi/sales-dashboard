@@ -1,0 +1,8 @@
+{
+  "query": "SELECT COUNT(*) as order_count, COALESCE(SUM(total), 0) as total_revenue FROM orders WHERE DATE(created_at) = CURDATE() AND status IN ('delivered', 'paid')",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT COUNT(*) as order_count, COALESCE(SUM(total), 0) as total_revenue FROM orders WHERE DATE(created_at) = CURDATE() AND status IN ('delivered', 'paid')",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'created_at' in 'where clause'"
+  ]
+}
