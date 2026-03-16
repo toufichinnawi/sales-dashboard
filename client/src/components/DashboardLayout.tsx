@@ -10,6 +10,7 @@ import {
   Briefcase,
   Users,
   BarChart3,
+  Target,
   Settings,
   Bell,
   Search,
@@ -46,6 +47,7 @@ const navItems = [
   { path: "/deals", label: "Accounts", icon: Briefcase },
   { path: "/team", label: "Team", icon: Users },
   { path: "/analytics", label: "Analytics", icon: BarChart3 },
+  { path: "/prospects", label: "Prospects", icon: Target },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -124,11 +126,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center gap-2.5 rounded-md p-2 group-data-[collapsible=icon]:p-0">
               <Avatar className="h-7 w-7 shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                  KH
+                  RM
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="text-xs font-medium">Karim Hinnawi</span>
+                <span className="text-xs font-medium">Rosie Manneh</span>
                 <span className="text-[10px] text-muted-foreground">Founder</span>
               </div>
             </div>

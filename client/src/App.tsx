@@ -10,8 +10,10 @@ import Pipeline from "./pages/Pipeline";
 import Deals from "./pages/Deals";
 import Team from "./pages/Team";
 import Analytics from "./pages/Analytics";
+import Prospects from "./pages/Prospects";
+import WholesaleLanding from "./pages/WholesaleLanding";
 
-function Router() {
+function DashboardRouter() {
   return (
     <DashboardLayout>
       <Switch>
@@ -20,10 +22,22 @@ function Router() {
         <Route path={"/deals"} component={Deals} />
         <Route path={"/team"} component={Team} />
         <Route path={"/analytics"} component={Analytics} />
+        <Route path={"/prospects"} component={Prospects} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>
+  );
+}
+
+function Router() {
+  return (
+    <Switch>
+      <Route path={"/wholesale"} component={WholesaleLanding} />
+      <Route>
+        <DashboardRouter />
+      </Route>
+    </Switch>
   );
 }
 

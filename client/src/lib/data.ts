@@ -184,8 +184,8 @@ export const weeklyPerformance = [
 export const salesReps: SalesRep[] = [
   {
     id: "rep-1",
-    name: "Karim Hinnawi",
-    avatar: "KH",
+    name: "Rosie Manneh",
+    avatar: "RM",
     role: "Founder / Head of Sales",
     quota: 6000.00,
     closed: 6480.00,
@@ -230,7 +230,7 @@ export const deals: Deal[] = [
   {
     id: "d-001", company: "Café Olimpico", contact: "Marco Rinaldi",
     value: 680.00, dozenPerWeek: 18, stage: "signed", probability: 100,
-    expectedClose: "2025-06-15", owner: "Karim Hinnawi", lastActivity: "2026-03-14",
+    expectedClose: "2025-06-15", owner: "Rosie Manneh", lastActivity: "2026-03-14",
     source: "Cold Outreach", segment: "Cafes", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -242,7 +242,7 @@ export const deals: Deal[] = [
   {
     id: "d-003", company: "Hôtel Le Germain", contact: "Jean-François Côté",
     value: 1020.00, dozenPerWeek: 28, stage: "signed", probability: 100,
-    expectedClose: "2025-08-10", owner: "Karim Hinnawi", lastActivity: "2026-03-15",
+    expectedClose: "2025-08-10", owner: "Rosie Manneh", lastActivity: "2026-03-15",
     source: "Cold Outreach", segment: "Hotels", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -260,7 +260,7 @@ export const deals: Deal[] = [
   {
     id: "d-006", company: "McGill University Dining", contact: "David Chen",
     value: 400.00, dozenPerWeek: 19, stage: "signed", probability: 100,
-    expectedClose: "2025-10-01", owner: "Karim Hinnawi", lastActivity: "2026-03-11",
+    expectedClose: "2025-10-01", owner: "Rosie Manneh", lastActivity: "2026-03-11",
     source: "Cold Outreach", segment: "Universities", products: ["Plain", "Everything"], region: "Montreal",
   },
   {
@@ -278,7 +278,7 @@ export const deals: Deal[] = [
   {
     id: "d-009", company: "Fairmont Le Reine Elizabeth", contact: "Catherine Roy",
     value: 850.00, dozenPerWeek: 24, stage: "signed", probability: 100,
-    expectedClose: "2025-11-15", owner: "Karim Hinnawi", lastActivity: "2026-03-14",
+    expectedClose: "2025-11-15", owner: "Rosie Manneh", lastActivity: "2026-03-14",
     source: "Cold Outreach", segment: "Hotels", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -290,7 +290,7 @@ export const deals: Deal[] = [
   {
     id: "d-011", company: "Restaurant Leméac", contact: "François Beaulieu",
     value: 620.00, dozenPerWeek: 17, stage: "signed", probability: 100,
-    expectedClose: "2025-12-10", owner: "Karim Hinnawi", lastActivity: "2026-03-15",
+    expectedClose: "2025-12-10", owner: "Rosie Manneh", lastActivity: "2026-03-15",
     source: "Referrals", segment: "Restaurants", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -302,7 +302,7 @@ export const deals: Deal[] = [
   {
     id: "d-013", company: "Beautys Luncheonette", contact: "Larry Sckolnick",
     value: 560.00, dozenPerWeek: 15, stage: "signed", probability: 100,
-    expectedClose: "2026-01-15", owner: "Karim Hinnawi", lastActivity: "2026-03-14",
+    expectedClose: "2026-01-15", owner: "Rosie Manneh", lastActivity: "2026-03-14",
     source: "Walk-in / Tasting Events", segment: "Restaurants", products: ["Plain", "Everything"], region: "Montreal",
   },
   {
@@ -314,7 +314,7 @@ export const deals: Deal[] = [
   {
     id: "d-015", company: "Schwartz's Deli", contact: "Frank Silva",
     value: 720.00, dozenPerWeek: 20, stage: "signed", probability: 100,
-    expectedClose: "2026-02-01", owner: "Karim Hinnawi", lastActivity: "2026-03-15",
+    expectedClose: "2026-02-01", owner: "Rosie Manneh", lastActivity: "2026-03-15",
     source: "Walk-in / Tasting Events", segment: "Restaurants", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -326,7 +326,7 @@ export const deals: Deal[] = [
   {
     id: "d-017", company: "Hôtel Nelligan", contact: "Marie-Claire Fontaine",
     value: 780.00, dozenPerWeek: 22, stage: "signed", probability: 100,
-    expectedClose: "2026-02-15", owner: "Karim Hinnawi", lastActivity: "2026-03-13",
+    expectedClose: "2026-02-15", owner: "Rosie Manneh", lastActivity: "2026-03-13",
     source: "Cold Outreach", segment: "Hotels", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -350,7 +350,7 @@ export const deals: Deal[] = [
   {
     id: "d-021", company: "Café Saint-Henri", contact: "Jean-Philippe Nadeau",
     value: 380.00, dozenPerWeek: 10, stage: "signed", probability: 100,
-    expectedClose: "2026-03-05", owner: "Karim Hinnawi", lastActivity: "2026-03-15",
+    expectedClose: "2026-03-05", owner: "Rosie Manneh", lastActivity: "2026-03-15",
     source: "Website / Social Media", segment: "Cafes", products: ["Plain", "Everything"], region: "Montreal",
   },
   {
@@ -362,7 +362,7 @@ export const deals: Deal[] = [
   {
     id: "d-023", company: "La Banquise", contact: "Marc Latendresse",
     value: 490.00, dozenPerWeek: 13, stage: "signed", probability: 100,
-    expectedClose: "2026-03-10", owner: "Karim Hinnawi", lastActivity: "2026-03-15",
+    expectedClose: "2026-03-10", owner: "Rosie Manneh", lastActivity: "2026-03-15",
     source: "Cold Outreach", segment: "Restaurants", products: ["Plain", "Everything"], region: "Montreal",
   },
   {
@@ -380,7 +380,7 @@ export const deals: Deal[] = [
   {
     id: "d-026", company: "Événements Montréal Catering", contact: "Chantal Bergeron",
     value: 420.00, dozenPerWeek: 13, stage: "signed", probability: 100,
-    expectedClose: "2026-03-15", owner: "Karim Hinnawi", lastActivity: "2026-03-16",
+    expectedClose: "2026-03-15", owner: "Rosie Manneh", lastActivity: "2026-03-16",
     source: "Food Trade Shows", segment: "Catering", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -392,7 +392,7 @@ export const deals: Deal[] = [
   {
     id: "d-028", company: "Deloitte Montreal Office", contact: "Patrick Nguyen",
     value: 300.00, dozenPerWeek: 14, stage: "signed", probability: 100,
-    expectedClose: "2026-03-12", owner: "Karim Hinnawi", lastActivity: "2026-03-14",
+    expectedClose: "2026-03-12", owner: "Rosie Manneh", lastActivity: "2026-03-14",
     source: "Referrals", segment: "Corporate", products: ["Plain", "Sesame"], region: "Montreal",
   },
 
@@ -400,7 +400,7 @@ export const deals: Deal[] = [
   {
     id: "d-029", company: "Ritz-Carlton Montreal", contact: "Philippe Dumont",
     value: 1200.00, dozenPerWeek: 35, stage: "negotiation", probability: 75,
-    expectedClose: "2026-04-01", owner: "Karim Hinnawi", lastActivity: "2026-03-15",
+    expectedClose: "2026-04-01", owner: "Rosie Manneh", lastActivity: "2026-03-15",
     source: "Cold Outreach", segment: "Hotels", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -412,7 +412,7 @@ export const deals: Deal[] = [
   {
     id: "d-031", company: "Joe Beef", contact: "David McMillan",
     value: 580.00, dozenPerWeek: 16, stage: "negotiation", probability: 65,
-    expectedClose: "2026-04-10", owner: "Karim Hinnawi", lastActivity: "2026-03-13",
+    expectedClose: "2026-04-10", owner: "Rosie Manneh", lastActivity: "2026-03-13",
     source: "Referrals", segment: "Restaurants", products: ["Plain", "Everything"], region: "Montreal",
   },
   {
@@ -430,7 +430,7 @@ export const deals: Deal[] = [
   {
     id: "d-034", company: "Université de Montréal Dining", contact: "Louise Paradis",
     value: 550.00, dozenPerWeek: 25, stage: "tasting", probability: 45,
-    expectedClose: "2026-04-25", owner: "Karim Hinnawi", lastActivity: "2026-03-12",
+    expectedClose: "2026-04-25", owner: "Rosie Manneh", lastActivity: "2026-03-12",
     source: "Cold Outreach", segment: "Universities", products: ["Plain", "Everything"], region: "Montreal",
   },
   {
@@ -442,7 +442,7 @@ export const deals: Deal[] = [
   {
     id: "d-036", company: "Auberge Saint-Gabriel", contact: "Nicolas Gauthier",
     value: 480.00, dozenPerWeek: 14, stage: "sample_request", probability: 30,
-    expectedClose: "2026-05-05", owner: "Karim Hinnawi", lastActivity: "2026-03-13",
+    expectedClose: "2026-05-05", owner: "Rosie Manneh", lastActivity: "2026-03-13",
     source: "Cold Outreach", segment: "Hotels", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -454,20 +454,20 @@ export const deals: Deal[] = [
   {
     id: "d-038", company: "Brasserie T!", contact: "Normand Laprise",
     value: 450.00, dozenPerWeek: 12, stage: "sample_request", probability: 25,
-    expectedClose: "2026-05-15", owner: "Karim Hinnawi", lastActivity: "2026-03-11",
+    expectedClose: "2026-05-15", owner: "Rosie Manneh", lastActivity: "2026-03-11",
     source: "Referrals", segment: "Restaurants", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   // ── Leads ──
   {
     id: "d-039", company: "Four Seasons Montreal", contact: "Isabelle Martin",
     value: 1400.00, dozenPerWeek: 40, stage: "lead", probability: 15,
-    expectedClose: "2026-06-01", owner: "Karim Hinnawi", lastActivity: "2026-03-14",
+    expectedClose: "2026-06-01", owner: "Rosie Manneh", lastActivity: "2026-03-14",
     source: "Cold Outreach", segment: "Hotels", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
     id: "d-040", company: "Costco Marché Central", contact: "Brian Wilson",
     value: 2200.00, dozenPerWeek: 80, stage: "lead", probability: 10,
-    expectedClose: "2026-07-01", owner: "Karim Hinnawi", lastActivity: "2026-03-10",
+    expectedClose: "2026-07-01", owner: "Rosie Manneh", lastActivity: "2026-03-10",
     source: "Cold Outreach", segment: "Grocery Stores", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -479,7 +479,7 @@ export const deals: Deal[] = [
   {
     id: "d-042", company: "Restaurant Toqué!", contact: "Normand Laprise",
     value: 680.00, dozenPerWeek: 18, stage: "lead", probability: 15,
-    expectedClose: "2026-06-15", owner: "Karim Hinnawi", lastActivity: "2026-03-12",
+    expectedClose: "2026-06-15", owner: "Rosie Manneh", lastActivity: "2026-03-12",
     source: "Referrals", segment: "Restaurants", products: ["Plain", "Sesame", "Everything"], region: "Montreal",
   },
   {
@@ -503,7 +503,7 @@ export const deals: Deal[] = [
   {
     id: "d-046", company: "Le Mousso", contact: "Antonin Mousseau-Rivard",
     value: 380.00, dozenPerWeek: 10, stage: "lead", probability: 15,
-    expectedClose: "2026-06-20", owner: "Karim Hinnawi", lastActivity: "2026-03-13",
+    expectedClose: "2026-06-20", owner: "Rosie Manneh", lastActivity: "2026-03-13",
     source: "Referrals", segment: "Restaurants", products: ["Plain", "Everything"], region: "Montreal",
   },
 ];
@@ -513,7 +513,7 @@ export const deals: Deal[] = [
 export const recentActivities: Activity[] = [
   {
     id: "a-001", type: "deal_won", description: "Signed wholesale contract with Événements Montréal Catering — 13 dz/week",
-    contact: "Chantal Bergeron", company: "Événements Montréal Catering", timestamp: "2026-03-16T08:30:00", rep: "Karim Hinnawi",
+    contact: "Chantal Bergeron", company: "Événements Montréal Catering", timestamp: "2026-03-16T08:30:00", rep: "Rosie Manneh",
   },
   {
     id: "a-002", type: "tasting", description: "Delivered tasting samples to Mandy's Salads — Plain & Sesame, 2 dozen",
@@ -521,7 +521,7 @@ export const recentActivities: Activity[] = [
   },
   {
     id: "a-003", type: "call", description: "Follow-up call with Ritz-Carlton — finalizing weekly order volume and delivery schedule",
-    contact: "Philippe Dumont", company: "Ritz-Carlton Montreal", timestamp: "2026-03-15T11:30:00", rep: "Karim Hinnawi",
+    contact: "Philippe Dumont", company: "Ritz-Carlton Montreal", timestamp: "2026-03-15T11:30:00", rep: "Rosie Manneh",
   },
   {
     id: "a-004", type: "email", description: "Sent wholesale pricing sheet and product catalog to Provigo Le Marché",
@@ -529,11 +529,11 @@ export const recentActivities: Activity[] = [
   },
   {
     id: "a-005", type: "sample_sent", description: "Shipped sample box (Plain, Sesame, Everything — 1 dz each) to Brasserie T!",
-    contact: "Normand Laprise", company: "Brasserie T!", timestamp: "2026-03-14T16:00:00", rep: "Karim Hinnawi",
+    contact: "Normand Laprise", company: "Brasserie T!", timestamp: "2026-03-14T16:00:00", rep: "Rosie Manneh",
   },
   {
     id: "a-006", type: "meeting", description: "On-site meeting at Joe Beef — discussed brunch menu integration and weekly volume",
-    contact: "David McMillan", company: "Joe Beef", timestamp: "2026-03-14T10:00:00", rep: "Karim Hinnawi",
+    contact: "David McMillan", company: "Joe Beef", timestamp: "2026-03-14T10:00:00", rep: "Rosie Manneh",
   },
   {
     id: "a-007", type: "email", description: "Sent follow-up to Whole Foods Monkland with organic certification details",
@@ -541,11 +541,11 @@ export const recentActivities: Activity[] = [
   },
   {
     id: "a-008", type: "call", description: "Cold call to Four Seasons Montreal — spoke with F&B director, interested in tasting",
-    contact: "Isabelle Martin", company: "Four Seasons Montreal", timestamp: "2026-03-13T11:00:00", rep: "Karim Hinnawi",
+    contact: "Isabelle Martin", company: "Four Seasons Montreal", timestamp: "2026-03-13T11:00:00", rep: "Rosie Manneh",
   },
   {
     id: "a-009", type: "deal_won", description: "Signed contract with Deloitte Montreal Office — 14 dz/week for employee breakfasts",
-    contact: "Patrick Nguyen", company: "Deloitte Montreal Office", timestamp: "2026-03-12T14:00:00", rep: "Karim Hinnawi",
+    contact: "Patrick Nguyen", company: "Deloitte Montreal Office", timestamp: "2026-03-12T14:00:00", rep: "Rosie Manneh",
   },
   {
     id: "a-010", type: "note", description: "Updated Café Résonance tasting notes — loved Everything bagels, wants to try with house cream cheese",
@@ -565,7 +565,7 @@ export const recentActivities: Activity[] = [
   },
   {
     id: "a-014", type: "call", description: "Weekly check-in with Schwartz's Deli — increasing order from 18 to 20 dz/week",
-    contact: "Frank Silva", company: "Schwartz's Deli", timestamp: "2026-03-09T09:00:00", rep: "Karim Hinnawi",
+    contact: "Frank Silva", company: "Schwartz's Deli", timestamp: "2026-03-09T09:00:00", rep: "Rosie Manneh",
   },
 ];
 
