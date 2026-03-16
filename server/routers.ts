@@ -210,8 +210,8 @@ export const appRouter = router({
           items: z.array(
             z.object({
               product: z.enum(["plain", "sesame", "everything"]),
-              quantityDozens: z.number().min(0.5, "Minimum 0.5 dozen"),
-              pricePerDozen: z.number().min(0),
+              quantity: z.number().min(0.5, "Minimum 0.5"),
+              unitPrice: z.number().min(0),
             })
           ).min(1, "At least one item is required"),
         })
@@ -221,9 +221,9 @@ export const appRouter = router({
 
         const items = input.items.map((item) => ({
           product: item.product,
-          quantityDozens: String(item.quantityDozens),
-          pricePerDozen: String(item.pricePerDozen),
-          lineTotal: String(Number((item.quantityDozens * item.pricePerDozen).toFixed(2))),
+          quantity: String(item.quantity),
+          unitPrice: String(item.unitPrice),
+          lineTotal: String(Number((item.quantity * item.unitPrice).toFixed(2))),
         }));
 
         const subtotal = items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
@@ -249,7 +249,7 @@ export const appRouter = router({
         try {
           await notifyOwner({
             title: `New Order: ${orderNumber}`,
-            content: `Order ${orderNumber} created for $${total.toFixed(2)}.\nDelivery: ${input.deliveryDate}\nItems: ${items.map(i => `${i.quantityDozens} dz ${i.product}`).join(", ")}`,
+            content: `Order ${orderNumber} created for $${total.toFixed(2)}.\nDelivery: ${input.deliveryDate}\nItems: ${items.map(i => `${i.quantity} x ${i.product}`).join(", ")}`,
           });
         } catch (e) {
           console.warn("[Orders] Failed to notify owner:", e);
@@ -327,8 +327,8 @@ export const appRouter = router({
           items: z.array(
             z.object({
               product: z.enum(["plain", "sesame", "everything"]),
-              quantityDozens: z.number().min(0.5, "Minimum 0.5 dozen"),
-              pricePerDozen: z.number().min(0),
+              quantity: z.number().min(0.5, "Minimum 0.5"),
+              unitPrice: z.number().min(0),
             })
           ).min(1, "At least one item is required"),
         })
@@ -336,9 +336,9 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const items = input.items.map((item) => ({
           product: item.product,
-          quantityDozens: String(item.quantityDozens),
-          pricePerDozen: String(item.pricePerDozen),
-          lineTotal: String(Number((item.quantityDozens * item.pricePerDozen).toFixed(2))),
+          quantity: String(item.quantity),
+          unitPrice: String(item.unitPrice),
+          lineTotal: String(Number((item.quantity * item.unitPrice).toFixed(2))),
         }));
 
         const subtotal = items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
@@ -367,7 +367,7 @@ export const appRouter = router({
           const customer = await getCustomerById(input.customerId);
           await notifyOwner({
             title: `New Standing Order: ${customer?.businessName ?? "Customer"}`,
-            content: `Recurring ${input.frequency} order set up for ${customer?.businessName ?? "Customer"}.\nDay: ${input.dayOfWeek}\nTotal per delivery: $${total.toFixed(2)}\nItems: ${items.map(i => `${i.quantityDozens} dz ${i.product}`).join(", ")}\nNext delivery: ${nextDelivery.toLocaleDateString()}`,
+            content: `Recurring ${input.frequency} order set up for ${customer?.businessName ?? "Customer"}.\nDay: ${input.dayOfWeek}\nTotal per delivery: $${total.toFixed(2)}\nItems: ${items.map(i => `${i.quantity} x ${i.product}`).join(", ")}\nNext delivery: ${nextDelivery.toLocaleDateString()}`,
           });
         } catch (e) {
           console.warn("[Recurring] Failed to notify owner:", e);
@@ -501,8 +501,8 @@ export const appRouter = router({
           items: z.array(
             z.object({
               product: z.enum(["plain", "sesame", "everything"]),
-              quantityDozens: z.number().min(0.5),
-              pricePerDozen: z.number().min(0),
+              quantity: z.number().min(0.5),
+              unitPrice: z.number().min(0),
             })
           ).min(1),
         })
@@ -514,9 +514,9 @@ export const appRouter = router({
         const orderNumber = await generateOrderNumber();
         const items = input.items.map((item) => ({
           product: item.product,
-          quantityDozens: String(item.quantityDozens),
-          pricePerDozen: String(item.pricePerDozen),
-          lineTotal: String(Number((item.quantityDozens * item.pricePerDozen).toFixed(2))),
+          quantity: String(item.quantity),
+          unitPrice: String(item.unitPrice),
+          lineTotal: String(Number((item.quantity * item.unitPrice).toFixed(2))),
         }));
 
         const subtotal = items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
@@ -541,7 +541,7 @@ export const appRouter = router({
         try {
           await notifyOwner({
             title: `Portal Order: ${orderNumber} from ${customer.businessName}`,
-            content: `${customer.businessName} placed order ${orderNumber} via the customer portal.\nTotal: $${total.toFixed(2)}\nDelivery: ${input.deliveryDate}\nItems: ${items.map(i => `${i.quantityDozens} dz ${i.product}`).join(", ")}`,
+            content: `${customer.businessName} placed order ${orderNumber} via the customer portal.\nTotal: $${total.toFixed(2)}\nDelivery: ${input.deliveryDate}\nItems: ${items.map(i => `${i.quantity} x ${i.product}`).join(", ")}`,
           });
         } catch (e) {
           console.warn("[Portal] Failed to notify owner:", e);

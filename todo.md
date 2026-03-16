@@ -124,3 +124,15 @@
 - [x] Map QuickBooks columns to dashboard customer fields
 - [x] Import all customers into database (100 imported, 9 skipped)
 - [x] Verify import count and data integrity
+
+## QuickBooks Sales Import (Actual Files)
+- [x] Parse uploaded SalesbyCustomerTypeDetail.xlsx file
+- [x] Map QuickBooks sales columns to dashboard order fields
+- [x] Match sales to existing customers in database (assigned to 'QuickBooks Import' placeholder — report lacks per-invoice customer names)
+- [x] Import all orders into database (930 invoices, 2,723 line items, $206,169.29)
+- [x] Verify import count and data integrity
+
+## Wholesale Marketing Brochure
+- [ ] Create professional wholesale brochure/marketing material for new clients
+- [ ] Include product lineup, pricing, delivery info, and contact details
+- [ ] Design with Hinnawi Bros branding (warm, artisan style)

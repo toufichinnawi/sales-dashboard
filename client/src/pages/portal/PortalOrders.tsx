@@ -101,7 +101,7 @@ export default function PortalOrders() {
                       <span>{productLabels[item.product] ?? item.product}</span>
                     </div>
                     <div className="flex items-center gap-3 font-data">
-                      <span className="text-muted-foreground">{Number(item.quantityDozens)} dz</span>
+                      <span className="text-muted-foreground">{Number(item.quantity)} dz</span>
                       <span className="font-medium">${Number(item.lineTotal).toFixed(2)}</span>
                     </div>
                   </div>

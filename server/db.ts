@@ -301,10 +301,10 @@ export async function getDashboardStats() {
       lte(orders.createdAt, lastMonthEnd)
     ));
 
-  // Weekly dozens (sum of quantityDozens from order items in last 7 days)
+  // Weekly dozens (sum of quantity from order items in last 7 days)
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const weeklyDozensResult = await db
-    .select({ total: sql<string>`COALESCE(SUM(${orderItems.quantityDozens}), 0)` })
+    .select({ total: sql<string>`COALESCE(SUM(${orderItems.quantity}), 0)` })
     .from(orders)
     .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
     .where(gte(orders.createdAt, weekAgo));

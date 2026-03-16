@@ -97,9 +97,10 @@ export type InsertOrder = typeof orders.$inferInsert;
 export const orderItems = mysqlTable("order_items", {
   id: int("id").autoincrement().primaryKey(),
   orderId: int("orderId").notNull(),
-  product: mysqlEnum("product", ["plain", "sesame", "everything"]).notNull(),
-  quantityDozens: decimal("quantityDozens", { precision: 10, scale: 1 }).notNull(),
-  pricePerDozen: decimal("pricePerDozen", { precision: 10, scale: 2 }).notNull(),
+  product: varchar("productName", { length: 255 }).notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull().default("dozen"),
+  unitPrice: decimal("unitPrice", { precision: 10, scale: 2 }).notNull(),
   lineTotal: decimal("lineTotal", { precision: 10, scale: 2 }).notNull(),
 });
 
@@ -133,9 +134,10 @@ export type InsertRecurringOrder = typeof recurringOrders.$inferInsert;
 export const recurringOrderItems = mysqlTable("recurring_order_items", {
   id: int("id").autoincrement().primaryKey(),
   recurringOrderId: int("recurringOrderId").notNull(),
-  product: mysqlEnum("recurringProduct", ["plain", "sesame", "everything"]).notNull(),
-  quantityDozens: decimal("quantityDozens", { precision: 10, scale: 1 }).notNull(),
-  pricePerDozen: decimal("pricePerDozen", { precision: 10, scale: 2 }).notNull(),
+  product: varchar("recurringProductName", { length: 255 }).notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull().default("dozen"),
+  unitPrice: decimal("unitPrice", { precision: 10, scale: 2 }).notNull(),
   lineTotal: decimal("lineTotal", { precision: 10, scale: 2 }).notNull(),
 });
 

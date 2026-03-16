@@ -73,8 +73,8 @@ const statusColors: Record<string, string> = {
 
 type OrderItem = {
   product: "plain" | "sesame" | "everything";
-  quantityDozens: number;
-  pricePerDozen: number;
+  quantity: number;
+  unitPrice: number;
 };
 
 export default function RecurringOrders() {
@@ -367,7 +367,7 @@ function CreateStandingOrderDialog({
   const [notes, setNotes] = useState("");
   const [discount, setDiscount] = useState(0);
   const [items, setItems] = useState<OrderItem[]>([
-    { product: "plain", quantityDozens: 5, pricePerDozen: 8.0 },
+    { product: "plain", quantity: 5, unitPrice: 8.0 },
   ]);
 
   const createMutation = trpc.recurring.create.useMutation({
@@ -387,11 +387,11 @@ function CreateStandingOrderDialog({
     setDeliveryAddress("");
     setNotes("");
     setDiscount(0);
-    setItems([{ product: "plain", quantityDozens: 5, pricePerDozen: 8.0 }]);
+    setItems([{ product: "plain", quantity: 5, unitPrice: 8.0 }]);
   }
 
   function addItem() {
-    setItems([...items, { product: "plain", quantityDozens: 1, pricePerDozen: 8.0 }]);
+    setItems([...items, { product: "plain", quantity: 1, unitPrice: 8.0 }]);
   }
 
   function removeItem(index: number) {
@@ -402,14 +402,14 @@ function CreateStandingOrderDialog({
     const updated = [...items];
     if (field === "product") {
       const prod = PRODUCTS.find((p) => p.value === value);
-      updated[index] = { ...updated[index], product: value, pricePerDozen: prod?.price ?? 8.0 };
+      updated[index] = { ...updated[index], product: value, unitPrice: prod?.price ?? 8.0 };
     } else {
       updated[index] = { ...updated[index], [field]: value };
     }
     setItems(updated);
   }
 
-  const subtotal = items.reduce((sum, item) => sum + item.quantityDozens * item.pricePerDozen, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
   const total = Math.max(0, subtotal - discount);
 
   function handleSubmit() {
@@ -430,8 +430,8 @@ function CreateStandingOrderDialog({
       discount,
       items: items.map((i) => ({
         product: i.product,
-        quantityDozens: i.quantityDozens,
-        pricePerDozen: i.pricePerDozen,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
       })),
     });
   }
@@ -534,13 +534,13 @@ function CreateStandingOrderDialog({
                     type="number"
                     min={0.5}
                     step={0.5}
-                    value={item.quantityDozens}
-                    onChange={(e) => updateItem(i, "quantityDozens", Number(e.target.value))}
+                    value={item.quantity}
+                    onChange={(e) => updateItem(i, "quantity", Number(e.target.value))}
                     className="w-20 text-center"
                     placeholder="Dz"
                   />
                   <span className="text-xs text-muted-foreground w-16 text-right">
-                    ${(item.quantityDozens * item.pricePerDozen).toFixed(2)}
+                    ${(item.quantity * item.unitPrice).toFixed(2)}
                   </span>
                   {items.length > 1 && (
                     <Button

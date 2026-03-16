@@ -29,8 +29,8 @@ const PRODUCTS = [
 
 type OrderItem = {
   product: "plain" | "sesame" | "everything";
-  quantityDozens: number;
-  pricePerDozen: number;
+  quantity: number;
+  unitPrice: number;
 };
 
 export default function PortalQuickOrder() {
@@ -56,7 +56,7 @@ export default function PortalQuickOrder() {
   });
 
   const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantityDozens * item.pricePerDozen, 0),
+    () => items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
     [items]
   );
 
@@ -66,13 +66,13 @@ export default function PortalQuickOrder() {
       setItems(
         items.map((i) =>
           i.product === productId
-            ? { ...i, quantityDozens: i.quantityDozens + 1 }
+            ? { ...i, quantity: i.quantity + 1 }
             : i
         )
       );
     } else {
       const product = PRODUCTS.find((p) => p.id === productId)!;
-      setItems([...items, { product: productId, quantityDozens: 1, pricePerDozen: product.price }]);
+      setItems([...items, { product: productId, quantity: 1, unitPrice: product.price }]);
     }
   };
 
@@ -81,10 +81,10 @@ export default function PortalQuickOrder() {
       items
         .map((i) =>
           i.product === productId
-            ? { ...i, quantityDozens: Math.max(0, i.quantityDozens + delta) }
+            ? { ...i, quantity: Math.max(0, i.quantity + delta) }
             : i
         )
-        .filter((i) => i.quantityDozens > 0)
+        .filter((i) => i.quantity > 0)
     );
   };
 
@@ -108,8 +108,8 @@ export default function PortalQuickOrder() {
       notes: notes || undefined,
       items: items.map((i) => ({
         product: i.product,
-        quantityDozens: i.quantityDozens,
-        pricePerDozen: i.pricePerDozen,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
       })),
     });
   };
@@ -199,7 +199,7 @@ export default function PortalQuickOrder() {
                           <Minus className="h-3 w-3" />
                         </Button>
                         <span className="font-data text-sm font-semibold w-8 text-center">
-                          {inCart.quantityDozens}
+                          {inCart.quantity}
                         </span>
                         <Button
                           variant="outline"
@@ -301,10 +301,10 @@ export default function PortalQuickOrder() {
                 return (
                   <div key={item.product} className="flex justify-between text-xs text-muted-foreground">
                     <span>
-                      {item.quantityDozens} dz {product.name}
+                      {item.quantity} dz {product.name}
                     </span>
                     <span className="font-data">
-                      ${(item.quantityDozens * item.pricePerDozen).toFixed(2)}
+                      ${(item.quantity * item.unitPrice).toFixed(2)}
                     </span>
                   </div>
                 );

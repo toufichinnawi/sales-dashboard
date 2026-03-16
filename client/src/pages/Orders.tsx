@@ -124,11 +124,11 @@ const statusConfig: Record<
 
 type OrderItem = {
   product: "plain" | "sesame" | "everything";
-  quantityDozens: number;
-  pricePerDozen: number;
+  quantity: number;
+  unitPrice: number;
 };
 
-const emptyItem: OrderItem = { product: "plain", quantityDozens: 1, pricePerDozen: 8.0 };
+const emptyItem: OrderItem = { product: "plain", quantity: 1, unitPrice: 8.0 };
 
 export default function Orders() {
   const [search, setSearch] = useState("");
@@ -204,13 +204,13 @@ export default function Orders() {
     // Auto-update price when product changes
     if (field === "product") {
       const product = PRODUCTS.find((p) => p.id === value);
-      if (product) newItems[index].pricePerDozen = product.price;
+      if (product) newItems[index].unitPrice = product.price;
     }
     setItems(newItems);
   };
 
   const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantityDozens * item.pricePerDozen, 0),
+    () => items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
     [items]
   );
   const total = useMemo(() => Math.max(0, subtotal - discount), [subtotal, discount]);
@@ -233,8 +233,8 @@ export default function Orders() {
       discount,
       items: items.map((item) => ({
         product: item.product,
-        quantityDozens: item.quantityDozens,
-        pricePerDozen: item.pricePerDozen,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
       })),
     });
   };
@@ -433,9 +433,9 @@ export default function Orders() {
                             type="number"
                             min="0.5"
                             step="0.5"
-                            value={item.quantityDozens}
+                            value={item.quantity}
                             onChange={(e) =>
-                              updateItem(index, "quantityDozens", Number(e.target.value))
+                              updateItem(index, "quantity", Number(e.target.value))
                             }
                             className="h-8 text-sm text-center"
                             placeholder="Dozens"
@@ -444,7 +444,7 @@ export default function Orders() {
                         <div className="text-xs text-muted-foreground w-8 text-center">dz</div>
                         <div className="w-20 text-right">
                           <span className="font-data text-sm font-medium">
-                            {formatCurrency(item.quantityDozens * item.pricePerDozen)}
+                            {formatCurrency(item.quantity * item.unitPrice)}
                           </span>
                         </div>
                         <Button
@@ -851,7 +851,7 @@ export default function Orders() {
                             {product?.name || item.product}
                           </span>
                           <span className="text-xs text-muted-foreground ml-2">
-                            {item.quantityDozens} dz @ ${Number(item.pricePerDozen).toFixed(2)}/dz
+                            {item.quantity} dz @ ${Number(item.unitPrice).toFixed(2)}/dz
                           </span>
                         </div>
                         <span className="font-data text-sm font-medium">
