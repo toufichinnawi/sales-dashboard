@@ -155,3 +155,4 @@
 
 ## Bug Fixes
 - [x] Fix SQL error in getDashboardStats monthly revenue query (orders.status → inArray with proper column reference)
+- [x] Fix persistent SQL error in getDashboardStats DATE_FORMAT GROUP BY query (only_full_group_by mode - used alias in GROUP BY)

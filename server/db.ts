@@ -329,16 +329,11 @@ export async function getDashboardStats() {
     .groupBy(leads.status);
 
   // Monthly revenue for chart (last 12 months)
-  const monthlyRevenueData = await db
-    .select({
-      month: sql<string>`DATE_FORMAT(${orders.createdAt}, '%Y-%m')`,
-      revenue: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
-      orderCount: sql<number>`COUNT(*)`,
-    })
-    .from(orders)
-    .where(inArray(orders.status, ['delivered', 'paid']))
-    .groupBy(sql`DATE_FORMAT(${orders.createdAt}, '%Y-%m')`)
-    .orderBy(sql`DATE_FORMAT(${orders.createdAt}, '%Y-%m')`);
+  // Use raw SQL to avoid only_full_group_by issue with Drizzle's column aliasing
+  const monthlyRevenueRaw = await db.execute(
+    sql`SELECT DATE_FORMAT(${orders.createdAt}, '%Y-%m') AS \`month\`, COALESCE(SUM(${orders.total}), 0) AS revenue, COUNT(*) AS orderCount FROM ${orders} WHERE ${orders.status} IN ('delivered', 'paid') GROUP BY \`month\` ORDER BY \`month\``
+  );
+  const monthlyRevenueData = (monthlyRevenueRaw[0] as unknown as any[]) || [];
 
   // Recent orders for activity feed
   const recentOrders = await db
