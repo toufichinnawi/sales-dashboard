@@ -1,17 +1,16 @@
 /**
- * Home / Overview — "Ink & Data" Editorial Dashboard
- * KPI ticker, revenue chart, pipeline funnel, activity feed
- * Asymmetric layout: left 2/3 charts, right 1/3 activity
+ * Home / Overview — Hinnawi Bros Bagels Wholesale Dashboard
+ * KPI cards, revenue chart, pipeline overview, activity feed, top accounts
  */
 
 import { useMemo } from "react";
 import {
   DollarSign,
   TrendingUp,
-  Target,
-  Handshake,
-  Clock,
   Users,
+  ShoppingBag,
+  Package,
+  Percent,
   Phone,
   Mail,
   Calendar,
@@ -20,6 +19,8 @@ import {
   XCircle,
   ArrowUpRight,
   ArrowDownRight,
+  Send,
+  UtensilsCrossed,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,32 +51,54 @@ import {
   type Activity,
 } from "@/lib/data";
 
-const TEAL = "#0D7377";
-const TEAL_LIGHT = "#14919B";
-const AMBER = "#C4841D";
-const SLATE = "#64748B";
+const AMBER = "#B45309";
+const AMBER_LIGHT = "#D97706";
+const WARM_BROWN = "#92400E";
+const SLATE = "#78716C";
+
+const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/hinnawi-hero-banner-jQuk3nq5Y7HgaMHmi3Jmtv.webp";
 
 export default function Home() {
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      {/* KPI Ticker Row */}
-      <KPITicker />
-
-      {/* Main grid: 2/3 charts + 1/3 activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left: Charts */}
-        <div className="lg:col-span-2 space-y-5">
-          <RevenueChart />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <PipelineFunnel />
-            <WeeklyActivity />
-          </div>
+    <div className="space-y-6">
+      {/* Hero Banner */}
+      <div className="relative h-36 md:h-44 overflow-hidden">
+        <img
+          src={HERO_IMG}
+          alt="Hinnawi Bros Bagels"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+        <div className="absolute bottom-4 left-6">
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">
+            Wholesale Dashboard
+          </h1>
+          <p className="text-white/80 text-sm mt-0.5">
+            Hinnawi Bros Bagels · Montreal · {kpiData.activeAccounts} active accounts
+          </p>
         </div>
+      </div>
 
-        {/* Right: Activity Feed */}
-        <div className="space-y-5">
-          <ActivityFeed />
-          <TopDeals />
+      <div className="px-4 md:px-6 space-y-6 pb-6">
+        {/* KPI Ticker Row */}
+        <KPITicker />
+
+        {/* Main grid: 2/3 charts + 1/3 activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Left: Charts */}
+          <div className="lg:col-span-2 space-y-5">
+            <RevenueChart />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <PipelineFunnel />
+              <WeeklyActivity />
+            </div>
+          </div>
+
+          {/* Right: Activity Feed + Top Accounts */}
+          <div className="space-y-5">
+            <ActivityFeed />
+            <TopAccounts />
+          </div>
         </div>
       </div>
     </div>
@@ -88,40 +111,40 @@ function KPITicker() {
   const kpis = useMemo(
     () => [
       {
-        label: "Total Revenue",
-        value: formatCurrency(kpiData.totalRevenue),
+        label: "Monthly Revenue",
+        value: formatCurrency(kpiData.monthlyRevenue),
         change: kpiData.revenueChange,
         icon: DollarSign,
       },
       {
-        label: "MRR",
-        value: formatCurrency(kpiData.monthlyRecurring),
-        change: kpiData.mrrChange,
-        icon: TrendingUp,
+        label: "Dozens / Week",
+        value: `${kpiData.weeklyDozens} dz`,
+        change: kpiData.dozensChange,
+        icon: Package,
+      },
+      {
+        label: "Active Accounts",
+        value: String(kpiData.activeAccounts),
+        change: kpiData.accountsChange,
+        icon: Users,
+      },
+      {
+        label: "Avg Order / Mo",
+        value: formatCurrency(kpiData.avgOrderSize),
+        change: kpiData.avgOrderChange,
+        icon: ShoppingBag,
       },
       {
         label: "Pipeline Value",
         value: formatCurrency(kpiData.pipelineValue),
         change: kpiData.pipelineChange,
-        icon: Target,
+        icon: TrendingUp,
       },
       {
-        label: "Win Rate",
-        value: `${kpiData.winRate}%`,
-        change: kpiData.winRateChange,
-        icon: Handshake,
-      },
-      {
-        label: "Avg Deal Size",
-        value: formatCurrency(kpiData.avgDealSize),
-        change: kpiData.avgDealChange,
-        icon: DollarSign,
-      },
-      {
-        label: "Avg Sales Cycle",
-        value: `${kpiData.avgSalesCycle} days`,
-        change: kpiData.cycleChange,
-        icon: Clock,
+        label: "Conversion Rate",
+        value: `${kpiData.conversionRate}%`,
+        change: kpiData.conversionChange,
+        icon: Percent,
       },
     ],
     []
@@ -160,10 +183,10 @@ function RevenueChart() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-sm font-display font-semibold">Monthly Revenue vs Target</CardTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Last 12 months performance</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">12-month wholesale growth trajectory</p>
           </div>
           <Badge variant="secondary" className="text-[10px] font-data h-5">
-            FY 2025–26
+            Apr 2025 – Mar 2026
           </Badge>
         </div>
       </CardHeader>
@@ -172,8 +195,8 @@ function RevenueChart() {
           <AreaChart data={monthlyRevenue} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={TEAL} stopOpacity={0.15} />
-                <stop offset="95%" stopColor={TEAL} stopOpacity={0} />
+                <stop offset="5%" stopColor={AMBER} stopOpacity={0.15} />
+                <stop offset="95%" stopColor={AMBER} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
@@ -206,11 +229,11 @@ function RevenueChart() {
             <Area
               type="monotone"
               dataKey="revenue"
-              stroke={TEAL}
+              stroke={AMBER}
               strokeWidth={2}
               fill="url(#revenueGrad)"
-              dot={{ r: 2.5, fill: TEAL, strokeWidth: 0 }}
-              activeDot={{ r: 4, fill: TEAL, strokeWidth: 2, stroke: "#fff" }}
+              dot={{ r: 2.5, fill: AMBER, strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: AMBER, strokeWidth: 2, stroke: "#fff" }}
             />
             <Area
               type="monotone"
@@ -237,13 +260,13 @@ function RevenueChart() {
 // ─── Pipeline Funnel ─────────────────────────────────────────────────────────
 
 function PipelineFunnel() {
-  const colors = [SLATE, "#4B9CD3", AMBER, TEAL_LIGHT, TEAL];
+  const colors = [SLATE, "#D4A574", AMBER_LIGHT, AMBER, WARM_BROWN];
 
   return (
     <Card className="border-border/50 py-0">
       <CardHeader className="pb-2 pt-4 px-5">
-        <CardTitle className="text-sm font-display font-semibold">Pipeline Funnel</CardTitle>
-        <p className="text-[11px] text-muted-foreground mt-0.5">Deals by stage</p>
+        <CardTitle className="text-sm font-display font-semibold">Sales Pipeline</CardTitle>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Accounts by stage</p>
       </CardHeader>
       <CardContent className="px-2 pb-4">
         <ResponsiveContainer width="100%" height={220}>
@@ -262,10 +285,10 @@ function PipelineFunnel() {
             <YAxis
               dataKey="stage"
               type="category"
-              tick={{ fontSize: 11, fill: "#1A1A1A" }}
+              tick={{ fontSize: 11, fill: "#44403C" }}
               tickLine={false}
               axisLine={false}
-              width={80}
+              width={95}
             />
             <Tooltip
               contentStyle={{
@@ -274,7 +297,7 @@ function PipelineFunnel() {
                 borderRadius: 6,
                 border: "1px solid #e5e5e5",
               }}
-              formatter={(value: number) => [value, "Deals"]}
+              formatter={(value: number) => [value, "Accounts"]}
             />
             <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18}>
               {pipelineStages.map((_, index) => (
@@ -295,7 +318,7 @@ function WeeklyActivity() {
     <Card className="border-border/50 py-0">
       <CardHeader className="pb-2 pt-4 px-5">
         <CardTitle className="text-sm font-display font-semibold">Weekly Activity</CardTitle>
-        <p className="text-[11px] text-muted-foreground mt-0.5">This week's outreach</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Outreach & deliveries this week</p>
       </CardHeader>
       <CardContent className="px-2 pb-4">
         <ResponsiveContainer width="100%" height={220}>
@@ -320,9 +343,10 @@ function WeeklyActivity() {
                 border: "1px solid #e5e5e5",
               }}
             />
-            <Bar dataKey="calls" fill={TEAL} radius={[3, 3, 0, 0]} barSize={10} name="Calls" />
-            <Bar dataKey="emails" fill={TEAL_LIGHT} radius={[3, 3, 0, 0]} barSize={10} name="Emails" />
-            <Bar dataKey="meetings" fill={AMBER} radius={[3, 3, 0, 0]} barSize={10} name="Meetings" />
+            <Bar dataKey="calls" fill={WARM_BROWN} radius={[3, 3, 0, 0]} barSize={8} name="Calls" />
+            <Bar dataKey="emails" fill={AMBER} radius={[3, 3, 0, 0]} barSize={8} name="Emails" />
+            <Bar dataKey="tastings" fill={AMBER_LIGHT} radius={[3, 3, 0, 0]} barSize={8} name="Tastings" />
+            <Bar dataKey="deliveries" fill="#D4A574" radius={[3, 3, 0, 0]} barSize={8} name="Deliveries" />
             <Legend
               verticalAlign="top"
               align="right"
@@ -346,15 +370,19 @@ const activityIcons: Record<Activity["type"], React.ElementType> = {
   note: FileText,
   deal_won: Trophy,
   deal_lost: XCircle,
+  sample_sent: Send,
+  tasting: UtensilsCrossed,
 };
 
 const activityColors: Record<Activity["type"], string> = {
   call: "text-sky-600 bg-sky-50",
-  email: "text-slate-600 bg-slate-50",
+  email: "text-stone-600 bg-stone-50",
   meeting: "text-violet-600 bg-violet-50",
-  note: "text-slate-500 bg-slate-50",
-  deal_won: "text-emerald-600 bg-emerald-50",
+  note: "text-stone-500 bg-stone-50",
+  deal_won: "text-amber-700 bg-amber-50",
   deal_lost: "text-red-500 bg-red-50",
+  sample_sent: "text-orange-600 bg-orange-50",
+  tasting: "text-amber-600 bg-amber-50",
 };
 
 function ActivityFeed() {
@@ -396,12 +424,12 @@ function ActivityFeed() {
   );
 }
 
-// ─── Top Deals ───────────────────────────────────────────────────────────────
+// ─── Top Accounts ───────────────────────────────────────────────────────────
 
-function TopDeals() {
-  const topDeals = useMemo(() => {
+function TopAccounts() {
+  const topAccounts = useMemo(() => {
     return deals
-      .filter((d) => d.stage !== "closed_won" && d.stage !== "closed_lost")
+      .filter((d) => d.stage === "signed")
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
   }, []);
@@ -409,20 +437,21 @@ function TopDeals() {
   return (
     <Card className="border-border/50 py-0">
       <CardHeader className="pb-2 pt-4 px-5">
-        <CardTitle className="text-sm font-display font-semibold">Top Open Deals</CardTitle>
+        <CardTitle className="text-sm font-display font-semibold">Top Accounts</CardTitle>
+        <p className="text-[11px] text-muted-foreground mt-0.5">By monthly revenue</p>
       </CardHeader>
       <CardContent className="px-3 pb-3">
         <div className="space-y-0">
-          {topDeals.map((deal, i) => (
+          {topAccounts.map((deal, i) => (
             <div key={deal.id}>
               <div className="flex items-center justify-between py-2.5">
                 <div className="min-w-0">
                   <p className="text-xs font-medium truncate">{deal.company}</p>
-                  <p className="text-[10px] text-muted-foreground">{deal.contact}</p>
+                  <p className="text-[10px] text-muted-foreground">{deal.dozenPerWeek} dz/week · {deal.segment}</p>
                 </div>
                 <div className="text-right shrink-0 ml-3">
-                  <p className="font-data text-xs font-medium">{formatCurrency(deal.value)}</p>
-                  <p className="text-[10px] text-muted-foreground">{deal.probability}% prob</p>
+                  <p className="font-data text-xs font-medium">{formatCurrency(deal.value)}/mo</p>
+                  <p className="text-[10px] text-muted-foreground">{deal.products.join(", ")}</p>
                 </div>
               </div>
               {i < 4 && <Separator className="opacity-50" />}
@@ -439,7 +468,7 @@ function TopDeals() {
 function ChangeIndicator({ value }: { value: number }) {
   const positive = value >= 0;
   return (
-    <div className={`flex items-center gap-0.5 ${positive ? "text-teal-700" : "text-red-600"}`}>
+    <div className={`flex items-center gap-0.5 ${positive ? "text-amber-800" : "text-red-600"}`}>
       {positive ? (
         <ArrowUpRight className="h-3 w-3" />
       ) : (

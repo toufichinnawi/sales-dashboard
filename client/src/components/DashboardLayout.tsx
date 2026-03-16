@@ -1,7 +1,6 @@
 /**
- * DashboardLayout — "Ink & Data" Editorial Design
- * Persistent sidebar navigation with collapsible icon mode
- * Narrow fixed sidebar (56px collapsed, 240px expanded)
+ * DashboardLayout — Hinnawi Bros Bagels Wholesale
+ * Warm bakery-inspired branding with persistent sidebar
  */
 
 import { useLocation, Link } from "wouter";
@@ -15,6 +14,7 @@ import {
   Bell,
   Search,
   ChevronRight,
+  Cookie,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,11 +38,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { kpiData, formatCurrency, formatPercent } from "@/lib/data";
 
 const navItems = [
   { path: "/", label: "Overview", icon: LayoutDashboard },
   { path: "/pipeline", label: "Pipeline", icon: GitBranch },
-  { path: "/deals", label: "Deals", icon: Briefcase },
+  { path: "/deals", label: "Accounts", icon: Briefcase },
   { path: "/team", label: "Team", icon: Users },
   { path: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
@@ -56,11 +57,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarHeader className="px-3 py-4">
           <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <BarChart3 className="h-4 w-4" />
+              <Cookie className="h-4 w-4" />
             </div>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="font-display text-sm font-bold tracking-tight">SalesIQ</span>
-              <span className="text-[11px] text-muted-foreground leading-none">Analytics Platform</span>
+              <span className="font-display text-sm font-bold tracking-tight">Hinnawi Bros</span>
+              <span className="text-[11px] text-muted-foreground leading-none">Wholesale Bagels</span>
             </div>
           </div>
         </SidebarHeader>
@@ -94,13 +95,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground/70">
-              Quick Stats
+              This Month
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="px-2 space-y-3 group-data-[collapsible=icon]:hidden">
-                <QuickStat label="Pipeline" value="$8.46M" change="+18.3%" positive />
-                <QuickStat label="Win Rate" value="32.8%" change="+2.1%" positive />
-                <QuickStat label="Avg Cycle" value="47 days" change="-5.2%" positive />
+                <QuickStat label="Revenue" value={formatCurrency(kpiData.monthlyRevenue)} change={formatPercent(kpiData.revenueChange)} positive />
+                <QuickStat label="Accounts" value={String(kpiData.activeAccounts)} change={formatPercent(kpiData.accountsChange)} positive />
+                <QuickStat label="Dz/Week" value={String(kpiData.weeklyDozens)} change={formatPercent(kpiData.dozensChange)} positive />
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -123,12 +124,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center gap-2.5 rounded-md p-2 group-data-[collapsible=icon]:p-0">
               <Avatar className="h-7 w-7 shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                  JD
+                  KH
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="text-xs font-medium">Jane Doe</span>
-                <span className="text-[10px] text-muted-foreground">VP of Sales</span>
+                <span className="text-xs font-medium">Karim Hinnawi</span>
+                <span className="text-[10px] text-muted-foreground">Founder</span>
               </div>
             </div>
           </div>
@@ -145,7 +146,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-sm">
-            <span className="text-muted-foreground text-xs">Dashboard</span>
+            <span className="text-muted-foreground text-xs">Wholesale</span>
             <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
             <span className="font-medium text-xs">
               {navItems.find((n) => n.path === location)?.label || "Overview"}
@@ -157,7 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="relative hidden md:block">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search deals, contacts..."
+                placeholder="Search accounts, contacts..."
                 className="h-8 w-56 pl-8 text-xs bg-muted/50 border-transparent focus:border-border"
               />
             </div>
@@ -203,7 +204,7 @@ function QuickStat({
         <Badge
           variant="secondary"
           className={`h-4 px-1 text-[9px] font-medium ${
-            positive ? "text-teal-700 bg-teal-50" : "text-red-600 bg-red-50"
+            positive ? "text-amber-800 bg-amber-50" : "text-red-600 bg-red-50"
           }`}
         >
           {change}
