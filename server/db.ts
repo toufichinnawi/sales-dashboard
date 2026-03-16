@@ -8,6 +8,7 @@ import {
   orderItems, InsertOrderItem, OrderItem,
   recurringOrders, InsertRecurringOrder, RecurringOrder,
   recurringOrderItems, InsertRecurringOrderItem, RecurringOrderItem,
+  customerInvites, InsertCustomerInvite, CustomerInvite,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -303,7 +304,7 @@ export async function getDashboardStats() {
   // Weekly dozens (sum of quantityDozens from order items in last 7 days)
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const weeklyDozensResult = await db
-    .select({ total: sql<string>`COALESCE(SUM(oi.quantityDozens), 0)` })
+    .select({ total: sql<string>`COALESCE(SUM(${orderItems.quantityDozens}), 0)` })
     .from(orders)
     .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
     .where(gte(orders.createdAt, weekAgo));
@@ -487,6 +488,111 @@ export async function getRecurringOrdersByCustomerId(customerId: number): Promis
   const db = await getDb();
   if (!db) return [];
   return db.select().from(recurringOrders).where(eq(recurringOrders.customerId, customerId)).orderBy(desc(recurringOrders.createdAt));
+}
+
+// ─── Customer Invite queries ─────────────────────────────────────────────
+
+export async function createCustomerInvite(invite: InsertCustomerInvite): Promise<CustomerInvite | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.insert(customerInvites).values(invite);
+  const insertId = result[0].insertId;
+  const rows = await db.select().from(customerInvites).where(eq(customerInvites.id, insertId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getInviteByToken(token: string): Promise<CustomerInvite | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(customerInvites).where(eq(customerInvites.token, token)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function acceptInvite(token: string, userId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const invite = await getInviteByToken(token);
+  if (!invite || invite.status !== "pending") return false;
+  if (new Date() > invite.expiresAt) {
+    await db.update(customerInvites).set({ status: "expired" }).where(eq(customerInvites.token, token));
+    return false;
+  }
+
+  // Link user to customer
+  await db.update(customers).set({ userId }).where(eq(customers.id, invite.customerId));
+  // Mark invite as accepted
+  await db.update(customerInvites).set({ status: "accepted" }).where(eq(customerInvites.token, token));
+  return true;
+}
+
+export async function getCustomerByUserId(userId: number): Promise<Customer | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(customers).where(eq(customers.userId, userId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getInvitesByCustomerId(customerId: number): Promise<CustomerInvite[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(customerInvites).where(eq(customerInvites.customerId, customerId)).orderBy(desc(customerInvites.createdAt));
+}
+
+// ─── Portal queries (customer-facing) ───────────────────────────────────
+
+export async function getPortalOrders(customerId: number): Promise<(Order & { items: OrderItem[] })[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const orderRows = await db.select().from(orders)
+    .where(eq(orders.customerId, customerId))
+    .orderBy(desc(orders.createdAt));
+
+  const result = [];
+  for (const order of orderRows) {
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+    result.push({ ...order, items });
+  }
+  return result;
+}
+
+export async function getPortalRecurringOrders(customerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const orderRows = await db.select().from(recurringOrders)
+    .where(eq(recurringOrders.customerId, customerId))
+    .orderBy(desc(recurringOrders.createdAt));
+
+  const result = [];
+  for (const order of orderRows) {
+    const items = await db.select().from(recurringOrderItems).where(eq(recurringOrderItems.recurringOrderId, order.id));
+    result.push({ ...order, items });
+  }
+  return result;
+}
+
+export async function bulkCreateCustomers(customerList: InsertCustomer[]): Promise<{ imported: number; skipped: number }> {
+  const db = await getDb();
+  if (!db) return { imported: 0, skipped: 0 };
+
+  let imported = 0;
+  let skipped = 0;
+
+  for (const c of customerList) {
+    // Check for duplicate by email
+    const existing = await db.select().from(customers).where(eq(customers.email, c.email)).limit(1);
+    if (existing.length > 0) {
+      skipped++;
+      continue;
+    }
+    await db.insert(customers).values(c);
+    imported++;
+  }
+
+  return { imported, skipped };
 }
 
 // Helper to compute next delivery date from day of week

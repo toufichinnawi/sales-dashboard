@@ -48,12 +48,28 @@ export const customers = mysqlTable("customers", {
   segment: mysqlEnum("segment", ["cafe", "restaurant", "hotel", "grocery", "catering", "university", "other"]).default("cafe").notNull(),
   notes: text("notes"),
   status: mysqlEnum("customerStatus", ["active", "inactive", "prospect"]).default("active").notNull(),
+  userId: int("userId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = typeof customers.$inferInsert;
+
+// ─── Customer Invites table ─────────────────────────────────────────────────
+
+export const customerInvites = mysqlTable("customer_invites", {
+  id: int("id").autoincrement().primaryKey(),
+  customerId: int("customerId").notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  email: varchar("email", { length: 320 }).notNull(),
+  status: mysqlEnum("inviteStatus", ["pending", "accepted", "expired"]).default("pending").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CustomerInvite = typeof customerInvites.$inferSelect;
+export type InsertCustomerInvite = typeof customerInvites.$inferInsert;
 
 // ─── Orders table ────────────────────────────────────────────────────────────
 

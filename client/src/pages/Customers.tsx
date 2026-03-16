@@ -52,6 +52,12 @@ import {
   ShoppingCart,
   GraduationCap,
   MoreHorizontal,
+  Upload,
+  Send,
+  Copy,
+  Check,
+  FileSpreadsheet,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -102,6 +108,84 @@ const emptyForm = {
   status: "active" as string,
 };
 
+type CsvRow = {
+  businessName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  address: string;
+  segment: "cafe" | "restaurant" | "hotel" | "grocery" | "catering" | "university" | "other";
+};
+
+const QB_COLUMN_MAP: Record<string, keyof CsvRow> = {
+  "customer": "businessName",
+  "company": "businessName",
+  "company name": "businessName",
+  "display name": "businessName",
+  "customer name": "businessName",
+  "name": "contactName",
+  "contact": "contactName",
+  "contact name": "contactName",
+  "first name": "contactName",
+  "full name": "contactName",
+  "email": "email",
+  "email address": "email",
+  "main email": "email",
+  "phone": "phone",
+  "phone number": "phone",
+  "main phone": "phone",
+  "mobile": "phone",
+  "address": "address",
+  "billing address": "address",
+  "shipping address": "address",
+  "street": "address",
+};
+
+function parseCsv(text: string): { headers: string[]; rows: string[][] } {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) return { headers: [], rows: [] };
+  const headers = lines[0].split(",").map((h) => h.replace(/^"|"$/g, "").trim());
+  const rows = lines.slice(1).map((line) => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (const char of line) {
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === "," && !inQuotes) {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  });
+  return { headers, rows };
+}
+
+function mapCsvToCustomers(headers: string[], rows: string[][]): CsvRow[] {
+  const mapping: Record<number, keyof CsvRow> = {};
+  headers.forEach((h, i) => {
+    const key = h.toLowerCase().trim();
+    if (QB_COLUMN_MAP[key]) mapping[i] = QB_COLUMN_MAP[key];
+  });
+
+  return rows
+    .map((row) => {
+      const obj: CsvRow = { businessName: "", contactName: "", email: "", phone: "", address: "", segment: "other" };
+      Object.entries(mapping).forEach(([idx, field]) => {
+        const val = row[Number(idx)] ?? "";
+        if (val && !obj[field]) (obj as any)[field] = val;
+      });
+      // If no contact name, use business name
+      if (!obj.contactName && obj.businessName) obj.contactName = obj.businessName;
+      return obj;
+    })
+    .filter((r) => r.businessName || r.email);
+}
+
 export default function Customers() {
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
@@ -110,6 +194,15 @@ export default function Customers() {
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [importOpen, setImportOpen] = useState(false);
+  const [csvPreview, setCsvPreview] = useState<CsvRow[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteCustomerId, setInviteCustomerId] = useState<number | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const { data: customers, isLoading, error } = trpc.customers.list.useQuery();
   const utils = trpc.useUtils();
@@ -142,6 +235,60 @@ export default function Customers() {
     },
     onError: (err) => toast.error("Failed to delete", { description: err.message }),
   });
+
+  const importMut = trpc.import.customers.useMutation({
+    onSuccess: (data: { imported: number; skipped: number }) => {
+      utils.customers.list.invalidate();
+      setImportResult({ imported: data.imported, skipped: data.skipped });
+      toast.success(`Imported ${data.imported} customers`);
+    },
+    onError: (err: { message: string }) => toast.error("Import failed", { description: err.message }),
+  });
+
+  const createInviteMut = trpc.invites.create.useMutation({
+    onSuccess: (data) => {
+      setInviteLink(data.inviteUrl);
+      toast.success("Invite link created!");
+    },
+    onError: (err) => toast.error("Failed to create invite", { description: err.message }),
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const { headers, rows } = parseCsv(text);
+      const mapped = mapCsvToCustomers(headers, rows);
+      setCsvPreview(mapped);
+      setImportResult(null);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = () => {
+    if (csvPreview.length === 0) return;
+    setImporting(true);
+    importMut.mutate(
+      { customers: csvPreview },
+      { onSettled: () => setImporting(false) }
+    );
+  };
+
+  const handleCopyInvite = () => {
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const openInvite = (customer: any) => {
+    setInviteCustomerId(customer.id);
+    setInviteEmail(customer.email);
+    setInviteLink("");
+    setCopied(false);
+    setInviteOpen(true);
+  };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -365,13 +512,22 @@ export default function Customers() {
             </p>
           </div>
 
-          <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) setForm(emptyForm); }}>
-            <DialogTrigger asChild>
-              <Button className="bg-amber-700 hover:bg-amber-800 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Customer
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setImportOpen(true); setCsvPreview([]); setImportResult(null); }}
+            >
+              <Upload className="h-4 w-4 mr-1.5" />
+              Import CSV
+            </Button>
+            <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) setForm(emptyForm); }}>
+              <DialogTrigger asChild>
+                <Button className="bg-amber-700 hover:bg-amber-800 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Customer
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle className="font-display">Add New Customer</DialogTitle>
@@ -386,6 +542,7 @@ export default function Customers() {
               />
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
@@ -541,6 +698,15 @@ export default function Customers() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700"
+                              title="Invite to Portal"
+                              onClick={() => openInvite(customer)}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => openEdit(customer)}
                             >
@@ -598,6 +764,158 @@ export default function Customers() {
             submitLabel="Save Changes"
             isPending={updateMut.isPending}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Import CSV Dialog */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-amber-700" />
+              Import from QuickBooks
+            </DialogTitle>
+            <DialogDescription>
+              Export your Customer Contact List from QuickBooks as CSV, then upload it here.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs mb-1.5 block">Upload CSV File</Label>
+              <Input
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleFileUpload}
+                className="h-10"
+              />
+            </div>
+
+            {csvPreview.length > 0 && !importResult && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{csvPreview.length} customers found</p>
+                  <Badge variant="secondary" className="text-xs">Preview</Badge>
+                </div>
+                <div className="max-h-64 overflow-auto border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-[11px]">Business Name</TableHead>
+                        <TableHead className="text-[11px]">Contact</TableHead>
+                        <TableHead className="text-[11px]">Email</TableHead>
+                        <TableHead className="text-[11px]">Phone</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {csvPreview.slice(0, 20).map((row, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs">{row.businessName}</TableCell>
+                          <TableCell className="text-xs">{row.contactName}</TableCell>
+                          <TableCell className="text-xs">{row.email}</TableCell>
+                          <TableCell className="text-xs">{row.phone}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {csvPreview.length > 20 && (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      ...and {csvPreview.length - 20} more
+                    </p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
+                  <Button
+                    className="bg-amber-700 hover:bg-amber-800 text-white"
+                    onClick={handleImport}
+                    disabled={importing}
+                  >
+                    {importing ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing...</>
+                    ) : (
+                      <><Upload className="h-4 w-4 mr-2" />Import {csvPreview.length} Customers</>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+
+            {importResult && (
+              <div className="text-center py-4">
+                <Check className="h-10 w-10 mx-auto text-green-500 mb-2" />
+                <p className="text-sm font-semibold">Import Complete</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {importResult.imported} imported, {importResult.skipped} skipped (duplicates)
+                </p>
+                <Button className="mt-3" onClick={() => setImportOpen(false)}>Done</Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite to Portal Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Send className="h-5 w-5 text-blue-600" />
+              Invite to Customer Portal
+            </DialogTitle>
+            <DialogDescription>
+              Generate an invite link for this customer to access the self-service portal.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs mb-1.5 block">Customer Email</Label>
+              <Input value={inviteEmail} readOnly className="h-10 bg-muted/30" />
+            </div>
+
+            {!inviteLink ? (
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  if (inviteCustomerId) {
+                    createInviteMut.mutate({
+                      customerId: inviteCustomerId,
+                      email: inviteEmail,
+                      origin: window.location.origin,
+                    });
+                  }
+                }}
+                disabled={createInviteMut.isPending}
+              >
+                {createInviteMut.isPending ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+                ) : (
+                  <><Send className="h-4 w-4 mr-2" />Generate Invite Link</>
+                )}
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs mb-1.5 block">Invite Link</Label>
+                  <div className="flex gap-2">
+                    <Input value={inviteLink} readOnly className="h-10 text-xs font-mono" />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 shrink-0"
+                      onClick={handleCopyInvite}
+                    >
+                      {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Share this link with your customer. They will sign in and their account will be linked automatically. The link expires in 7 days.
+                </p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

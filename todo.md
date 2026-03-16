@@ -82,3 +82,39 @@
 - [x] Polish landing page design for conversion (CTA clarity, trust signals, mobile)
 - [x] Ensure landing page form works end-to-end with lead capture + notification
 - [x] Add structured data (JSON-LD) for local business SEO
+
+## Customer Portal & Mobile Quick Order
+- [x] Add userId column to customers table (link customer to auth user account)
+- [x] Add invite_tokens table for customer portal invitations (customer_invites table)
+- [x] Push database migrations
+- [x] Build customer invite flow (admin generates invite link → customer clicks → creates account → linked to customer record)
+- [x] Build portal.myOrders tRPC route (customer sees their own order history)
+- [x] Build portal.myStandingOrders tRPC route (customer sees/manages their recurring orders)
+- [x] Build portal.quickOrder tRPC route (customer places new order from phone)
+- [x] Build portal.profile tRPC route (customer views/updates their contact info)
+- [x] Build Portal layout (mobile-first, clean, separate from admin dashboard)
+- [x] Build Portal My Orders page (order history with status badges, delivery dates)
+- [x] Build Portal Standing Orders page (view, pause/resume recurring orders)
+- [x] Build Portal Quick Order page (mobile-friendly product picker, quantity, delivery date)
+- [x] Build Portal Profile page (business info, contact details, delivery address)
+- [x] Add "Invite to Portal" button on admin Customers page
+- [x] Send notification to owner when customer places order via portal
+- [x] Write vitest tests for portal routes (17 tests passed)
+- [x] Verify mobile responsiveness on all portal pages
+
+## English-Only Conversion
+- [x] Convert WholesaleLanding.tsx from bilingual (French/English) to English-only
+- [x] Update SEO meta tags in index.html to English-only (already English)
+- [x] Update JSON-LD structured data to English-only (already English)
+- [x] Fix WholesaleLanding.tsx JSX error (fixed via clean rewrite)
+
+## Bug Fixes
+- [x] Fix SQL alias error in getDashboardStats (oi.quantityDozens → orderItems.quantityDozens)
+
+## QuickBooks CSV Import
+- [x] Build CSV file upload endpoint (tRPC mutation accepting parsed CSV data)
+- [x] Build CSV parser on frontend (parse QuickBooks Customer Contact List export)
+- [x] Build "Import from QuickBooks" button and dialog on Customers page
+- [x] Show preview table of mapped columns before confirming import
+- [x] Handle duplicate detection (skip or update existing customers by email)
+- [x] Show import results summary (imported, skipped, errors)

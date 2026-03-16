@@ -27,7 +27,16 @@ import {
   deleteRecurringOrder,
   getRecurringOrdersByCustomerId,
   computeNextDelivery,
+  createCustomerInvite,
+  getInviteByToken,
+  acceptInvite,
+  getCustomerByUserId,
+  getInvitesByCustomerId,
+  getPortalOrders,
+  getPortalRecurringOrders,
+  bulkCreateCustomers,
 } from "./db";
+import crypto from "crypto";
 import { notifyOwner } from "./_core/notification";
 import { z } from "zod";
 
@@ -400,6 +409,207 @@ export const appRouter = router({
       .input(z.object({ customerId: z.number() }))
       .query(async ({ input }) => {
         return getRecurringOrdersByCustomerId(input.customerId);
+      }),
+  }),
+
+  // ─── CUSTOMER INVITES (Admin) ───────────────────────────────────────────
+
+  invites: router({
+    create: protectedProcedure
+      .input(
+        z.object({
+          customerId: z.number(),
+          email: z.string().email(),
+          origin: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        const invite = await createCustomerInvite({
+          customerId: input.customerId,
+          token,
+          email: input.email,
+          expiresAt,
+        });
+
+        const inviteUrl = `${input.origin}/portal/accept-invite?token=${token}`;
+
+        // Notify owner
+        try {
+          const customer = await getCustomerById(input.customerId);
+          await notifyOwner({
+            title: `Portal Invite Sent: ${customer?.businessName ?? "Customer"}`,
+            content: `Invite sent to ${input.email} for ${customer?.businessName ?? "Customer"}.\nInvite link: ${inviteUrl}\nExpires: ${expiresAt.toLocaleDateString()}`,
+          });
+        } catch (e) {
+          console.warn("[Invites] Failed to notify owner:", e);
+        }
+
+        return { success: true, invite, inviteUrl };
+      }),
+
+    listByCustomer: protectedProcedure
+      .input(z.object({ customerId: z.number() }))
+      .query(async ({ input }) => {
+        return getInvitesByCustomerId(input.customerId);
+      }),
+  }),
+
+  // ─── CUSTOMER PORTAL (Customer-facing) ─────────────────────────────────
+
+  portal: router({
+    // Accept invite and link user to customer
+    acceptInvite: protectedProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const success = await acceptInvite(input.token, ctx.user.id);
+        if (!success) {
+          throw new Error("Invalid or expired invite token.");
+        }
+        return { success: true };
+      }),
+
+    // Get current customer profile (linked to auth user)
+    me: protectedProcedure.query(async ({ ctx }) => {
+      const customer = await getCustomerByUserId(ctx.user.id);
+      return customer;
+    }),
+
+    // My orders
+    myOrders: protectedProcedure.query(async ({ ctx }) => {
+      const customer = await getCustomerByUserId(ctx.user.id);
+      if (!customer) return [];
+      return getPortalOrders(customer.id);
+    }),
+
+    // My standing orders
+    myStandingOrders: protectedProcedure.query(async ({ ctx }) => {
+      const customer = await getCustomerByUserId(ctx.user.id);
+      if (!customer) return [];
+      return getPortalRecurringOrders(customer.id);
+    }),
+
+    // Quick order from phone
+    quickOrder: protectedProcedure
+      .input(
+        z.object({
+          deliveryDate: z.string().min(1),
+          deliveryAddress: z.string().optional(),
+          notes: z.string().optional(),
+          items: z.array(
+            z.object({
+              product: z.enum(["plain", "sesame", "everything"]),
+              quantityDozens: z.number().min(0.5),
+              pricePerDozen: z.number().min(0),
+            })
+          ).min(1),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const customer = await getCustomerByUserId(ctx.user.id);
+        if (!customer) throw new Error("No customer account linked.");
+
+        const orderNumber = await generateOrderNumber();
+        const items = input.items.map((item) => ({
+          product: item.product,
+          quantityDozens: String(item.quantityDozens),
+          pricePerDozen: String(item.pricePerDozen),
+          lineTotal: String(Number((item.quantityDozens * item.pricePerDozen).toFixed(2))),
+        }));
+
+        const subtotal = items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+        const total = subtotal;
+
+        const result = await createOrder(
+          {
+            customerId: customer.id,
+            orderNumber,
+            deliveryDate: new Date(input.deliveryDate),
+            deliveryAddress: input.deliveryAddress ?? customer.address ?? null,
+            notes: input.notes ?? null,
+            subtotal: String(subtotal.toFixed(2)),
+            discount: "0.00",
+            total: String(total.toFixed(2)),
+            recurringOrderId: null,
+          },
+          items
+        );
+
+        // Notify owner
+        try {
+          await notifyOwner({
+            title: `Portal Order: ${orderNumber} from ${customer.businessName}`,
+            content: `${customer.businessName} placed order ${orderNumber} via the customer portal.\nTotal: $${total.toFixed(2)}\nDelivery: ${input.deliveryDate}\nItems: ${items.map(i => `${i.quantityDozens} dz ${i.product}`).join(", ")}`,
+          });
+        } catch (e) {
+          console.warn("[Portal] Failed to notify owner:", e);
+        }
+
+        return { success: true, ...result };
+      }),
+
+    // Update profile
+    updateProfile: protectedProcedure
+      .input(
+        z.object({
+          contactName: z.string().optional(),
+          phone: z.string().nullable().optional(),
+          address: z.string().nullable().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const customer = await getCustomerByUserId(ctx.user.id);
+        if (!customer) throw new Error("No customer account linked.");
+        await updateCustomer(customer.id, input);
+        return { success: true };
+      }),
+  }),
+
+  // ─── BULK IMPORT (QuickBooks CSV) ────────────────────────────────────
+
+  import: router({
+    customers: protectedProcedure
+      .input(
+        z.object({
+          customers: z.array(
+            z.object({
+              businessName: z.string().min(1),
+              contactName: z.string().min(1),
+              email: z.string().email(),
+              phone: z.string().optional(),
+              address: z.string().optional(),
+              segment: z.enum(["cafe", "restaurant", "hotel", "grocery", "catering", "university", "other"]).default("other"),
+              notes: z.string().optional(),
+            })
+          ).min(1),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const customerList = input.customers.map((c) => ({
+          businessName: c.businessName,
+          contactName: c.contactName,
+          email: c.email,
+          phone: c.phone ?? null,
+          address: c.address ?? null,
+          segment: c.segment,
+          notes: c.notes ?? null,
+          status: "active" as const,
+        }));
+
+        const result = await bulkCreateCustomers(customerList);
+
+        try {
+          await notifyOwner({
+            title: `QuickBooks Import: ${result.imported} customers added`,
+            content: `Imported ${result.imported} new customers from QuickBooks CSV.\nSkipped ${result.skipped} duplicates (matching email).`,
+          });
+        } catch (e) {
+          console.warn("[Import] Failed to notify owner:", e);
+        }
+
+        return result;
       }),
   }),
 });

@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
+import PortalLayout from "./components/PortalLayout";
 import Home from "./pages/Home";
 import Pipeline from "./pages/Pipeline";
 import Deals from "./pages/Deals";
@@ -16,6 +17,11 @@ import Customers from "./pages/Customers";
 import Orders from "./pages/Orders";
 import RecurringOrders from "./pages/RecurringOrders";
 import WholesaleLanding from "./pages/WholesaleLanding";
+import PortalOrders from "./pages/portal/PortalOrders";
+import PortalStandingOrders from "./pages/portal/PortalStandingOrders";
+import PortalQuickOrder from "./pages/portal/PortalQuickOrder";
+import PortalProfile from "./pages/portal/PortalProfile";
+import PortalAcceptInvite from "./pages/portal/PortalAcceptInvite";
 
 function DashboardRouter() {
   return (
@@ -37,11 +43,30 @@ function DashboardRouter() {
     </DashboardLayout>
   );
 }
+
+function PortalRouter() {
+  return (
+    <PortalLayout>
+      <Switch>
+        <Route path={"/portal"} component={PortalOrders} />
+        <Route path={"/portal/standing"} component={PortalStandingOrders} />
+        <Route path={"/portal/order"} component={PortalQuickOrder} />
+        <Route path={"/portal/profile"} component={PortalProfile} />
+        <Route component={NotFound} />
+      </Switch>
+    </PortalLayout>
+  );
+}
+
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/wholesale"} component={WholesaleLanding} />
+      <Route path={"/portal/accept-invite"} component={PortalAcceptInvite} />
+      <Route path="/portal/:rest*">
+        <PortalRouter />
+      </Route>
       <Route>
         <DashboardRouter />
       </Route>
