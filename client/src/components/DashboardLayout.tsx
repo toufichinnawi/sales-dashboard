@@ -19,6 +19,7 @@ import {
   Cookie,
   Building2,
   ShoppingBag,
+  Repeat,
 } from "lucide-react";
 import {
   Sidebar,
@@ -52,6 +53,7 @@ const navSections = [
       { path: "/leads", label: "Leads", icon: Inbox },
       { path: "/customers", label: "Customers", icon: Building2 },
       { path: "/orders", label: "Orders", icon: ShoppingBag },
+      { path: "/recurring", label: "Standing Orders", icon: Repeat },
     ],
   },
   {

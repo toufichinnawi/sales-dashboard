@@ -68,6 +68,7 @@ export const orders = mysqlTable("orders", {
   discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0.00"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull().default("0.00"),
   notes: text("notes"),
+  recurringOrderId: int("recurringOrderId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -88,3 +89,39 @@ export const orderItems = mysqlTable("order_items", {
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = typeof orderItems.$inferInsert;
+
+// ─── Recurring Orders table ──────────────────────────────────────────────────
+
+export const recurringOrders = mysqlTable("recurring_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  customerId: int("customerId").notNull(),
+  dayOfWeek: mysqlEnum("dayOfWeek", ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]).notNull(),
+  frequency: mysqlEnum("frequency", ["weekly", "biweekly", "monthly"]).default("weekly").notNull(),
+  deliveryAddress: text("deliveryAddress"),
+  notes: text("notes"),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  status: mysqlEnum("recurringStatus", ["active", "paused", "cancelled"]).default("active").notNull(),
+  nextDelivery: timestamp("nextDelivery"),
+  lastGenerated: timestamp("lastGenerated"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type RecurringOrder = typeof recurringOrders.$inferSelect;
+export type InsertRecurringOrder = typeof recurringOrders.$inferInsert;
+
+// ─── Recurring Order Items table ─────────────────────────────────────────────
+
+export const recurringOrderItems = mysqlTable("recurring_order_items", {
+  id: int("id").autoincrement().primaryKey(),
+  recurringOrderId: int("recurringOrderId").notNull(),
+  product: mysqlEnum("recurringProduct", ["plain", "sesame", "everything"]).notNull(),
+  quantityDozens: decimal("quantityDozens", { precision: 10, scale: 1 }).notNull(),
+  pricePerDozen: decimal("pricePerDozen", { precision: 10, scale: 2 }).notNull(),
+  lineTotal: decimal("lineTotal", { precision: 10, scale: 2 }).notNull(),
+});
+
+export type RecurringOrderItem = typeof recurringOrderItems.$inferSelect;
+export type InsertRecurringOrderItem = typeof recurringOrderItems.$inferInsert;
