@@ -118,3 +118,9 @@
 - [x] Show preview table of mapped columns before confirming import
 - [x] Handle duplicate detection (skip or update existing customers by email)
 - [x] Show import results summary (imported, skipped, errors)
+
+## QuickBooks Data Import (Actual Files)
+- [x] Parse uploaded Customers.xls file
+- [x] Map QuickBooks columns to dashboard customer fields
+- [x] Import all customers into database (100 imported, 9 skipped)
+- [x] Verify import count and data integrity
