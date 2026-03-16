@@ -18,3 +18,10 @@
 
 ## Final
 - [x] Save checkpoint and deliver
+
+## Landing Page Redesign
+- [x] Update branding to match main hinnawibrosbagelandcafe.com site (warm, artistic, clean white)
+- [x] Make landing page bilingual (French/English)
+- [x] Match typography and color palette to main Squarespace site
+- [x] Test the redesigned landing page
+- [x] Save checkpoint and deliver with publishing instructions
