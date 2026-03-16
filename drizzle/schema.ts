@@ -143,3 +143,42 @@ export const recurringOrderItems = mysqlTable("recurring_order_items", {
 
 export type RecurringOrderItem = typeof recurringOrderItems.$inferSelect;
 export type InsertRecurringOrderItem = typeof recurringOrderItems.$inferInsert;
+
+// ─── QuickBooks Connection table ────────────────────────────────────────────
+
+export const qbConnections = mysqlTable("qb_connections", {
+  id: int("id").autoincrement().primaryKey(),
+  realmId: varchar("realmId", { length: 50 }).notNull().unique(),
+  companyName: varchar("companyName", { length: 255 }),
+  accessToken: text("accessToken").notNull(),
+  refreshToken: text("refreshToken").notNull(),
+  accessTokenExpiresAt: timestamp("accessTokenExpiresAt").notNull(),
+  refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt").notNull(),
+  isActive: int("isActive").notNull().default(1),
+  lastSyncAt: timestamp("lastSyncAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type QbConnection = typeof qbConnections.$inferSelect;
+export type InsertQbConnection = typeof qbConnections.$inferInsert;
+
+// ─── QuickBooks Sync Log table ──────────────────────────────────────────────
+
+export const qbSyncLog = mysqlTable("qb_sync_log", {
+  id: int("id").autoincrement().primaryKey(),
+  connectionId: int("connectionId").notNull(),
+  syncType: mysqlEnum("syncType", ["full", "incremental", "customers", "invoices", "payments"]).notNull(),
+  status: mysqlEnum("syncStatus", ["running", "completed", "failed"]).default("running").notNull(),
+  customersCreated: int("customersCreated").default(0),
+  customersUpdated: int("customersUpdated").default(0),
+  ordersCreated: int("ordersCreated").default(0),
+  ordersUpdated: int("ordersUpdated").default(0),
+  paymentsProcessed: int("paymentsProcessed").default(0),
+  errorMessage: text("errorMessage"),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+});
+
+export type QbSyncLog = typeof qbSyncLog.$inferSelect;
+export type InsertQbSyncLog = typeof qbSyncLog.$inferInsert;

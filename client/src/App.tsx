@@ -16,6 +16,7 @@ import Leads from "./pages/Leads";
 import Customers from "./pages/Customers";
 import Orders from "./pages/Orders";
 import RecurringOrders from "./pages/RecurringOrders";
+import QuickBooksSettings from "./pages/QuickBooksSettings";
 import WholesaleLanding from "./pages/WholesaleLanding";
 import PortalOrders from "./pages/portal/PortalOrders";
 import PortalStandingOrders from "./pages/portal/PortalStandingOrders";
@@ -37,6 +38,7 @@ function DashboardRouter() {
         <Route path={"/customers"} component={Customers} />
         <Route path={"/orders"} component={Orders} />
         <Route path={"/recurring"} component={RecurringOrders} />
+        <Route path={"/quickbooks"} component={QuickBooksSettings} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>

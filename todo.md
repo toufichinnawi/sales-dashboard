@@ -156,3 +156,16 @@
 ## Bug Fixes
 - [x] Fix SQL error in getDashboardStats monthly revenue query (orders.status → inArray with proper column reference)
 - [x] Fix persistent SQL error in getDashboardStats DATE_FORMAT GROUP BY query (only_full_group_by mode - used alias in GROUP BY)
+
+## QuickBooks Online API Integration
+- [x] Research QuickBooks Online API OAuth2 flow and endpoints
+- [x] Add QB_CLIENT_ID and QB_CLIENT_SECRET secrets
+- [x] Create qb_connections table (store tokens, realmId, sync status)
+- [x] Create qb_sync_log table (track sync history)
+- [x] Build QuickBooks OAuth2 connect/disconnect flow (backend)
+- [x] Build customer sync (QB → dashboard customers)
+- [x] Build invoice/sales sync (QB → dashboard orders with customer matching)
+- [x] Build payment sync (QB → update order status to paid)
+- [x] Build QuickBooks Settings page (connect, disconnect, sync status, manual sync trigger)
+- [ ] Build auto-sync schedule (every 5 min between 7AM-8PM, plus 9PM and 12AM)
+- [x] Write vitest tests for QB integration (34/34 passed)

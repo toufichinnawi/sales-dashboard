@@ -39,6 +39,12 @@ import {
 import crypto from "crypto";
 import { notifyOwner } from "./_core/notification";
 import { z } from "zod";
+import {
+  getActiveQBConnection,
+  disconnectQB,
+  getRecentSyncLogs,
+} from "./quickbooks";
+import { runFullSync } from "./qb-sync";
 
 export const appRouter = router({
   system: systemRouter,
@@ -565,6 +571,65 @@ export const appRouter = router({
         await updateCustomer(customer.id, input);
         return { success: true };
       }),
+  }),
+
+  // ─── QUICKBOOKS INTEGRATION ──────────────────────────────────────────
+
+  quickbooks: router({
+    // Get connection status
+    status: protectedProcedure.query(async () => {
+      const conn = await getActiveQBConnection();
+      if (!conn) return { connected: false, connection: null };
+      return {
+        connected: true,
+        connection: {
+          id: conn.id,
+          realmId: conn.realmId,
+          companyName: conn.companyName,
+          lastSyncAt: conn.lastSyncAt,
+          accessTokenExpiresAt: conn.accessTokenExpiresAt,
+          refreshTokenExpiresAt: conn.refreshTokenExpiresAt,
+          createdAt: conn.createdAt,
+        },
+      };
+    }),
+
+    // Disconnect QuickBooks
+    disconnect: protectedProcedure.mutation(async () => {
+      const conn = await getActiveQBConnection();
+      if (!conn) throw new Error("No active QuickBooks connection");
+      await disconnectQB(conn.id);
+      return { success: true };
+    }),
+
+    // Trigger full sync
+    sync: protectedProcedure.mutation(async () => {
+      const result = await runFullSync();
+
+      // Notify owner about sync results
+      try {
+        await notifyOwner({
+          title: `QuickBooks Sync ${result.success ? "Complete" : "Failed"}`,
+          content: [
+            `Customers: ${result.customers.created} created, ${result.customers.updated} updated`,
+            `Invoices: ${result.invoices.created} created, ${result.invoices.updated} updated`,
+            `Payments: ${result.payments.processed} processed`,
+            result.errors.length > 0
+              ? `Errors: ${result.errors.length} (check sync logs)`
+              : "No errors",
+          ].join("\n"),
+        });
+      } catch (e) {
+        console.warn("[QB] Failed to notify owner about sync:", e);
+      }
+
+      return result;
+    }),
+
+    // Get sync logs
+    syncLogs: protectedProcedure.query(async () => {
+      return getRecentSyncLogs(50);
+    }),
   }),
 
   // ─── BULK IMPORT (QuickBooks CSV) ────────────────────────────────────

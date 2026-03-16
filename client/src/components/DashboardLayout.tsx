@@ -20,6 +20,7 @@ import {
   Building2,
   ShoppingBag,
   Repeat,
+  Link2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -64,6 +65,12 @@ const navSections = [
       { path: "/team", label: "Team", icon: Users },
       { path: "/analytics", label: "Analytics", icon: BarChart3 },
       { path: "/prospects", label: "Prospects", icon: Target },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [
+      { path: "/quickbooks", label: "QuickBooks", icon: Link2 },
     ],
   },
 ];

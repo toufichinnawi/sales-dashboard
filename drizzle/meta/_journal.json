@@ -43,6 +43,13 @@
       "when": 1773680968153,
       "tag": "0005_petite_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1773686215044,
+      "tag": "0006_plain_devos",
+      "breakpoints": true
     }
   ]
 }
