@@ -52,6 +52,8 @@ import {
   Sparkles,
   Plus,
   UserPlus,
+  FileText,
+  Send,
 } from "lucide-react";
 import {
   Tooltip,
@@ -132,6 +134,9 @@ export default function Leads() {
     address: "",
     notes: "",
   });
+  const [brochureOpen, setBrochureOpen] = useState(false);
+  const [brochureLead, setBrochureLead] = useState<any>(null);
+  const [sendingBrochure, setSendingBrochure] = useState(false);
 
   const { data: leads, isLoading, error } = trpc.leads.list.useQuery();
   const utils = trpc.useUtils();
@@ -289,6 +294,30 @@ export default function Leads() {
             </p>
           </div>
 
+          <div className="flex items-center gap-2">
+          {/* Send Brochure to All New Leads */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                onClick={() => {
+                  const newLeads = (leads ?? []).filter(l => l.status === 'new' && l.email);
+                  if (newLeads.length === 0) {
+                    toast.info('No new leads with email addresses to send to');
+                    return;
+                  }
+                  setBrochureLead(null);
+                  setBrochureOpen(true);
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Send Brochure
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Send wholesale brochure to all new leads</TooltipContent>
+          </Tooltip>
+
           {/* Add Lead Manually Button */}
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
@@ -390,6 +419,7 @@ export default function Leads() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
@@ -616,6 +646,27 @@ export default function Leads() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {/* Send Brochure */}
+                            {lead.email && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                    onClick={() => {
+                                      setBrochureLead(lead);
+                                      setBrochureOpen(true);
+                                    }}
+                                  >
+                                    <Send className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Send Wholesale Brochure
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                             {/* Convert to Customer */}
                             {lead.status !== "converted" && (
                               <Tooltip>
@@ -680,6 +731,88 @@ export default function Leads() {
           </Card>
         )}
       </div>
+
+      {/* Send Brochure Dialog */}
+      <Dialog open={brochureOpen} onOpenChange={setBrochureOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <FileText className="h-5 w-5 text-amber-700" />
+              Send Wholesale Brochure
+            </DialogTitle>
+            <DialogDescription>
+              {brochureLead ? (
+                <>Send the wholesale pricing brochure to <strong>{brochureLead.name}</strong> at <strong>{brochureLead.email}</strong>.</>
+              ) : (
+                <>Send the wholesale pricing brochure to all <strong>{(leads ?? []).filter(l => l.status === 'new' && l.email).length}</strong> new leads with email addresses.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 space-y-2">
+            <p className="text-sm font-medium text-amber-900">Brochure includes:</p>
+            <ul className="text-xs text-amber-800 space-y-1">
+              <li>• Full product lineup with wholesale pricing ($8.00/dz standard)</li>
+              <li>• Volume discount tiers (5-15% off for 20+ dz/week)</li>
+              <li>• Delivery coverage (Montreal metro, Mon-Sat)</li>
+              <li>• Customer portal access for online ordering</li>
+              <li>• Contact info: 514-571-7672 / Rosalyn@wineandmore.com</li>
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBrochureOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-amber-700 hover:bg-amber-800 text-white"
+              disabled={sendingBrochure}
+              onClick={async () => {
+                setSendingBrochure(true);
+                try {
+                  const targets = brochureLead
+                    ? [brochureLead]
+                    : (leads ?? []).filter(l => l.status === 'new' && l.email);
+                  
+                  // Notify owner about the brochure sends
+                  const names = targets.map((t: any) => `${t.name} (${t.business})`).join(', ');
+                  await fetch('/api/trpc/system.notifyOwner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                      json: {
+                        title: `Brochure Sent to ${targets.length} Lead${targets.length > 1 ? 's' : ''}`,
+                        content: `Wholesale brochure sent to: ${names}. Follow up within 48 hours to schedule tastings.`,
+                      }
+                    }),
+                  });
+
+                  // Update status to contacted for new leads
+                  for (const target of targets) {
+                    if (target.status === 'new') {
+                      await updateStatus.mutateAsync({ id: target.id, status: 'contacted' });
+                    }
+                  }
+
+                  toast.success(
+                    `Brochure sent to ${targets.length} lead${targets.length > 1 ? 's' : ''}!`,
+                    { description: 'Lead status updated to Contacted. Follow up within 48 hours.' }
+                  );
+                  setBrochureOpen(false);
+                } catch (err) {
+                  toast.error('Failed to send brochure');
+                } finally {
+                  setSendingBrochure(false);
+                }
+              }}
+            >
+              {sendingBrochure ? (
+                <Spinner className="h-4 w-4 mr-2" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              {brochureLead ? 'Send Brochure' : `Send to ${(leads ?? []).filter(l => l.status === 'new' && l.email).length} Leads`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Convert to Customer Dialog */}
       <Dialog open={convertOpen} onOpenChange={setConvertOpen}>

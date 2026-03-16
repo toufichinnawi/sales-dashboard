@@ -133,6 +133,22 @@
 - [x] Verify import count and data integrity
 
 ## Wholesale Marketing Brochure
-- [ ] Create professional wholesale brochure/marketing material for new clients
-- [ ] Include product lineup, pricing, delivery info, and contact details
-- [ ] Design with Hinnawi Bros branding (warm, artisan style)
+- [x] Create professional wholesale brochure/marketing material for new clients
+- [x] Include product lineup, pricing, delivery info, and contact details
+- [x] Design with Hinnawi Bros branding (warm, artisan style)
+
+## Reassign Orders to Customers
+- [x] Analyze QuickBooks sales data for customer name patterns (report lacks customer names — 'Sales by Customer Type Detail' only)
+- [ ] Match imported orders to existing customers (needs 'Sales by Customer Detail' export from QuickBooks)
+- [ ] Update order customerId for matched orders (blocked — awaiting correct export)
+- [ ] Report match results (blocked — awaiting correct export)
+
+## Brochure Pricing Update
+- [x] Extract actual per-product pricing from QuickBooks sales data (66 products analyzed)
+- [x] Update brochure with real wholesale prices per dozen/unit
+- [x] Regenerate PDF with updated pricing
+
+## Send Brochure to Leads
+- [x] Add "Send Brochure" button on Leads page (header bulk + per-lead)
+- [x] Build email/notification flow to send brochure link to leads
+- [x] Include brochure content in the outreach message
