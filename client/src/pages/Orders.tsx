@@ -137,6 +137,10 @@ export default function Orders() {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewOrderId, setViewOrderId] = useState<number | null>(null);
 
+  // Date range filter state
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   // Create order form state
   const [customerId, setCustomerId] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
@@ -145,7 +149,14 @@ export default function Orders() {
   const [discount, setDiscount] = useState(0);
   const [items, setItems] = useState<OrderItem[]>([{ ...emptyItem }]);
 
-  const { data: orders, isLoading, error } = trpc.orders.list.useQuery();
+  const dateFilters = useMemo(() => {
+    const filters: { startDate?: string; endDate?: string } = {};
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    return Object.keys(filters).length > 0 ? filters : undefined;
+  }, [startDate, endDate]);
+
+  const { data: orders, isLoading, error } = trpc.orders.list.useQuery(dateFilters);
   const { data: customers } = trpc.customers.list.useQuery();
   const { data: orderDetail } = trpc.orders.getById.useQuery(
     { id: viewOrderId! },
@@ -298,6 +309,7 @@ export default function Orders() {
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: "UTC",
     }).format(new Date(date));
 
   const formatCurrency = (amount: number | string) =>
@@ -611,8 +623,8 @@ export default function Orders() {
           })}
         </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-3">
+        {/* Search & Date Filters */}
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
@@ -621,6 +633,35 @@ export default function Orders() {
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 text-sm"
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="h-9 text-sm w-36"
+              placeholder="Start date"
+            />
+            <span className="text-xs text-muted-foreground">to</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="h-9 text-sm w-36"
+              placeholder="End date"
+            />
+            {(startDate || endDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => { setStartDate(""); setEndDate(""); }}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Clear
+              </Button>
+            )}
           </div>
         </div>
 

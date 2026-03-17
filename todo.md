@@ -191,3 +191,10 @@
 
 ## UI Label Changes
 - [x] Change "Delivery Date" to "Invoice Date" on the Orders page
+
+## Orders Page Fixes
+- [x] Fix timezone bug: Invoice dates shifted back 1 day due to UTC parsing of QB date strings (added parseQBDate helper)
+- [x] Update sync to also set deliveryDate on existing order updates (all 4 update paths fixed)
+- [x] Fix database dates: shifted 3,003 midnight-timestamp orders forward by 12 hours
+- [x] Fix frontend date display: formatDate now uses UTC timezone to avoid browser shifts
+- [x] Add date range filtering to Orders page (backend query + frontend date picker UI)

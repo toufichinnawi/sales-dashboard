@@ -271,9 +271,24 @@ export const appRouter = router({
         return { success: true, ...result };
       }),
 
-    list: protectedProcedure.query(async () => {
-      return getAllOrders();
-    }),
+    list: protectedProcedure
+      .input(
+        z.object({
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+        }).optional()
+      )
+      .query(async ({ input }) => {
+        const filters: { startDate?: Date; endDate?: Date } = {};
+        if (input?.startDate) {
+          filters.startDate = new Date(input.startDate + "T00:00:00Z");
+        }
+        if (input?.endDate) {
+          // End of day
+          filters.endDate = new Date(input.endDate + "T23:59:59Z");
+        }
+        return getAllOrders(Object.keys(filters).length > 0 ? filters : undefined);
+      }),
 
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))

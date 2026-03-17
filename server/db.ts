@@ -210,10 +210,29 @@ export async function createOrder(
   };
 }
 
-export async function getAllOrders(): Promise<Order[]> {
+export async function getAllOrders(filters?: {
+  startDate?: Date;
+  endDate?: Date;
+}): Promise<Order[]> {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(orders).orderBy(desc(orders.createdAt));
+
+  const conditions = [];
+  if (filters?.startDate) {
+    conditions.push(gte(orders.deliveryDate, filters.startDate));
+  }
+  if (filters?.endDate) {
+    conditions.push(lte(orders.deliveryDate, filters.endDate));
+  }
+
+  if (conditions.length > 0) {
+    return db
+      .select()
+      .from(orders)
+      .where(and(...conditions))
+      .orderBy(desc(orders.deliveryDate));
+  }
+  return db.select().from(orders).orderBy(desc(orders.deliveryDate));
 }
 
 export async function getOrderById(id: number): Promise<{ order: Order; items: OrderItem[] } | null> {

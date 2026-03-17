@@ -20,6 +20,16 @@ import {
   getQBCompanyInfo,
 } from "./quickbooks";
 
+// ─── QB Date Parsing ─────────────────────────────────────────────────────────
+// QB returns dates as "YYYY-MM-DD" strings with no timezone.
+// new Date("2026-03-18") parses as UTC midnight, which shifts back 1 day in EDT/EST.
+// We append "T12:00:00" to treat it as noon local time, avoiding timezone boundary issues.
+
+function parseQBDate(dateStr: string | undefined | null): Date {
+  if (!dateStr) return new Date();
+  return new Date(dateStr + "T12:00:00");
+}
+
 // ─── Segment Detection ────────────────────────────────────────────────────────
 
 function detectSegment(
@@ -257,9 +267,7 @@ export async function syncInvoices(): Promise<{
             status = "delivered"; // partially paid
           }
 
-          const deliveryDate = inv.TxnDate
-            ? new Date(inv.TxnDate)
-            : new Date();
+          const deliveryDate = parseQBDate(inv.TxnDate);
 
           if (existingOrder.length > 0) {
             // Update existing order
@@ -268,6 +276,7 @@ export async function syncInvoices(): Promise<{
               .set({
                 customerId,
                 status,
+                deliveryDate,
                 total: String(totalAmt.toFixed(2)),
                 subtotal: String(totalAmt.toFixed(2)),
               })
@@ -473,13 +482,14 @@ export async function syncCreditMemos(): Promise<{
 
           // Credit memos are stored as NEGATIVE amounts to reduce revenue
           const totalAmt = -Math.abs(Number(cm.TotalAmt || 0));
-          const deliveryDate = cm.TxnDate ? new Date(cm.TxnDate) : new Date();
+          const deliveryDate = parseQBDate(cm.TxnDate);
 
           if (existingOrder.length > 0) {
             await db
               .update(orders)
               .set({
                 customerId,
+                deliveryDate,
                 total: String(totalAmt.toFixed(2)),
                 subtotal: String(totalAmt.toFixed(2)),
               })
@@ -586,13 +596,14 @@ export async function syncSalesReceipts(): Promise<{
           }
 
           const totalAmt = Number(sr.TotalAmt || 0);
-          const deliveryDate = sr.TxnDate ? new Date(sr.TxnDate) : new Date();
+          const deliveryDate = parseQBDate(sr.TxnDate);
 
           if (existingOrder.length > 0) {
             await db
               .update(orders)
               .set({
                 customerId,
+                deliveryDate,
                 total: String(totalAmt.toFixed(2)),
                 subtotal: String(totalAmt.toFixed(2)),
               })
@@ -723,12 +734,13 @@ export async function syncIncomeDeposits(): Promise<{
             .where(eq(orders.orderNumber, orderNumber))
             .limit(1);
 
-          const deliveryDate = dep.TxnDate ? new Date(dep.TxnDate) : new Date();
+          const deliveryDate = parseQBDate(dep.TxnDate);
 
           if (existingOrder.length > 0) {
             await db
               .update(orders)
               .set({
+                deliveryDate,
                 total: String(incomeTotal.toFixed(2)),
                 subtotal: String(incomeTotal.toFixed(2)),
               })

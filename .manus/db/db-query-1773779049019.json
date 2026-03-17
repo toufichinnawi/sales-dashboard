@@ -1,0 +1,22 @@
+{
+  "query": "SELECT TIME(deliveryDate) as time_part, COUNT(*) as cnt FROM orders WHERE orderNumber LIKE 'QB-%' OR orderNumber LIKE 'CM-%' OR orderNumber LIKE 'SR-%' OR orderNumber LIKE 'DEP-%' GROUP BY TIME(deliveryDate) ORDER BY cnt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT TIME(deliveryDate) as time_part, COUNT(*) as cnt FROM orders WHERE orderNumber LIKE 'QB-%' OR orderNumber LIKE 'CM-%' OR orderNumber LIKE 'SR-%' OR orderNumber LIKE 'DEP-%' GROUP BY TIME(deliveryDate) ORDER BY cnt DESC;",
+  "rows": [
+    {
+      "time_part": "12:00:00",
+      "cnt": "2826"
+    },
+    {
+      "time_part": "16:00:00",
+      "cnt": "1656"
+    },
+    {
+      "time_part": "17:00:00",
+      "cnt": "1059"
+    }
+  ],
+  "messages": [],
+  "stdout": "time_part\tcnt\n12:00:00\t2826\n16:00:00\t1656\n17:00:00\t1059\n",
+  "stderr": "",
+  "execution_time_ms": 451
+}
