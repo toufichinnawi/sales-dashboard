@@ -340,7 +340,7 @@ export default function Orders() {
               <DialogHeader>
                 <DialogTitle className="font-display">Create New Order</DialogTitle>
                 <DialogDescription>
-                  Select a customer, add products, and set the delivery date.
+                  Select a customer, add products, and set the invoice date.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreate} className="space-y-5">
@@ -370,7 +370,7 @@ export default function Orders() {
                 {/* Delivery info */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Delivery Date *</Label>
+                    <Label className="text-xs font-semibold">Invoice Date *</Label>
                     <Input
                       type="date"
                       value={deliveryDate}
@@ -654,7 +654,7 @@ export default function Orders() {
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28">Order #</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-44">Customer</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28">Status</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-32">Delivery</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-32">Invoice Date</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24 text-right">Total</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-32">Created</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28 text-right">Actions</TableHead>
@@ -816,7 +816,7 @@ export default function Orders() {
                   </Badge>
                 </div>
                 <div>
-                  <span className="text-xs text-muted-foreground block">Delivery Date</span>
+                  <span className="text-xs text-muted-foreground block">Invoice Date</span>
                   <span>{formatDate(orderDetail.order.deliveryDate)}</span>
                 </div>
                 <div>

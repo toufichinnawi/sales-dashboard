@@ -188,3 +188,6 @@
 - [x] Identify missing transaction types: Sales Receipts (5 synced), Income Deposits ($500 synced), pre-tax fix for 3 invoices
 - [x] Fix revenue calculation: invoices now store pre-tax amounts, income deposits synced, all transaction types covered
 - [x] Verify all months match: Sep-Feb EXACT match, Mar 1-17 EXACT match ($4,752.57)
+
+## UI Label Changes
+- [x] Change "Delivery Date" to "Invoice Date" on the Orders page
