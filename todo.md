@@ -180,5 +180,11 @@
 ## Bug Fixes
 - [x] Fix date filter showing inflated revenue for "Today" — QB sync was setting createdAt to import time instead of TxnDate; fixed sync + backfilled 3,890 orders
 - [x] Investigate and fix revenue discrepancy: 163 old orders had wrong createdAt; backfilled from deliveryDate. Dashboard now matches QB P&L within 0.18%
-- [ ] Investigate Jan/Feb revenue mismatch: QB P&L shows Jan $11,385.99, Feb $17,760.53 — dashboard shows different numbers
+- [x] Investigate Jan/Feb revenue mismatch: QB P&L shows Jan $11,385.99, Feb $17,760.53 — fixed: invoices now use pre-tax amounts (TotalAmt - TotalTax)
 - [x] Add Credit Memo sync from QuickBooks to close $93.66 revenue gap (76 credit memos synced, -$77,518.56 total)
+
+## Revenue Discrepancy Investigation (QB P&L vs Dashboard)
+- [x] Compare QB P&L "Total for Income" per month against dashboard revenue for Sep 2025 - Mar 2026
+- [x] Identify missing transaction types: Sales Receipts (5 synced), Income Deposits ($500 synced), pre-tax fix for 3 invoices
+- [x] Fix revenue calculation: invoices now store pre-tax amounts, income deposits synced, all transaction types covered
+- [x] Verify all months match: Sep-Feb EXACT match, Mar 1-17 EXACT match ($4,752.57)
