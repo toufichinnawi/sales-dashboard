@@ -620,6 +620,7 @@ export const appRouter = router({
           content: [
             `Customers: ${result.customers.created} created, ${result.customers.updated} updated`,
             `Invoices: ${result.invoices.created} created, ${result.invoices.updated} updated`,
+            `Credit Memos: ${result.creditMemos.created} created, ${result.creditMemos.updated} updated`,
             `Payments: ${result.payments.processed} processed`,
             result.errors.length > 0
               ? `Errors: ${result.errors.length} (check sync logs)`

@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  DATE_FORMAT(created_at, '%Y-%m') AS month,\n  COUNT(*) AS order_count,\n  SUM(total) AS total_revenue,\n  SUM(CASE WHEN status IN ('delivered', 'paid') THEN total ELSE 0 END) AS paid_delivered_revenue,\n  SUM(CASE WHEN status IN ('delivered', 'paid') THEN 1 ELSE 0 END) AS paid_delivered_count\nFROM orders\nWHERE created_at >= '2026-01-01' AND created_at < '2026-03-01'\nGROUP BY DATE_FORMAT(created_at, '%Y-%m')\nORDER BY month;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute \nSELECT \n  DATE_FORMAT(created_at, '%Y-%m') AS month,\n  COUNT(*) AS order_count,\n  SUM(total) AS total_revenue,\n  SUM(CASE WHEN status IN ('delivered', 'paid') THEN total ELSE 0 END) AS paid_delivered_revenue,\n  SUM(CASE WHEN status IN ('delivered', 'paid') THEN 1 ELSE 0 END) AS paid_delivered_count\nFROM orders\nWHERE created_at >= '2026-01-01' AND created_at < '2026-03-01'\nGROUP BY DATE_FORMAT(created_at, '%Y-%m')\nORDER BY month;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'created_at' in 'group statement'"
+  ]
+}

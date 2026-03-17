@@ -1,0 +1,24 @@
+{
+  "query": "\nSELECT \n  DATE_FORMAT(createdAt, '%Y-%m') AS month_period,\n  COUNT(*) AS order_count,\n  SUM(total) AS total_revenue,\n  SUM(CASE WHEN orderStatus IN ('delivered', 'paid') THEN total ELSE 0 END) AS paid_delivered_revenue,\n  SUM(CASE WHEN orderStatus IN ('delivered', 'paid') THEN 1 ELSE 0 END) AS paid_delivered_count\nFROM orders\nWHERE createdAt >= '2026-01-01' AND createdAt < '2026-03-01'\nGROUP BY DATE_FORMAT(createdAt, '%Y-%m')\nORDER BY month_period;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute \nSELECT \n  DATE_FORMAT(createdAt, '%Y-%m') AS month_period,\n  COUNT(*) AS order_count,\n  SUM(total) AS total_revenue,\n  SUM(CASE WHEN orderStatus IN ('delivered', 'paid') THEN total ELSE 0 END) AS paid_delivered_revenue,\n  SUM(CASE WHEN orderStatus IN ('delivered', 'paid') THEN 1 ELSE 0 END) AS paid_delivered_count\nFROM orders\nWHERE createdAt >= '2026-01-01' AND createdAt < '2026-03-01'\nGROUP BY DATE_FORMAT(createdAt, '%Y-%m')\nORDER BY month_period;\n",
+  "rows": [
+    {
+      "month_period": "2026-01",
+      "order_count": "41",
+      "total_revenue": "11419.97",
+      "paid_delivered_revenue": "11451.47",
+      "paid_delivered_count": "40"
+    },
+    {
+      "month_period": "2026-02",
+      "order_count": "43",
+      "total_revenue": "17788.71",
+      "paid_delivered_revenue": "17788.71",
+      "paid_delivered_count": "43"
+    }
+  ],
+  "messages": [],
+  "stdout": "month_period\torder_count\ttotal_revenue\tpaid_delivered_revenue\tpaid_delivered_count\n2026-01\t41\t11419.97\t11451.47\t40\n2026-02\t43\t17788.71\t17788.71\t43\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

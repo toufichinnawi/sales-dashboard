@@ -1,0 +1,70 @@
+{
+  "query": "SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count, SUM(CAST(total AS DECIMAL(10,2))) as total_credits FROM orders WHERE orderNumber LIKE 'CM-%' GROUP BY DATE_FORMAT(createdAt, '%Y-%m') ORDER BY month DESC LIMIT 12;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count, SUM(CAST(total AS DECIMAL(10,2))) as total_credits FROM orders WHERE orderNumber LIKE 'CM-%' GROUP BY DATE_FORMAT(createdAt, '%Y-%m') ORDER BY month DESC LIMIT 12;",
+  "rows": [
+    {
+      "month": "2026-01",
+      "count": "1",
+      "total_credits": "-31.50"
+    },
+    {
+      "month": "2025-11",
+      "count": "1",
+      "total_credits": "-49.00"
+    },
+    {
+      "month": "2025-10",
+      "count": "1",
+      "total_credits": "-617.84"
+    },
+    {
+      "month": "2025-09",
+      "count": "8",
+      "total_credits": "-271.57"
+    },
+    {
+      "month": "2025-08",
+      "count": "4",
+      "total_credits": "-6.16"
+    },
+    {
+      "month": "2025-07",
+      "count": "16",
+      "total_credits": "-80.85"
+    },
+    {
+      "month": "2025-06",
+      "count": "6",
+      "total_credits": "-7.84"
+    },
+    {
+      "month": "2025-05",
+      "count": "5",
+      "total_credits": "-97.16"
+    },
+    {
+      "month": "2025-04",
+      "count": "3",
+      "total_credits": "-657.89"
+    },
+    {
+      "month": "2025-03",
+      "count": "2",
+      "total_credits": "-157.97"
+    },
+    {
+      "month": "2025-02",
+      "count": "2",
+      "total_credits": "-473.34"
+    },
+    {
+      "month": "2025-01",
+      "count": "2",
+      "total_credits": "-76.90"
+    }
+  ],
+  "messages": [],
+  "stdout": "month\tcount\ttotal_credits\n2026-01\t1\t-31.50\n2025-11\t1\t-49.00\n2025-10\t1\t-617.84\n2025-09\t8\t-271.57\n2025-08\t4\t-6.16\n2025-07\t16\t-80.85\n2025-06\t6\t-7.84\n2025-05\t5\t-97.16\n2025-04\t3\t-657.89\n2025-03\t2\t-157.97\n2025-02\t2\t-473.34\n2025-01\t2\t-76.90\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}

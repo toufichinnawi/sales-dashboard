@@ -180,3 +180,5 @@
 ## Bug Fixes
 - [x] Fix date filter showing inflated revenue for "Today" — QB sync was setting createdAt to import time instead of TxnDate; fixed sync + backfilled 3,890 orders
 - [x] Investigate and fix revenue discrepancy: 163 old orders had wrong createdAt; backfilled from deliveryDate. Dashboard now matches QB P&L within 0.18%
+- [ ] Investigate Jan/Feb revenue mismatch: QB P&L shows Jan $11,385.99, Feb $17,760.53 — dashboard shows different numbers
+- [x] Add Credit Memo sync from QuickBooks to close $93.66 revenue gap (76 credit memos synced, -$77,518.56 total)

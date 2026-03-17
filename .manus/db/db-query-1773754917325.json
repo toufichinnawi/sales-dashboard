@@ -1,0 +1,130 @@
+{
+  "query": "SELECT orderNumber, total, DATE(createdAt) as txnDate, notes FROM orders WHERE orderNumber LIKE 'CM-%' ORDER BY createdAt DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT orderNumber, total, DATE(createdAt) as txnDate, notes FROM orders WHERE orderNumber LIKE 'CM-%' ORDER BY createdAt DESC LIMIT 20;",
+  "rows": [
+    {
+      "orderNumber": "CM-6967",
+      "total": "-31.50",
+      "txnDate": "2026-01-26",
+      "notes": "QB Credit Memo #6967 | QB ID: 15258"
+    },
+    {
+      "orderNumber": "CM-6888",
+      "total": "-49.00",
+      "txnDate": "2025-11-15",
+      "notes": "QB Credit Memo #6888 | QB ID: 14950"
+    },
+    {
+      "orderNumber": "CM-6871",
+      "total": "-617.84",
+      "txnDate": "2025-10-17",
+      "notes": "QB Credit Memo #6871 | QB ID: 14917"
+    },
+    {
+      "orderNumber": "CM-6792",
+      "total": "-140.14",
+      "txnDate": "2025-09-23",
+      "notes": "QB Credit Memo #6792 | QB ID: 14549"
+    },
+    {
+      "orderNumber": "CM-6824",
+      "total": "-95.55",
+      "txnDate": "2025-09-23",
+      "notes": "QB Credit Memo #6824 | QB ID: 14726"
+    },
+    {
+      "orderNumber": "CM-6708",
+      "total": "-3.51",
+      "txnDate": "2025-09-16",
+      "notes": "QB Credit Memo #6708 | QB ID: 14271"
+    },
+    {
+      "orderNumber": "CM-6685",
+      "total": "-5.07",
+      "txnDate": "2025-09-09",
+      "notes": "QB Credit Memo #6685 | QB ID: 14181"
+    },
+    {
+      "orderNumber": "CM-6684",
+      "total": "-5.85",
+      "txnDate": "2025-09-09",
+      "notes": "QB Credit Memo #6684 | QB ID: 14179"
+    },
+    {
+      "orderNumber": "CM-6677",
+      "total": "-5.85",
+      "txnDate": "2025-09-05",
+      "notes": "QB Credit Memo #6677 | QB ID: 14169"
+    },
+    {
+      "orderNumber": "CM-6687",
+      "total": "-7.80",
+      "txnDate": "2025-09-02",
+      "notes": "QB Credit Memo #6687 | QB ID: 14186"
+    },
+    {
+      "orderNumber": "CM-6686",
+      "total": "-7.80",
+      "txnDate": "2025-09-02",
+      "notes": "QB Credit Memo #6686 | QB ID: 14184"
+    },
+    {
+      "orderNumber": "CM-6633",
+      "total": "-2.10",
+      "txnDate": "2025-08-26",
+      "notes": "QB Credit Memo #6633 | QB ID: 14073"
+    },
+    {
+      "orderNumber": "CM-6634",
+      "total": "-1.26",
+      "txnDate": "2025-08-19",
+      "notes": "QB Credit Memo #6634 | QB ID: 14075"
+    },
+    {
+      "orderNumber": "CM-6635",
+      "total": "-1.40",
+      "txnDate": "2025-08-19",
+      "notes": "QB Credit Memo #6635 | QB ID: 14078"
+    },
+    {
+      "orderNumber": "CM-6648",
+      "total": "-1.40",
+      "txnDate": "2025-08-12",
+      "notes": "QB Credit Memo #6648 | QB ID: 14109"
+    },
+    {
+      "orderNumber": "CM-6638",
+      "total": "-12.60",
+      "txnDate": "2025-07-31",
+      "notes": "QB Credit Memo #6638 | QB ID: 14087"
+    },
+    {
+      "orderNumber": "CM-6558",
+      "total": "-3.36",
+      "txnDate": "2025-07-29",
+      "notes": "QB Credit Memo #6558 | QB ID: 13859"
+    },
+    {
+      "orderNumber": "CM-6647",
+      "total": "-7.00",
+      "txnDate": "2025-07-22",
+      "notes": "QB Credit Memo #6647 | QB ID: 14106"
+    },
+    {
+      "orderNumber": "CM-6572",
+      "total": "-0.84",
+      "txnDate": "2025-07-22",
+      "notes": "QB Credit Memo #6572 | QB ID: 13923"
+    },
+    {
+      "orderNumber": "CM-6567",
+      "total": "-1.68",
+      "txnDate": "2025-07-22",
+      "notes": "QB Credit Memo #6567 | QB ID: 13913"
+    }
+  ],
+  "messages": [],
+  "stdout": "orderNumber\ttotal\ttxnDate\tnotes\nCM-6967\t-31.50\t2026-01-26\tQB Credit Memo #6967 | QB ID: 15258\nCM-6888\t-49.00\t2025-11-15\tQB Credit Memo #6888 | QB ID: 14950\nCM-6871\t-617.84\t2025-10-17\tQB Credit Memo #6871 | QB ID: 14917\nCM-6792\t-140.14\t2025-09-23\tQB Credit Memo #6792 | QB ID: 14549\nCM-6824\t-95.55\t2025-09-23\tQB Credit Memo #6824 | QB ID: 14726\nCM-6708\t-3.51\t2025-09-16\tQB Credit Memo #6708 | QB ID: 14271\nCM-6685\t-5.07\t2025-09-09\tQB Credit Memo #6685 | QB ID: 14181\nCM-6684\t-5.85\t2025-09-09\tQB Credit Memo #6684 | QB ID: 14179\nCM-6677\t-5.85\t2025-09-05\tQB Credit Memo #6677 | QB ID: 14169\nCM-6687\t-7.80\t2025-09-02\tQB Credit Memo #6687 | QB ID: 14186\nCM-6686\t-7.80\t2025-09-02\tQB Credit Memo #6686 | QB ID: 14184\nCM-6633\t-2.10\t2025-08-26\tQB Credit Memo #6633 | QB ID: 14073\nCM-6634\t-1.26\t2025-08-19\tQB Credit Memo #6634 | QB ID: 14075\nCM-6635\t-1.40\t2025-08-19\tQB Credit Memo #6635 | QB ID: 14078\nCM-6648\t-1.40\t2025-08-12\tQB Credit Memo #6648 | QB ID: 14109\nCM-6638\t-12.60\t2025-07-31\tQB Credit Memo #6638 | QB ID: 14087\nCM-6558\t-3.36\t2025-07-29\tQB Credit Memo #6558 | QB ID: 13859\nCM-6647\t-7.00\t2025-07-22\tQB Credit Memo #6647 | QB ID: 14106\nCM-6572\t-0.84\t2025-07-22\tQB Credit Memo #6572 | QB ID: 13923\nCM-6567\t-1.68\t2025-07-22\tQB Credit Memo #6567 | QB ID: 13913\n",
+  "stderr": "",
+  "execution_time_ms": 155
+}
