@@ -198,3 +198,6 @@
 - [x] Fix database dates: shifted 3,003 midnight-timestamp orders forward by 12 hours
 - [x] Fix frontend date display: formatDate now uses UTC timezone to avoid browser shifts
 - [x] Add date range filtering to Orders page (backend query + frontend date picker UI)
+
+## Auto-Send Brochure to New Leads
+- [ ] Send wholesale brochure email automatically when a new lead submits the contact form
