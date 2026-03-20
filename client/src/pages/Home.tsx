@@ -162,7 +162,7 @@ export default function Home() {
             Wholesale Dashboard
           </h1>
           <p className="text-white/80 text-sm mt-0.5">
-            Hinnawi Bros Bagels · Montreal · {activeAccountCount} active accounts
+            Hinnawi Bros Bagels · Montreal · {activeAccountCount} active accounts · v2.0
           </p>
         </div>
         {hasLiveData && (
