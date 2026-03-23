@@ -18,7 +18,7 @@ import * as http from "http";
 const execFileAsync = promisify(execFile);
 
 export const BROCHURE_URL =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure.pdf";
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure_v4.pdf";
 
 export const BAGEL_IMAGE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/bagel-variety_72c673df.jpg";
@@ -46,7 +46,7 @@ Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're 
 
 📋 Our Wholesale Partnership Guide includes:
 
-🥯 Our full product lineup — 6 varieties of authentic Montreal-style bagels
+🥯 Our 4 signature varieties — Plain, Sesame, Multigrain & Everything
 💰 Wholesale pricing starting at $8.00 per dozen
 📦 Volume discount tiers — up to 15% off for high-volume partners
 🚚 Delivery coverage across the Greater Montreal area

@@ -3,7 +3,7 @@ import { getBrochureEmailContent, BROCHURE_URL, BAGEL_IMAGE_URL } from "./brochu
 
 describe("brochure-email", () => {
   describe("BROCHURE_URL", () => {
-    it("points to the v3 PDF on CloudFront CDN", () => {
+    it("points to the v4 PDF on CloudFront CDN", () => {
       expect(BROCHURE_URL).toContain("cloudfront.net");
       expect(BROCHURE_URL).toContain("Hinnawi_Bros_Wholesale_Brochure");
       expect(BROCHURE_URL).toMatch(/\.pdf$/);
@@ -51,6 +51,14 @@ describe("brochure-email", () => {
     it("includes wholesale pricing information", () => {
       const result = getBrochureEmailContent(lead);
       expect(result.content).toContain("$8.00 per dozen");
+    });
+
+    it("mentions the 4 signature bagel varieties", () => {
+      const result = getBrochureEmailContent(lead);
+      expect(result.content).toContain("Plain");
+      expect(result.content).toContain("Sesame");
+      expect(result.content).toContain("Multigrain");
+      expect(result.content).toContain("Everything");
     });
 
     it("includes Rosalyn's contact information", () => {

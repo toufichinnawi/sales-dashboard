@@ -237,3 +237,11 @@
 - [x] Notify owner when new tasting request comes in
 - [ ] Show tasting requests in the dashboard for the team (future enhancement)
 - [x] Write vitest tests for the tasting request flow (7/7 passed, 114 total)
+
+## New Brochure v4 — Bagel Varieties Focus
+- [x] Find/generate photos for Plain, Sesame, Multigrain, Everything bagels
+- [x] Design new 3-page brochure PDF (cover, 4 variety cards with photos, pricing & contact)
+- [x] Upload new brochure to CDN with correct content-type (application/pdf)
+- [x] Update brochure-email.ts with new v4 brochure URL
+- [x] Update email content to mention the four varieties
+- [x] All 115 tests passing
