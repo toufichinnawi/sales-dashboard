@@ -19,6 +19,7 @@ import RecurringOrders from "./pages/RecurringOrders";
 import QuickBooksSettings from "./pages/QuickBooksSettings";
 import WholesaleLanding from "./pages/WholesaleLanding";
 import TastingRequest from "./pages/TastingRequest";
+import TastingRequests from "./pages/TastingRequests";
 import PortalOrders from "./pages/portal/PortalOrders";
 import PortalStandingOrders from "./pages/portal/PortalStandingOrders";
 import PortalQuickOrder from "./pages/portal/PortalQuickOrder";
@@ -40,6 +41,7 @@ function DashboardRouter() {
         <Route path={"/orders"} component={Orders} />
         <Route path={"/recurring"} component={RecurringOrders} />
         <Route path={"/quickbooks"} component={QuickBooksSettings} />
+        <Route path={"/tastings"} component={TastingRequests} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>

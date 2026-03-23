@@ -21,6 +21,7 @@ import {
   ShoppingBag,
   Repeat,
   Link2,
+  UtensilsCrossed,
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,6 +56,7 @@ const navSections = [
       { path: "/customers", label: "Accounts", icon: Building2 },
       { path: "/orders", label: "Orders", icon: ShoppingBag },
       { path: "/recurring", label: "Standing Orders", icon: Repeat },
+      { path: "/tastings", label: "Tasting Requests", icon: UtensilsCrossed },
     ],
   },
   {

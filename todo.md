@@ -235,7 +235,13 @@
 - [x] Create backend procedures (submit, list, updateStatus)
 - [x] Add "Request a Free Tasting" link to brochure email
 - [x] Notify owner when new tasting request comes in
-- [ ] Show tasting requests in the dashboard for the team (future enhancement)
+- [x] Show tasting requests in the dashboard for the team
+- [x] Build Tasting Requests page with table of all requests
+- [x] Add status filter cards (All, Pending, Scheduled, Completed, Cancelled)
+- [x] Add status update functionality (dropdown in table + buttons in detail dialog)
+- [x] Add detail dialog with contact info, tasting details, and status update
+- [x] Add Tasting Requests to sidebar navigation (UtensilsCrossed icon)
+- [x] Add route for /tastings in App.tsx
 - [x] Write vitest tests for the tasting request flow (7/7 passed, 114 total)
 
 ## New Brochure v4 — Bagel Varieties Focus
