@@ -251,3 +251,9 @@
 - [x] Update brochure-email.ts with new v4 brochure URL
 - [x] Update email content to mention the four varieties
 - [x] All 115 tests passing
+
+## Wholesale Call Sheet Lead Import
+- [x] Extract lead data from uploaded Wholesale_Bagel_Call_Sheet_Montreal.pdf (15 leads)
+- [x] Parse business names, contacts, emails, phones from the call sheet
+- [x] Import all 15 leads into the database (bypassed auto-email to avoid spamming)
+- [x] Verify imported leads appear on the Leads page (48 total, all visible with correct statuses and notes)
