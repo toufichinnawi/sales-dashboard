@@ -227,3 +227,13 @@
 - [x] Fix brochure PDF link not opening in browser (re-uploaded with content-type application/pdf)
 - [x] Fix brochure PDF link not accessible to external users (CDN cache propagation resolved)
 - [x] Add professional bagel photo to brochure email template (attached as bagel-variety.jpg)
+- [ ] Investigate and fix why toufic@bagelandcafe.com is receiving brochure emails
+
+## Tasting Request Feature
+- [x] Create public tasting request form page (no login required) — /tasting route
+- [x] Create tasting_requests database table (12 columns, migrated)
+- [x] Create backend procedures (submit, list, updateStatus)
+- [x] Add "Request a Free Tasting" link to brochure email
+- [x] Notify owner when new tasting request comes in
+- [ ] Show tasting requests in the dashboard for the team (future enhancement)
+- [x] Write vitest tests for the tasting request flow (7/7 passed, 114 total)

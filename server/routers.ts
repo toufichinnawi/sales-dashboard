@@ -36,6 +36,9 @@ import {
   getPortalRecurringOrders,
   bulkCreateCustomers,
   getAllCustomersWithStats,
+  createTastingRequest,
+  getAllTastingRequests,
+  updateTastingRequestStatus,
 } from "./db";
 import crypto from "crypto";
 import { notifyOwner } from "./_core/notification";
@@ -695,6 +698,65 @@ export const appRouter = router({
   }),
 
   // ─── BULK IMPORT (QuickBooks CSV) ────────────────────────────────────
+
+  tastings: router({
+    // Public: anyone with the link can submit a tasting request
+    submit: publicProcedure
+      .input(
+        z.object({
+          name: z.string().min(1, "Name is required"),
+          business: z.string().min(1, "Business name is required"),
+          email: z.string().email("Valid email is required"),
+          phone: z.string().optional(),
+          address: z.string().optional(),
+          preferredDate: z.string().optional(),
+          bagelPreferences: z.string().optional(),
+          message: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const request = await createTastingRequest({
+          name: input.name,
+          business: input.business,
+          email: input.email,
+          phone: input.phone ?? null,
+          address: input.address ?? null,
+          preferredDate: input.preferredDate ?? null,
+          bagelPreferences: input.bagelPreferences ?? null,
+          message: input.message ?? null,
+        });
+
+        // Notify the owner about the new tasting request
+        try {
+          await notifyOwner({
+            title: `New Tasting Request: ${input.business}`,
+            content: `${input.name} from ${input.business} (${input.email}) has requested a free tasting.\n\nPhone: ${input.phone || "Not provided"}\nAddress: ${input.address || "Not provided"}\nPreferred Date: ${input.preferredDate || "Flexible"}\nBagel Preferences: ${input.bagelPreferences || "All varieties"}\nMessage: ${input.message || "None"}\n\nFollow up within 24 hours to schedule the tasting.`,
+          });
+        } catch (e) {
+          console.warn("[Tastings] Failed to notify owner:", e);
+        }
+
+        return { success: true, request };
+      }),
+
+    // Protected: team can view all tasting requests
+    list: protectedProcedure.query(async () => {
+      return getAllTastingRequests();
+    }),
+
+    // Protected: team can update tasting request status
+    updateStatus: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          status: z.enum(["pending", "scheduled", "completed", "cancelled"]),
+        })
+      )
+      .mutation(async ({ input }) => {
+        await updateTastingRequestStatus(input.id, input.status);
+        return { success: true };
+      }),
+  }),
 
   import: router({
     customers: protectedProcedure

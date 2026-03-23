@@ -23,6 +23,8 @@ export const BROCHURE_URL =
 export const BAGEL_IMAGE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/bagel-variety_72c673df.jpg";
 
+export const TASTING_REQUEST_PATH = "/tasting";
+
 const BROCHURE_LOCAL_PATH = "/tmp/hinnawi-brochure.pdf";
 const BAGEL_IMAGE_LOCAL_PATH = "/tmp/hinnawi-bagels.jpg";
 
@@ -53,7 +55,17 @@ Attached you'll find our Wholesale Partnership Guide, which includes:
 You can also download the brochure directly here:
 ${BROCHURE_URL}
 
-We'd love to schedule a complimentary tasting at your location so you can experience the quality firsthand. Just reply to this email or call me directly and we'll set something up.
+We'd love to schedule a complimentary tasting at your location so you can experience the quality firsthand.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🥯  REQUEST A FREE TASTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Click below to request a complimentary tasting delivered right to your location — no commitment, just fresh bagels:
+
+👉  https://salesdash-x4qkp2kk.manus.space/tasting
+
+Or simply reply to this email and we'll set something up.
 
 Looking forward to working with ${lead.business}!
 

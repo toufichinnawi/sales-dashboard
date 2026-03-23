@@ -182,3 +182,23 @@ export const qbSyncLog = mysqlTable("qb_sync_log", {
 
 export type QbSyncLog = typeof qbSyncLog.$inferSelect;
 export type InsertQbSyncLog = typeof qbSyncLog.$inferInsert;
+
+// ─── Tasting Requests table ────────────────────────────────────────────────
+
+export const tastingRequests = mysqlTable("tasting_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  business: varchar("business", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  phone: varchar("phone", { length: 50 }),
+  address: text("address"),
+  preferredDate: varchar("preferredDate", { length: 100 }),
+  bagelPreferences: text("bagelPreferences"),
+  message: text("message"),
+  status: mysqlEnum("tastingStatus", ["pending", "scheduled", "completed", "cancelled"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TastingRequest = typeof tastingRequests.$inferSelect;
+export type InsertTastingRequest = typeof tastingRequests.$inferInsert;

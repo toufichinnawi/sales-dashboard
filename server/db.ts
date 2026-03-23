@@ -9,6 +9,7 @@ import {
   recurringOrders, InsertRecurringOrder, RecurringOrder,
   recurringOrderItems, InsertRecurringOrderItem, RecurringOrderItem,
   customerInvites, InsertCustomerInvite, CustomerInvite,
+  tastingRequests, InsertTastingRequest, TastingRequest,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -705,6 +706,30 @@ export async function bulkCreateCustomers(customerList: InsertCustomer[]): Promi
   }
 
   return { imported, skipped };
+}
+
+// ─── Tasting Request queries ─────────────────────────────────────────────
+
+export async function createTastingRequest(request: InsertTastingRequest): Promise<TastingRequest | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.insert(tastingRequests).values(request);
+  const insertId = result[0].insertId;
+  const rows = await db.select().from(tastingRequests).where(eq(tastingRequests.id, insertId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getAllTastingRequests(): Promise<TastingRequest[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(tastingRequests).orderBy(desc(tastingRequests.createdAt));
+}
+
+export async function updateTastingRequestStatus(id: number, status: TastingRequest["status"]): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(tastingRequests).set({ status }).where(eq(tastingRequests.id, id));
 }
 
 // Helper to compute next delivery date from day of week

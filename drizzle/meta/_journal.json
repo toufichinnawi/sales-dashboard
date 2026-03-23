@@ -50,6 +50,13 @@
       "when": 1773686215044,
       "tag": "0006_plain_devos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1774285360348,
+      "tag": "0007_strange_garia",
+      "breakpoints": true
     }
   ]
 }

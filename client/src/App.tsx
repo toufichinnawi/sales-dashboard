@@ -18,6 +18,7 @@ import Orders from "./pages/Orders";
 import RecurringOrders from "./pages/RecurringOrders";
 import QuickBooksSettings from "./pages/QuickBooksSettings";
 import WholesaleLanding from "./pages/WholesaleLanding";
+import TastingRequest from "./pages/TastingRequest";
 import PortalOrders from "./pages/portal/PortalOrders";
 import PortalStandingOrders from "./pages/portal/PortalStandingOrders";
 import PortalQuickOrder from "./pages/portal/PortalQuickOrder";
@@ -65,6 +66,7 @@ function Router() {
   return (
     <Switch>
       <Route path={"/wholesale"} component={WholesaleLanding} />
+      <Route path={"/tasting"} component={TastingRequest} />
       <Route path={"/portal/accept-invite"} component={PortalAcceptInvite} />
       <Route path="/portal/:rest*">
         <PortalRouter />
