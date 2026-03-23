@@ -18,7 +18,7 @@ import * as http from "http";
 const execFileAsync = promisify(execFile);
 
 export const BROCHURE_URL =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/Hinnawi_Bros_Wholesale_Brochure_v3_f09560d3.pdf";
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure.pdf";
 
 const BROCHURE_LOCAL_PATH = "/tmp/hinnawi-brochure.pdf";
 

@@ -222,3 +222,6 @@
 - [x] Ensure auto-email sends brochure when new lead is added
 - [x] Write vitest tests for brochure-email module (9/9 passed)
 - [x] All 106 tests passing
+
+## Bug Fixes
+- [x] Fix brochure PDF link not opening in browser (re-uploaded with content-type application/pdf)

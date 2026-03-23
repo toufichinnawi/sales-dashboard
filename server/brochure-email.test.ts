@@ -5,7 +5,7 @@ describe("brochure-email", () => {
   describe("BROCHURE_URL", () => {
     it("points to the v3 PDF on CloudFront CDN", () => {
       expect(BROCHURE_URL).toContain("cloudfront.net");
-      expect(BROCHURE_URL).toContain("Hinnawi_Bros_Wholesale_Brochure_v3");
+      expect(BROCHURE_URL).toContain("Hinnawi_Bros_Wholesale_Brochure");
       expect(BROCHURE_URL).toMatch(/\.pdf$/);
     });
   });
