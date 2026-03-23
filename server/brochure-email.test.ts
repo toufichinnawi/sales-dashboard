@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getBrochureEmailContent, BROCHURE_URL } from "./brochure-email";
+import { getBrochureEmailContent, BROCHURE_URL, BAGEL_IMAGE_URL } from "./brochure-email";
 
 describe("brochure-email", () => {
   describe("BROCHURE_URL", () => {
@@ -7,6 +7,14 @@ describe("brochure-email", () => {
       expect(BROCHURE_URL).toContain("cloudfront.net");
       expect(BROCHURE_URL).toContain("Hinnawi_Bros_Wholesale_Brochure");
       expect(BROCHURE_URL).toMatch(/\.pdf$/);
+    });
+  });
+
+  describe("BAGEL_IMAGE_URL", () => {
+    it("points to a bagel image on CloudFront CDN", () => {
+      expect(BAGEL_IMAGE_URL).toContain("cloudfront.net");
+      expect(BAGEL_IMAGE_URL).toContain("bagel-variety");
+      expect(BAGEL_IMAGE_URL).toMatch(/\.jpg$/);
     });
   });
 

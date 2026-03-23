@@ -20,7 +20,11 @@ const execFileAsync = promisify(execFile);
 export const BROCHURE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure.pdf";
 
+export const BAGEL_IMAGE_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/bagel-variety_72c673df.jpg";
+
 const BROCHURE_LOCAL_PATH = "/tmp/hinnawi-brochure.pdf";
+const BAGEL_IMAGE_LOCAL_PATH = "/tmp/hinnawi-bagels.jpg";
 
 interface LeadInfo {
   name: string;
@@ -66,17 +70,17 @@ hinnawibrosbagelandcafe.com`,
 }
 
 /**
- * Download the brochure PDF to a local temp path if not already cached.
+ * Download a file from a URL to a local path if not already cached.
  */
-async function ensureBrochureDownloaded(): Promise<string> {
-  if (fs.existsSync(BROCHURE_LOCAL_PATH)) {
-    return BROCHURE_LOCAL_PATH;
+async function ensureFileDownloaded(url: string, localPath: string): Promise<string> {
+  if (fs.existsSync(localPath)) {
+    return localPath;
   }
 
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(BROCHURE_LOCAL_PATH);
-    const get = BROCHURE_URL.startsWith("https") ? https.get : http.get;
-    get(BROCHURE_URL, (response) => {
+    const file = fs.createWriteStream(localPath);
+    const get = url.startsWith("https") ? https.get : http.get;
+    get(url, (response) => {
       // Follow redirects
       if (response.statusCode === 301 || response.statusCode === 302) {
         const redirectUrl = response.headers.location;
@@ -86,7 +90,7 @@ async function ensureBrochureDownloaded(): Promise<string> {
             res2.pipe(file);
             file.on("finish", () => {
               file.close();
-              resolve(BROCHURE_LOCAL_PATH);
+              resolve(localPath);
             });
           }).on("error", reject);
           return;
@@ -95,10 +99,10 @@ async function ensureBrochureDownloaded(): Promise<string> {
       response.pipe(file);
       file.on("finish", () => {
         file.close();
-        resolve(BROCHURE_LOCAL_PATH);
+        resolve(localPath);
       });
     }).on("error", (err) => {
-      fs.unlink(BROCHURE_LOCAL_PATH, () => {});
+      fs.unlink(localPath, () => {});
       reject(err);
     });
   });
@@ -114,8 +118,9 @@ async function sendViaOutlookMCP(
   content: string
 ): Promise<boolean> {
   try {
-    // Download the brochure PDF locally so we can attach it
-    const pdfPath = await ensureBrochureDownloaded();
+    // Download the brochure PDF and bagel image locally so we can attach them
+    const pdfPath = await ensureFileDownloaded(BROCHURE_URL, BROCHURE_LOCAL_PATH);
+    const imagePath = await ensureFileDownloaded(BAGEL_IMAGE_URL, BAGEL_IMAGE_LOCAL_PATH);
 
     const input = JSON.stringify({
       messages: [
@@ -123,7 +128,7 @@ async function sendViaOutlookMCP(
           subject,
           to: [lead.email],
           content,
-          attachments: [pdfPath],
+          attachments: [imagePath, pdfPath],
         },
       ],
     });

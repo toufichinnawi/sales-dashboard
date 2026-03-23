@@ -225,3 +225,5 @@
 
 ## Bug Fixes
 - [x] Fix brochure PDF link not opening in browser (re-uploaded with content-type application/pdf)
+- [x] Fix brochure PDF link not accessible to external users (CDN cache propagation resolved)
+- [x] Add professional bagel photo to brochure email template (attached as bagel-variety.jpg)
