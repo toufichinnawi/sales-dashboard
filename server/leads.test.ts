@@ -76,6 +76,7 @@ describe("leads", () => {
 
       // This will attempt to insert into DB, which may not be available in test
       // but we can verify the input validation passes
+      // Note: The brochure email send (with MCP timeout) makes this slower
       try {
         await caller.leads.create({
           name: "Test User",
@@ -90,7 +91,7 @@ describe("leads", () => {
         expect(e.message).not.toContain("Name is required");
         expect(e.message).not.toContain("Valid email is required");
       }
-    });
+    }, 35_000);
   });
 
   describe("leads.list (protected)", () => {

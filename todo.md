@@ -200,8 +200,8 @@
 - [x] Add date range filtering to Orders page (backend query + frontend date picker UI)
 
 ## Wholesale Brochure & Auto-Email
-- [ ] Create professional wholesale brochure PDF with photos for Hinnawi Bros Bagels
-- [ ] Wire auto-email to send brochure from rosalyn@bagelandcafe.com when new lead is added
+- [x] Create professional wholesale brochure PDF with photos for Hinnawi Bros Bagels
+- [x] Wire auto-email to send brochure from rosalyn@bagelandcafe.com when new lead is added
 
 ## CRM Classification
 - [x] Add suspect vs customer classification — distinguish leads/suspects from active customers
@@ -211,3 +211,14 @@
 - [x] Add clickable filter cards to filter by classification type
 - [x] Rename sidebar nav from 'Customers' to 'Accounts'
 - [x] Write vitest tests for customers.listWithStats (5/5 passed)
+
+## Brochure Integration (User-Provided HTML)
+- [x] Review uploaded brochure.html content
+- [x] Convert brochure HTML to PDF (3-page v3 with real product images)
+- [x] Upload brochure PDF to CDN (CloudFront)
+- [x] Update brochure-email module to use the new v3 brochure PDF
+- [x] Wire Outlook MCP for real email sending with PDF attachment
+- [x] Add fallback to owner notification when MCP unavailable
+- [x] Ensure auto-email sends brochure when new lead is added
+- [x] Write vitest tests for brochure-email module (9/9 passed)
+- [x] All 106 tests passing

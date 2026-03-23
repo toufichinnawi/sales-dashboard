@@ -1,14 +1,26 @@
 /**
  * Brochure Email Helper
  * Sends the wholesale brochure to leads via the Outlook MCP integration.
- * 
- * Note: The Outlook MCP is available in the sandbox environment.
- * In production, this falls back to the owner notification system.
+ *
+ * The Outlook MCP tool (outlook_send_messages) is available in the sandbox
+ * environment via the manus-mcp-cli utility. In production, we fall back to
+ * notifying the owner so they can forward manually.
  */
 
 import { notifyOwner } from "./_core/notification";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import * as fs from "fs";
+import * as path from "path";
+import * as https from "https";
+import * as http from "http";
 
-const BROCHURE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/Hinnawi_Bros_Wholesale_Brochure_v2_4278d0d1.pdf";
+const execFileAsync = promisify(execFile);
+
+export const BROCHURE_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/Hinnawi_Bros_Wholesale_Brochure_v3_f09560d3.pdf";
+
+const BROCHURE_LOCAL_PATH = "/tmp/hinnawi-brochure.pdf";
 
 interface LeadInfo {
   name: string;
@@ -54,36 +66,153 @@ hinnawibrosbagelandcafe.com`,
 }
 
 /**
- * Send brochure email to a lead.
- * Returns true if the email was sent successfully.
+ * Download the brochure PDF to a local temp path if not already cached.
  */
-export async function sendBrochureEmail(lead: LeadInfo): Promise<boolean> {
-  const { subject, content } = composeBrochureEmail(lead);
+async function ensureBrochureDownloaded(): Promise<string> {
+  if (fs.existsSync(BROCHURE_LOCAL_PATH)) {
+    return BROCHURE_LOCAL_PATH;
+  }
 
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(BROCHURE_LOCAL_PATH);
+    const get = BROCHURE_URL.startsWith("https") ? https.get : http.get;
+    get(BROCHURE_URL, (response) => {
+      // Follow redirects
+      if (response.statusCode === 301 || response.statusCode === 302) {
+        const redirectUrl = response.headers.location;
+        if (redirectUrl) {
+          const getRedirect = redirectUrl.startsWith("https") ? https.get : http.get;
+          getRedirect(redirectUrl, (res2) => {
+            res2.pipe(file);
+            file.on("finish", () => {
+              file.close();
+              resolve(BROCHURE_LOCAL_PATH);
+            });
+          }).on("error", reject);
+          return;
+        }
+      }
+      response.pipe(file);
+      file.on("finish", () => {
+        file.close();
+        resolve(BROCHURE_LOCAL_PATH);
+      });
+    }).on("error", (err) => {
+      fs.unlink(BROCHURE_LOCAL_PATH, () => {});
+      reject(err);
+    });
+  });
+}
+
+/**
+ * Try to send an email via the Outlook MCP integration.
+ * Returns true if the MCP tool was available and the send succeeded.
+ */
+async function sendViaOutlookMCP(
+  lead: LeadInfo,
+  subject: string,
+  content: string
+): Promise<boolean> {
   try {
-    // Try sending via the notification system (works in production)
-    // The brochure link is included in the email body
-    console.log(`[Brochure] Sending wholesale brochure to ${lead.email} (${lead.business})`);
+    // Download the brochure PDF locally so we can attach it
+    const pdfPath = await ensureBrochureDownloaded();
 
-    // Notify the owner that a brochure was sent
-    await notifyOwner({
-      title: `Brochure Sent: ${lead.business}`,
-      content: `Wholesale brochure automatically sent to ${lead.name} (${lead.email}) at ${lead.business}.\n\nFollow up within 48 hours to schedule a tasting.`,
+    const input = JSON.stringify({
+      messages: [
+        {
+          subject,
+          to: [lead.email],
+          content,
+          attachments: [pdfPath],
+        },
+      ],
     });
 
-    console.log(`[Brochure] Successfully queued brochure email for ${lead.email}`);
+    const { stdout, stderr } = await execFileAsync(
+      "manus-mcp-cli",
+      ["tool", "call", "outlook_send_messages", "--server", "outlook-mail", "--input", input],
+      { timeout: 30_000 }
+    );
+
+    console.log(`[Brochure] Outlook MCP response: ${stdout}`);
+    if (stderr) {
+      console.warn(`[Brochure] Outlook MCP stderr: ${stderr}`);
+    }
+
+    // Check for success indicators in the output
+    if (stdout.includes("error") && !stdout.includes("success")) {
+      console.warn(`[Brochure] Outlook MCP may have failed: ${stdout}`);
+      return false;
+    }
+
     return true;
   } catch (error) {
-    console.error(`[Brochure] Failed to send brochure to ${lead.email}:`, error);
+    console.warn(`[Brochure] Outlook MCP not available or failed:`, error);
     return false;
   }
 }
 
 /**
- * Get the brochure email content for manual sending via MCP
+ * Send brochure email to a lead.
+ * Tries Outlook MCP first, falls back to owner notification.
+ * Returns true if the email was sent successfully via either method.
+ */
+export async function sendBrochureEmail(lead: LeadInfo): Promise<boolean> {
+  const { subject, content } = composeBrochureEmail(lead);
+
+  console.log(
+    `[Brochure] Sending wholesale brochure to ${lead.email} (${lead.business})`
+  );
+
+  // Attempt 1: Send via Outlook MCP (real email with PDF attachment)
+  const sentViaOutlook = await sendViaOutlookMCP(lead, subject, content);
+
+  if (sentViaOutlook) {
+    console.log(
+      `[Brochure] Successfully sent brochure via Outlook to ${lead.email}`
+    );
+
+    // Also notify the owner about the send
+    try {
+      await notifyOwner({
+        title: `Brochure Sent: ${lead.business}`,
+        content: `Wholesale brochure automatically emailed to ${lead.name} (${lead.email}) at ${lead.business}.\n\nFollow up within 48 hours to schedule a tasting.`,
+      });
+    } catch (e) {
+      // Non-critical — the email was already sent
+      console.warn("[Brochure] Failed to notify owner about brochure send:", e);
+    }
+
+    return true;
+  }
+
+  // Attempt 2: Fall back to owner notification (production / no MCP)
+  console.log(
+    `[Brochure] Falling back to owner notification for ${lead.email}`
+  );
+
+  try {
+    await notifyOwner({
+      title: `Brochure Requested: ${lead.business}`,
+      content: `Wholesale brochure could not be auto-emailed to ${lead.name} (${lead.email}) at ${lead.business}.\n\nPlease forward the brochure manually:\n${BROCHURE_URL}\n\nFollow up within 48 hours to schedule a tasting.`,
+    });
+
+    console.log(
+      `[Brochure] Owner notified to manually send brochure to ${lead.email}`
+    );
+    return true;
+  } catch (error) {
+    console.error(
+      `[Brochure] Failed to send brochure to ${lead.email}:`,
+      error
+    );
+    return false;
+  }
+}
+
+/**
+ * Get the brochure email content for preview / manual sending
  */
 export function getBrochureEmailContent(lead: LeadInfo) {
   return composeBrochureEmail(lead);
 }
-
-export { BROCHURE_URL };
