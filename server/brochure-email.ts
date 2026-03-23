@@ -39,45 +39,43 @@ interface LeadInfo {
  */
 function composeBrochureEmail(lead: LeadInfo): { subject: string; content: string } {
   return {
-    subject: `Hinnawi Bros Wholesale Partnership — Product Guide & Pricing`,
-    content: `Hi ${lead.name},
+    subject: `🥯 Hinnawi Bros Wholesale Partnership — Product Guide & Pricing`,
+    content: `Hi ${lead.name} 👋
 
-Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.
+Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you. 🎉
 
-Attached you'll find our Wholesale Partnership Guide, which includes:
+📋 Our Wholesale Partnership Guide includes:
 
-- Our full product lineup (6 varieties of authentic Montreal-style bagels)
-- Wholesale pricing starting at $8.00 per dozen
-- Volume discount tiers (up to 15% off for high-volume partners)
-- Delivery coverage across the Greater Montreal area
-- How to get started with your first order
+🥯 Our full product lineup — 6 varieties of authentic Montreal-style bagels
+💰 Wholesale pricing starting at $8.00 per dozen
+📦 Volume discount tiers — up to 15% off for high-volume partners
+🚚 Delivery coverage across the Greater Montreal area
+✅ How to get started with your first order
 
-You can also download the brochure directly here:
+📎 Download the brochure here:
 ${BROCHURE_URL}
 
-We'd love to schedule a complimentary tasting at your location so you can experience the quality firsthand.
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🥯  REQUEST A FREE TASTING
+🔥  REQUEST A FREE TASTING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Click below to request a complimentary tasting delivered right to your location — no commitment, just fresh bagels:
+We'd love to bring fresh bagels right to your door — no commitment, no cost, just great bagels! 🥯✨
 
 👉  https://salesdash-x4qkp2kk.manus.space/tasting
 
-Or simply reply to this email and we'll set something up.
+Or simply reply to this email and we'll set something up! 📩
 
-Looking forward to working with ${lead.business}!
+Looking forward to working with ${lead.business}! 🤝
 
 Warm regards,
 
 Rosalyn Manneh
-Wholesale Manager
-Hinnawi Bros Bagel & Cafe
-514-571-7672
-rosalyn@bagelandcafe.com
-733 Cathcart, Montreal, QC
-hinnawibrosbagelandcafe.com`,
+🏢 Wholesale Manager
+🥯 Hinnawi Bros Bagel & Cafe
+📞 514-571-7672
+📧 rosalyn@bagelandcafe.com
+📍 733 Cathcart, Montreal, QC
+🌐 hinnawibrosbagelandcafe.com`,
   };
 }
 
