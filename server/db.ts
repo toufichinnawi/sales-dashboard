@@ -149,6 +149,57 @@ export async function getAllCustomers(): Promise<Customer[]> {
   return db.select().from(customers).orderBy(desc(customers.createdAt));
 }
 
+export type CustomerWithStats = Customer & {
+  orderCount: number;
+  totalRevenue: string;
+  lastOrderDate: Date | null;
+  classification: 'customer' | 'suspect';
+};
+
+export async function getAllCustomersWithStats(): Promise<CustomerWithStats[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db.execute(sql`
+    SELECT
+      c.*,
+      COALESCE(stats.order_count, 0) AS order_count,
+      COALESCE(stats.total_revenue, '0.00') AS total_revenue,
+      stats.last_order_date
+    FROM ${customers} c
+    LEFT JOIN (
+      SELECT
+        o.customerId,
+        COUNT(*) AS order_count,
+        SUM(o.total) AS total_revenue,
+        MAX(o.deliveryDate) AS last_order_date
+      FROM ${orders} o
+      WHERE o.${sql.raw('orderStatus')} NOT IN ('cancelled')
+      GROUP BY o.customerId
+    ) stats ON stats.customerId = c.id
+    ORDER BY c.createdAt DESC
+  `);
+
+  return (rows as any)[0].map((row: any) => ({
+    id: row.id,
+    businessName: row.businessName,
+    contactName: row.contactName,
+    email: row.email,
+    phone: row.phone,
+    address: row.address,
+    segment: row.segment,
+    notes: row.notes,
+    status: row.customerStatus,
+    userId: row.userId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    orderCount: Number(row.order_count) || 0,
+    totalRevenue: String(row.total_revenue || '0.00'),
+    lastOrderDate: row.last_order_date ? new Date(row.last_order_date) : null,
+    classification: (Number(row.order_count) || 0) > 0 ? 'customer' as const : 'suspect' as const,
+  }));
+}
+
 export async function getCustomerById(id: number): Promise<Customer | null> {
   const db = await getDb();
   if (!db) return null;

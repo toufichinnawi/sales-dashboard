@@ -1,0 +1,18 @@
+{
+  "query": "SELECT \n  CASE WHEN COALESCE(stats.order_count, 0) > 0 THEN 'customer' ELSE 'suspect' END AS classification,\n  COUNT(*) as cnt\nFROM customers c\nLEFT JOIN (\n  SELECT customerId, COUNT(*) AS order_count\n  FROM orders\n  WHERE orderStatus NOT IN ('cancelled')\n  GROUP BY customerId\n) stats ON stats.customerId = c.id\nGROUP BY classification",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT \n  CASE WHEN COALESCE(stats.order_count, 0) > 0 THEN 'customer' ELSE 'suspect' END AS classification,\n  COUNT(*) as cnt\nFROM customers c\nLEFT JOIN (\n  SELECT customerId, COUNT(*) AS order_count\n  FROM orders\n  WHERE orderStatus NOT IN ('cancelled')\n  GROUP BY customerId\n) stats ON stats.customerId = c.id\nGROUP BY classification",
+  "rows": [
+    {
+      "classification": "customer",
+      "cnt": "102"
+    },
+    {
+      "classification": "suspect",
+      "cnt": "8"
+    }
+  ],
+  "messages": [],
+  "stdout": "classification\tcnt\ncustomer\t102\nsuspect\t8\n",
+  "stderr": "",
+  "execution_time_ms": 1131
+}

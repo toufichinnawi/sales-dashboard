@@ -52,7 +52,7 @@ const navSections = [
     items: [
       { path: "/", label: "Overview", icon: LayoutDashboard },
       { path: "/leads", label: "Leads", icon: Inbox },
-      { path: "/customers", label: "Customers", icon: Building2 },
+      { path: "/customers", label: "Accounts", icon: Building2 },
       { path: "/orders", label: "Orders", icon: ShoppingBag },
       { path: "/recurring", label: "Standing Orders", icon: Repeat },
     ],

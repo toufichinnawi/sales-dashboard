@@ -199,5 +199,15 @@
 - [x] Fix frontend date display: formatDate now uses UTC timezone to avoid browser shifts
 - [x] Add date range filtering to Orders page (backend query + frontend date picker UI)
 
-## Auto-Send Brochure to New Leads
-- [ ] Send wholesale brochure email automatically when a new lead submits the contact form
+## Wholesale Brochure & Auto-Email
+- [ ] Create professional wholesale brochure PDF with photos for Hinnawi Bros Bagels
+- [ ] Wire auto-email to send brochure from rosalyn@bagelandcafe.com when new lead is added
+
+## CRM Classification
+- [x] Add suspect vs customer classification — distinguish leads/suspects from active customers
+- [x] Add classification summary cards (All Accounts, Customers, Suspects, Total Revenue)
+- [x] Add Type column with Customer/Suspect badges to Accounts table
+- [x] Add Orders count, Revenue, and Last Order columns to Accounts table
+- [x] Add clickable filter cards to filter by classification type
+- [x] Rename sidebar nav from 'Customers' to 'Accounts'
+- [x] Write vitest tests for customers.listWithStats (5/5 passed)

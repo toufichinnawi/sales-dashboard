@@ -1,9 +1,10 @@
 /**
  * Customers — Hinnawi Bros Bagels Wholesale
  * Full customer management: add, edit, view details, order history.
+ * Includes suspect vs customer classification based on order history.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,11 @@ import {
   Check,
   FileSpreadsheet,
   Loader2,
+  DollarSign,
+  Package,
+  UserX,
+  UserCheck,
+  TrendingUp,
 } from "lucide-react";
 import {
   Dialog,
@@ -79,6 +85,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 const segmentConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -186,10 +197,22 @@ function mapCsvToCustomers(headers: string[], rows: string[][]): CsvRow[] {
     .filter((r) => r.businessName || r.email);
 }
 
+function formatCurrency(value: string | number): string {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num) || num === 0) return "$0";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(num);
+}
+
 export default function Customers() {
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "customer" | "suspect">("all");
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -204,11 +227,12 @@ export default function Customers() {
   const [inviteLink, setInviteLink] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const { data: customers, isLoading, error } = trpc.customers.list.useQuery();
+  const { data: customers, isLoading, error } = trpc.customers.listWithStats.useQuery();
   const utils = trpc.useUtils();
 
   const createMut = trpc.customers.create.useMutation({
     onSuccess: () => {
+      utils.customers.listWithStats.invalidate();
       utils.customers.list.invalidate();
       setAddOpen(false);
       setForm(emptyForm);
@@ -219,6 +243,7 @@ export default function Customers() {
 
   const updateMut = trpc.customers.update.useMutation({
     onSuccess: () => {
+      utils.customers.listWithStats.invalidate();
       utils.customers.list.invalidate();
       setEditOpen(false);
       setEditId(null);
@@ -230,6 +255,7 @@ export default function Customers() {
 
   const deleteMut = trpc.customers.delete.useMutation({
     onSuccess: () => {
+      utils.customers.listWithStats.invalidate();
       utils.customers.list.invalidate();
       toast.success("Customer deleted");
     },
@@ -238,6 +264,7 @@ export default function Customers() {
 
   const importMut = trpc.import.customers.useMutation({
     onSuccess: (data: { imported: number; skipped: number }) => {
+      utils.customers.listWithStats.invalidate();
       utils.customers.list.invalidate();
       setImportResult({ imported: data.imported, skipped: data.skipped });
       toast.success(`Imported ${data.imported} customers`);
@@ -354,7 +381,9 @@ export default function Customers() {
     );
   }
 
-  const filtered = (customers ?? []).filter((c) => {
+  const allCustomers = customers ?? [];
+
+  const filtered = allCustomers.filter((c) => {
     const matchSearch =
       search === "" ||
       c.businessName.toLowerCase().includes(search.toLowerCase()) ||
@@ -362,16 +391,21 @@ export default function Customers() {
       c.email.toLowerCase().includes(search.toLowerCase());
     const matchSegment = segmentFilter === "all" || c.segment === segmentFilter;
     const matchStatus = statusFilter === "all" || c.status === statusFilter;
-    return matchSearch && matchSegment && matchStatus;
+    const matchType = typeFilter === "all" || c.classification === typeFilter;
+    return matchSearch && matchSegment && matchStatus && matchType;
   });
 
-  const segmentCounts = (customers ?? []).reduce(
+  const segmentCounts = allCustomers.reduce(
     (acc, c) => {
       acc[c.segment] = (acc[c.segment] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>
   );
+
+  const customerCount = allCustomers.filter(c => c.classification === "customer").length;
+  const suspectCount = allCustomers.filter(c => c.classification === "suspect").length;
+  const totalRevenue = allCustomers.reduce((sum, c) => sum + parseFloat(c.totalRevenue || "0"), 0);
 
   const formatDate = (date: Date) =>
     new Intl.DateTimeFormat("en-CA", {
@@ -394,7 +428,7 @@ export default function Customers() {
         <div className="space-y-1.5">
           <Label className="text-xs">Business Name *</Label>
           <Input
-            placeholder="e.g. Café du Plateau"
+            placeholder="e.g. Cafe du Plateau"
             value={form.businessName}
             onChange={(e) => setForm({ ...form, businessName: e.target.value })}
             required
@@ -501,14 +535,14 @@ export default function Customers() {
             <div className="flex items-center gap-3 mb-1">
               <Building2 className="h-6 w-6 text-amber-700" />
               <h1 className="font-display text-xl font-bold tracking-tight">
-                Customers
+                Accounts
               </h1>
               <Badge variant="secondary" className="font-data text-xs">
-                {customers?.length ?? 0} total
+                {allCustomers.length} total
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Your wholesale customer accounts
+              Manage wholesale accounts — suspects have no orders yet, customers have placed orders
             </p>
           </div>
 
@@ -525,19 +559,19 @@ export default function Customers() {
               <DialogTrigger asChild>
                 <Button className="bg-amber-700 hover:bg-amber-800 text-white">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Customer
+                  Add Account
                 </Button>
               </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle className="font-display">Add New Customer</DialogTitle>
+                <DialogTitle className="font-display">Add New Account</DialogTitle>
                 <DialogDescription>
-                  Enter the business details for a new wholesale customer.
+                  Enter the business details for a new wholesale account.
                 </DialogDescription>
               </DialogHeader>
               <CustomerForm
                 onSubmit={handleCreate}
-                submitLabel="Add Customer"
+                submitLabel="Add Account"
                 isPending={createMut.isPending}
               />
             </DialogContent>
@@ -547,6 +581,80 @@ export default function Customers() {
       </div>
 
       <div className="px-4 md:px-6 space-y-5 pb-6">
+        {/* Classification summary cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card
+            className={`border-border/50 py-0 cursor-pointer transition-colors hover:border-amber-300 ${
+              typeFilter === "all" ? "border-amber-500 bg-amber-50/30" : ""
+            }`}
+            onClick={() => setTypeFilter("all")}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100">
+                  <Building2 className="h-4.5 w-4.5 text-stone-600" />
+                </div>
+                <div>
+                  <div className="font-data text-lg font-semibold leading-none">{allCustomers.length}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">All Accounts</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`border-border/50 py-0 cursor-pointer transition-colors hover:border-emerald-300 ${
+              typeFilter === "customer" ? "border-emerald-500 bg-emerald-50/30" : ""
+            }`}
+            onClick={() => setTypeFilter(typeFilter === "customer" ? "all" : "customer")}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+                  <UserCheck className="h-4.5 w-4.5 text-emerald-700" />
+                </div>
+                <div>
+                  <div className="font-data text-lg font-semibold leading-none text-emerald-700">{customerCount}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Customers</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`border-border/50 py-0 cursor-pointer transition-colors hover:border-orange-300 ${
+              typeFilter === "suspect" ? "border-orange-500 bg-orange-50/30" : ""
+            }`}
+            onClick={() => setTypeFilter(typeFilter === "suspect" ? "all" : "suspect")}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-100">
+                  <UserX className="h-4.5 w-4.5 text-orange-600" />
+                </div>
+                <div>
+                  <div className="font-data text-lg font-semibold leading-none text-orange-600">{suspectCount}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Suspects</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 py-0">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100">
+                  <DollarSign className="h-4.5 w-4.5 text-amber-700" />
+                </div>
+                <div>
+                  <div className="font-data text-lg font-semibold leading-none text-amber-700">{formatCurrency(totalRevenue)}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Total Revenue</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Segment summary */}
         <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
           {Object.entries(segmentConfig).map(([key, config]) => {
@@ -574,7 +682,7 @@ export default function Customers() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search customers..."
+              placeholder="Search accounts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 text-sm"
@@ -603,11 +711,11 @@ export default function Customers() {
                 </EmptyMedia>
                 <EmptyHeader>
                   <EmptyTitle>
-                    {(customers?.length ?? 0) === 0 ? "No customers yet" : "No customers match your filters"}
+                    {allCustomers.length === 0 ? "No accounts yet" : "No accounts match your filters"}
                   </EmptyTitle>
                   <EmptyDescription>
-                    {(customers?.length ?? 0) === 0
-                      ? 'Click "Add Customer" or convert a lead to create your first customer.'
+                    {allCustomers.length === 0
+                      ? 'Click "Add Account" or convert a lead to create your first account.'
                       : "Try adjusting your search or filters."}
                   </EmptyDescription>
                 </EmptyHeader>
@@ -621,11 +729,13 @@ export default function Customers() {
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-52">Business</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24">Type</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-44">Contact</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28">Segment</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-20 text-right">Orders</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28 text-right">Revenue</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28">Last Order</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24">Status</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Address</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-32">Added</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -633,6 +743,7 @@ export default function Customers() {
                   {filtered.map((customer) => {
                     const seg = segmentConfig[customer.segment] || segmentConfig.other;
                     const SegIcon = seg.icon;
+                    const isCustomer = customer.classification === "customer";
                     return (
                       <TableRow key={customer.id} className="group">
                         <TableCell>
@@ -649,6 +760,19 @@ export default function Customers() {
                               )}
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {isCustomer ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-medium gap-1">
+                              <UserCheck className="h-3 w-3" />
+                              Customer
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] font-medium gap-1">
+                              <UserX className="h-3 w-3" />
+                              Suspect
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="space-y-0.5">
@@ -675,43 +799,56 @@ export default function Customers() {
                             {seg.label}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <span className={`font-data text-sm font-medium ${isCustomer ? "text-foreground" : "text-muted-foreground"}`}>
+                            {customer.orderCount}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className={`font-data text-sm font-medium ${isCustomer ? "text-emerald-700" : "text-muted-foreground"}`}>
+                            {formatCurrency(customer.totalRevenue)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {customer.lastOrderDate ? (
+                            <span className="text-xs text-muted-foreground">{formatDate(customer.lastOrderDate)}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50 italic">Never</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`${statusColors[customer.status]} text-[10px] capitalize`}>
                             {customer.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          {customer.address ? (
-                            <div className="flex items-start gap-1.5 max-w-xs">
-                              <MapPin className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-                              <span className="text-xs text-muted-foreground line-clamp-2">{customer.address}</span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50 italic">No address</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs text-muted-foreground">{formatDate(customer.createdAt)}</span>
-                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700"
-                              title="Invite to Portal"
-                              onClick={() => openInvite(customer)}
-                            >
-                              <Send className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => openEdit(customer)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700"
+                                  onClick={() => openInvite(customer)}
+                                >
+                                  <Send className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Invite to Portal</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => openEdit(customer)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit</TooltipContent>
+                            </Tooltip>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
@@ -724,7 +861,7 @@ export default function Customers() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete this customer?</AlertDialogTitle>
+                                  <AlertDialogTitle>Delete this account?</AlertDialogTitle>
                                   <AlertDialogDescription>
                                     This will permanently remove {customer.businessName}. This action cannot be undone.
                                   </AlertDialogDescription>
@@ -756,8 +893,8 @@ export default function Customers() {
       <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) { setEditId(null); setForm(emptyForm); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display">Edit Customer</DialogTitle>
-            <DialogDescription>Update the customer details.</DialogDescription>
+            <DialogTitle className="font-display">Edit Account</DialogTitle>
+            <DialogDescription>Update the account details.</DialogDescription>
           </DialogHeader>
           <CustomerForm
             onSubmit={handleUpdate}

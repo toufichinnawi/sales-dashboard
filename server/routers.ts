@@ -35,6 +35,7 @@ import {
   getPortalOrders,
   getPortalRecurringOrders,
   bulkCreateCustomers,
+  getAllCustomersWithStats,
 } from "./db";
 import crypto from "crypto";
 import { notifyOwner } from "./_core/notification";
@@ -45,6 +46,7 @@ import {
   getRecentSyncLogs,
 } from "./quickbooks";
 import { runFullSync } from "./qb-sync";
+import { sendBrochureEmail, getBrochureEmailContent, BROCHURE_URL } from "./brochure-email";
 
 export const appRouter = router({
   system: systemRouter,
@@ -107,6 +109,19 @@ export const appRouter = router({
           console.warn("[Leads] Failed to notify owner:", e);
         }
 
+        // Auto-send wholesale brochure to the lead
+        if (input.email) {
+          try {
+            await sendBrochureEmail({
+              name: input.name,
+              business: input.business,
+              email: input.email,
+            });
+          } catch (e) {
+            console.warn("[Leads] Failed to send brochure email:", e);
+          }
+        }
+
         return { success: true, lead };
       }),
 
@@ -131,6 +146,24 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await deleteLead(input.id);
         return { success: true };
+      }),
+
+    sendBrochure: protectedProcedure
+      .input(
+        z.object({
+          name: z.string(),
+          business: z.string(),
+          email: z.string().email(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const emailContent = getBrochureEmailContent(input);
+        const sent = await sendBrochureEmail(input);
+        return {
+          success: sent,
+          emailContent,
+          brochureUrl: BROCHURE_URL,
+        };
       }),
   }),
 
@@ -166,6 +199,10 @@ export const appRouter = router({
 
     list: protectedProcedure.query(async () => {
       return getAllCustomers();
+    }),
+
+    listWithStats: protectedProcedure.query(async () => {
+      return getAllCustomersWithStats();
     }),
 
     getById: protectedProcedure
