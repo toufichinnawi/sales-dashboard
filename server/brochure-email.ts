@@ -8,14 +8,14 @@
  */
 
 import { notifyOwner } from "./_core/notification";
-import { execFile } from "child_process";
+import { exec } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import * as https from "https";
 import * as http from "http";
 
-const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 
 export const BROCHURE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure_v4.pdf";
@@ -39,43 +39,43 @@ interface LeadInfo {
  */
 function composeBrochureEmail(lead: LeadInfo): { subject: string; content: string } {
   return {
-    subject: `🥯 Hinnawi Bros Wholesale Partnership — Product Guide & Pricing`,
-    content: `Hi ${lead.name} 👋
+    subject: `Hinnawi Bros Wholesale Partnership - Product Guide & Pricing`,
+    content: `Hi ${lead.name},
 
-Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you. 🎉
+Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.
 
-📋 Our Wholesale Partnership Guide includes:
+Our Wholesale Partnership Guide includes:
 
-🥯 Our 4 signature varieties — Plain, Sesame, Multigrain & Everything
-Wholesale pricing starting at $8.00 per dozen
-Volume discount tiers — up to 15% off for high-volume partners
-Delivery coverage across the Greater Montreal area
-How to get started with your first order
+- Our 4 signature varieties: Plain, Sesame, Multigrain & Everything
+- Wholesale pricing starting at $8.00 per dozen
+- Volume discount tiers: up to 15% off for high-volume partners
+- Delivery coverage across the Greater Montreal area
+- How to get started with your first order
 
-📎 Download the brochure here:
+Download the brochure here:
 ${BROCHURE_URL}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔥  REQUEST A FREE TASTING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+REQUEST A FREE TASTING
+---
 
-We'd love to bring fresh bagels right to your door — no commitment, no cost, just great bagels! 🥯✨
+We'd love to bring fresh bagels right to your door - no commitment, no cost, just great bagels!
 
-👉  https://salesdash-x4qkp2kk.manus.space/tasting
+Request a tasting: https://salesdash-x4qkp2kk.manus.space/tasting
 
-Or simply reply to this email and we'll set something up! 📩
+Or simply reply to this email and we'll set something up!
 
-Looking forward to working with ${lead.business}! 🤝
+Looking forward to working with ${lead.business}!
 
 Warm regards,
 
 Rosalyn Manneh
-🏢 Wholesale Manager
-🥯 Hinnawi Bros Bagel & Cafe
-📞 514-571-7672
-📧 rosalyn@bagelandcafe.com
-📍 733 Cathcart, Montreal, QC
-🌐 hinnawibrosbagelandcafe.com`,
+Wholesale Manager
+Hinnawi Bros Bagel & Cafe
+Phone: 514-571-7672
+Email: rosalyn@bagelandcafe.com
+Address: 733 Cathcart, Montreal, QC
+Web: hinnawibrosbagelandcafe.com`,
   };
 }
 
@@ -132,7 +132,7 @@ async function sendViaOutlookMCP(
     const pdfPath = await ensureFileDownloaded(BROCHURE_URL, BROCHURE_LOCAL_PATH);
     const imagePath = await ensureFileDownloaded(BAGEL_IMAGE_URL, BAGEL_IMAGE_LOCAL_PATH);
 
-    const input = JSON.stringify({
+    const inputObj = {
       messages: [
         {
           subject,
@@ -141,13 +141,25 @@ async function sendViaOutlookMCP(
           attachments: [imagePath, pdfPath],
         },
       ],
+    };
+
+    // Write JSON to a temp file to avoid shell escaping issues with special chars
+    const tmpInputPath = `/tmp/mcp-brochure-input-${Date.now()}.json`;
+    fs.writeFileSync(tmpInputPath, JSON.stringify(inputObj), "utf-8");
+
+    // Use exec (shell) because manus-mcp-cli requires shell invocation.
+    // Read the JSON from the temp file to avoid any shell escaping issues.
+    const cmd = `manus-mcp-cli tool call outlook_send_messages --server outlook-mail --input "$(cat ${tmpInputPath})"`;
+
+    console.log(`[Brochure] Executing MCP command for ${lead.email}...`);
+
+    const { stdout, stderr } = await execAsync(cmd, {
+      timeout: 60_000,
+      maxBuffer: 10 * 1024 * 1024,
     });
 
-    const { stdout, stderr } = await execFileAsync(
-      "manus-mcp-cli",
-      ["tool", "call", "outlook_send_messages", "--server", "outlook-mail", "--input", input],
-      { timeout: 30_000 }
-    );
+    // Clean up temp file
+    try { fs.unlinkSync(tmpInputPath); } catch (_) {}
 
     console.log(`[Brochure] Outlook MCP response: ${stdout}`);
     if (stderr) {
@@ -155,7 +167,7 @@ async function sendViaOutlookMCP(
     }
 
     // Check for success indicators in the output
-    if (stdout.includes("error") && !stdout.includes("success")) {
+    if (stdout.includes("error") && !stdout.includes("success") && !stdout.includes("result")) {
       console.warn(`[Brochure] Outlook MCP may have failed: ${stdout}`);
       return false;
     }

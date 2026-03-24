@@ -274,3 +274,4 @@
 - [x] Remove ✅ 🚚 📦 💰 emojis from brochure email template
 - [x] Fix Send Brochure button on Leads page — now calls leads.sendBrochure tRPC procedure to actually send email via Outlook
 - [x] Fix Send Brochure button — replaced raw fetch with proper tRPC mutation (sendBrochureMut.mutateAsync) for correct auth and serialization
+- [x] Fix: Send Brochure dialog button does nothing when clicked for individual lead — changed to mailto: approach that opens email client with pre-composed brochure email + added Copy Email button
