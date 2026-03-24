@@ -47,10 +47,10 @@ Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're 
 📋 Our Wholesale Partnership Guide includes:
 
 🥯 Our 4 signature varieties — Plain, Sesame, Multigrain & Everything
-💰 Wholesale pricing starting at $8.00 per dozen
-📦 Volume discount tiers — up to 15% off for high-volume partners
-🚚 Delivery coverage across the Greater Montreal area
-✅ How to get started with your first order
+Wholesale pricing starting at $8.00 per dozen
+Volume discount tiers — up to 15% off for high-volume partners
+Delivery coverage across the Greater Montreal area
+How to get started with your first order
 
 📎 Download the brochure here:
 ${BROCHURE_URL}

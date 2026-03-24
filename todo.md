@@ -271,3 +271,4 @@
 - [x] Add type-based emoji icons (📥 leads, 🥯 tastings, 📦 orders, ⚙️ system)
 - [x] Clickable notifications navigate to relevant page
 - [x] Write vitest tests for notification procedures (13/13 passed, 128 total)
+- [x] Remove ✅ 🚚 📦 💰 emojis from brochure email template
