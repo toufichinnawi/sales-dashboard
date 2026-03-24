@@ -57,6 +57,13 @@
       "when": 1774285360348,
       "tag": "0007_strange_garia",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1774361306003,
+      "tag": "0008_cuddly_thor_girl",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,7 @@ import {
   recurringOrderItems, InsertRecurringOrderItem, RecurringOrderItem,
   customerInvites, InsertCustomerInvite, CustomerInvite,
   tastingRequests, InsertTastingRequest, TastingRequest,
+  notifications, InsertNotification, Notification,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -747,4 +748,46 @@ export function computeNextDelivery(dayOfWeek: string): Date {
   next.setDate(now.getDate() + daysUntil);
   next.setHours(8, 0, 0, 0);
   return next;
+}
+
+// ─── Notification helpers ────────────────────────────────────────────────────
+
+export async function createNotification(notif: InsertNotification): Promise<Notification | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(notifications).values(notif);
+  const id = result[0].insertId;
+  const rows = await db.select().from(notifications).where(eq(notifications.id, id));
+  return rows[0] ?? null;
+}
+
+export async function getAllNotifications(limit = 50): Promise<Notification[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(notifications).orderBy(desc(notifications.createdAt)).limit(limit);
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: count() }).from(notifications).where(eq(notifications.isRead, 0));
+  return result[0]?.count ?? 0;
+}
+
+export async function markNotificationRead(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications).set({ isRead: 1 }).where(eq(notifications.id, id));
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications).set({ isRead: 1 }).where(eq(notifications.isRead, 0));
+}
+
+export async function deleteNotification(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(notifications).where(eq(notifications.id, id));
 }

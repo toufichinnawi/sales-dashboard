@@ -46,6 +46,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { kpiData, formatCurrency, formatPercent } from "@/lib/data";
+import NotificationsPanel from "@/components/NotificationsPanel";
 
 const navSections = [
   {
@@ -197,15 +198,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-8 w-8"
-              onClick={() => toast("Notifications panel coming soon")}
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-500" />
-            </Button>
+            <NotificationsPanel />
           </div>
         </header>
 

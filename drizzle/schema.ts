@@ -202,3 +202,18 @@ export const tastingRequests = mysqlTable("tasting_requests", {
 
 export type TastingRequest = typeof tastingRequests.$inferSelect;
 export type InsertTastingRequest = typeof tastingRequests.$inferInsert;
+
+// ─── Notifications table ──────────────────────────────────────────────────
+
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  type: mysqlEnum("notifType", ["new_lead", "tasting_request", "new_order", "order_status", "system"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  link: varchar("link", { length: 500 }),
+  isRead: int("isRead").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

@@ -39,6 +39,12 @@ import {
   createTastingRequest,
   getAllTastingRequests,
   updateTastingRequestStatus,
+  createNotification,
+  getAllNotifications,
+  getUnreadNotificationCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
 } from "./db";
 import crypto from "crypto";
 import { notifyOwner } from "./_core/notification";
@@ -110,6 +116,18 @@ export const appRouter = router({
           });
         } catch (e) {
           console.warn("[Leads] Failed to notify owner:", e);
+        }
+
+        // Create in-app notification
+        try {
+          await createNotification({
+            type: "new_lead",
+            title: `New Lead: ${input.business}`,
+            message: `${input.name} from ${input.business} (${input.email}) — ${input.source || "website"}`,
+            link: "/leads",
+          });
+        } catch (e) {
+          console.warn("[Leads] Failed to create notification:", e);
         }
 
         // Auto-send wholesale brochure to the lead
@@ -308,6 +326,18 @@ export const appRouter = router({
           console.warn("[Orders] Failed to notify owner:", e);
         }
 
+        // Create in-app notification
+        try {
+          await createNotification({
+            type: "new_order",
+            title: `New Order: ${orderNumber}`,
+            message: `$${total.toFixed(2)} — ${items.map(i => `${i.quantity} x ${i.product}`).join(", ")}`,
+            link: "/orders",
+          });
+        } catch (e) {
+          console.warn("[Orders] Failed to create notification:", e);
+        }
+
         return { success: true, ...result };
       }),
 
@@ -358,10 +388,22 @@ export const appRouter = router({
                 title: `Order Delivered: ${orderNum}`,
                 content: `Order ${orderNum} ($${total}) has been delivered successfully.\n\nRemember to follow up for payment confirmation.`,
               });
+              await createNotification({
+                type: "order_status",
+                title: `Delivered: ${orderNum}`,
+                message: `Order ${orderNum} ($${total}) delivered — follow up for payment`,
+                link: "/orders",
+              });
             } else if (input.status === "paid") {
               await notifyOwner({
                 title: `Payment Received: ${orderNum}`,
                 content: `Order ${orderNum} has been marked as paid ($${total}).\n\nRevenue recorded.`,
+              });
+              await createNotification({
+                type: "order_status",
+                title: `Paid: ${orderNum}`,
+                message: `Payment received for order ${orderNum} ($${total})`,
+                link: "/orders",
               });
             }
           } catch (e) {
@@ -736,6 +778,18 @@ export const appRouter = router({
           console.warn("[Tastings] Failed to notify owner:", e);
         }
 
+        // Create in-app notification
+        try {
+          await createNotification({
+            type: "tasting_request",
+            title: `Tasting Request: ${input.business}`,
+            message: `${input.name} from ${input.business} wants to try ${input.bagelPreferences || "all varieties"}`,
+            link: "/tastings",
+          });
+        } catch (e) {
+          console.warn("[Tastings] Failed to create notification:", e);
+        }
+
         return { success: true, request };
       }),
 
@@ -754,6 +808,39 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         await updateTastingRequestStatus(input.id, input.status);
+        return { success: true };
+      }),
+  }),
+
+  // ─── NOTIFICATIONS ──────────────────────────────────────────────────────
+
+  notifications: router({
+    list: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50) }).optional())
+      .query(async ({ input }) => {
+        return getAllNotifications(input?.limit ?? 50);
+      }),
+
+    unreadCount: protectedProcedure.query(async () => {
+      return getUnreadNotificationCount();
+    }),
+
+    markRead: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await markNotificationRead(input.id);
+        return { success: true };
+      }),
+
+    markAllRead: protectedProcedure.mutation(async () => {
+      await markAllNotificationsRead();
+      return { success: true };
+    }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteNotification(input.id);
         return { success: true };
       }),
   }),

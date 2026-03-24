@@ -257,3 +257,17 @@
 - [x] Parse business names, contacts, emails, phones from the call sheet
 - [x] Import all 15 leads into the database (bypassed auto-email to avoid spamming)
 - [x] Verify imported leads appear on the Leads page (48 total, all visible with correct statuses and notes)
+
+## Notifications Panel
+- [x] Create notifications database table (type, title, message, read status, link, timestamp)
+- [x] Create backend procedures (list, markRead, markAllRead, delete, unreadCount)
+- [x] Build bell icon dropdown panel in dashboard header with notification list
+- [x] Show unread count badge on bell icon (amber badge with count)
+- [x] Wire notification creation into new lead events
+- [x] Wire notification creation into new tasting request events
+- [x] Wire notification creation into new order events (create + status changes)
+- [x] Add mark as read / mark all as read functionality
+- [x] Add dismiss/delete individual notifications
+- [x] Add type-based emoji icons (📥 leads, 🥯 tastings, 📦 orders, ⚙️ system)
+- [x] Clickable notifications navigate to relevant page
+- [x] Write vitest tests for notification procedures (13/13 passed, 128 total)
