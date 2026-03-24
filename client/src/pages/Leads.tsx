@@ -770,31 +770,51 @@ export default function Leads() {
                     ? [brochureLead]
                     : (leads ?? []).filter(l => l.status === 'new' && l.email);
                   
-                  // Notify owner about the brochure sends
-                  const names = targets.map((t: any) => `${t.name} (${t.business})`).join(', ');
-                  await fetch('/api/trpc/system.notifyOwner', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                      json: {
-                        title: `Brochure Sent to ${targets.length} Lead${targets.length > 1 ? 's' : ''}`,
-                        content: `Wholesale brochure sent to: ${names}. Follow up within 48 hours to schedule tastings.`,
-                      }
-                    }),
-                  });
+                  let sentCount = 0;
+                  let failedCount = 0;
 
-                  // Update status to contacted for new leads
+                  // Send brochure email to each target via the backend
+                  for (const target of targets) {
+                    try {
+                      const result = await fetch('/api/trpc/leads.sendBrochure', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          json: {
+                            name: target.name,
+                            business: target.business,
+                            email: target.email,
+                          }
+                        }),
+                      });
+                      const data = await result.json();
+                      if (data?.result?.data?.json?.success) {
+                        sentCount++;
+                      } else {
+                        failedCount++;
+                      }
+                    } catch {
+                      failedCount++;
+                    }
+                  }
+
+                  // Update status to contacted for new leads that were sent
                   for (const target of targets) {
                     if (target.status === 'new') {
                       await updateStatus.mutateAsync({ id: target.id, status: 'contacted' });
                     }
                   }
 
-                  toast.success(
-                    `Brochure sent to ${targets.length} lead${targets.length > 1 ? 's' : ''}!`,
-                    { description: 'Lead status updated to Contacted. Follow up within 48 hours.' }
-                  );
+                  if (sentCount > 0) {
+                    toast.success(
+                      `Brochure emailed to ${sentCount} lead${sentCount > 1 ? 's' : ''}!`,
+                      { description: 'Lead status updated to Contacted. Follow up within 48 hours.' }
+                    );
+                  }
+                  if (failedCount > 0) {
+                    toast.error(`Failed to send to ${failedCount} lead${failedCount > 1 ? 's' : ''}`);
+                  }
                   setBrochureOpen(false);
                 } catch (err) {
                   toast.error('Failed to send brochure');
