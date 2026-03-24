@@ -1,21 +1,10 @@
 /**
  * Brochure Email Helper
- * Sends the wholesale brochure to leads via the Outlook MCP integration.
- *
- * The Outlook MCP tool (outlook_send_messages) is available in the sandbox
- * environment via the manus-mcp-cli utility. In production, we fall back to
- * notifying the owner so they can forward manually.
+ * Queues brochure emails in the database. A scheduled Manus task picks them up
+ * and sends via the Outlook MCP (from Rosalyn@bagelandcafe.com).
  */
 
-import { notifyOwner } from "./_core/notification";
-import { exec } from "child_process";
-import { promisify } from "util";
-import * as fs from "fs";
-import * as path from "path";
-import * as https from "https";
-import * as http from "http";
-
-const execAsync = promisify(exec);
+import { createPendingEmail } from "./db";
 
 export const BROCHURE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure_v4.pdf";
@@ -24,9 +13,6 @@ export const BAGEL_IMAGE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/bagel-variety_72c673df.jpg";
 
 export const TASTING_REQUEST_PATH = "/tasting";
-
-const BROCHURE_LOCAL_PATH = "/tmp/hinnawi-brochure.pdf";
-const BAGEL_IMAGE_LOCAL_PATH = "/tmp/hinnawi-bagels.jpg";
 
 interface LeadInfo {
   name: string;
@@ -37,10 +23,10 @@ interface LeadInfo {
 /**
  * Compose the brochure email content for a lead
  */
-function composeBrochureEmail(lead: LeadInfo): { subject: string; content: string } {
-  return {
-    subject: `Hinnawi Bros Wholesale Partnership - Product Guide & Pricing`,
-    content: `Hi ${lead.name},
+export function composeBrochureEmail(lead: LeadInfo): { subject: string; text: string; html: string } {
+  const subject = `Hinnawi Bros Wholesale Partnership - Product Guide & Pricing`;
+
+  const text = `Hi ${lead.name},
 
 Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.
 
@@ -75,165 +61,76 @@ Hinnawi Bros Bagel & Cafe
 Phone: 514-571-7672
 Email: rosalyn@bagelandcafe.com
 Address: 733 Cathcart, Montreal, QC
-Web: hinnawibrosbagelandcafe.com`,
-  };
+Web: hinnawibrosbagelandcafe.com`;
+
+  const html = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+  <div style="text-align: center; padding: 20px 0;">
+    <img src="${BAGEL_IMAGE_URL}" alt="Hinnawi Bros Bagels" style="max-width: 100%; height: auto; border-radius: 8px;" />
+  </div>
+  <p>Hi ${lead.name},</p>
+  <p>Thank you for your interest in partnering with <strong>Hinnawi Bros Bagel &amp; Cafe</strong>! We're excited to share our wholesale program with you.</p>
+  <h3 style="color: #B45309; margin-top: 24px;">Our Wholesale Partnership Guide includes:</h3>
+  <ul style="line-height: 1.8;">
+    <li>Our <strong>4 signature varieties</strong>: Plain, Sesame, Multigrain &amp; Everything</li>
+    <li>Wholesale pricing starting at <strong>$8.00 per dozen</strong></li>
+    <li>Volume discount tiers: up to <strong>15% off</strong> for high-volume partners</li>
+    <li>Delivery coverage across the <strong>Greater Montreal area</strong></li>
+    <li>How to get started with your first order</li>
+  </ul>
+  <div style="text-align: center; margin: 24px 0;">
+    <a href="${BROCHURE_URL}" style="display: inline-block; background-color: #B45309; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Download the Brochure</a>
+  </div>
+  <div style="background-color: #FEF3C7; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
+    <h3 style="color: #92400E; margin-top: 0;">Request a Free Tasting</h3>
+    <p style="margin-bottom: 16px;">We'd love to bring fresh bagels right to your door &mdash; no commitment, no cost, just great bagels!</p>
+    <a href="https://salesdash-x4qkp2kk.manus.space/tasting" style="display: inline-block; background-color: #92400E; color: white; padding: 10px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Request a Tasting</a>
+  </div>
+  <p>Or simply reply to this email and we'll set something up!</p>
+  <p>Looking forward to working with <strong>${lead.business}</strong>!</p>
+  <p style="margin-top: 24px;">
+    Warm regards,<br/><br/>
+    <strong>Rosalyn Manneh</strong><br/>
+    Wholesale Manager<br/>
+    Hinnawi Bros Bagel &amp; Cafe<br/>
+    Phone: <a href="tel:5145717672">514-571-7672</a><br/>
+    Email: <a href="mailto:rosalyn@bagelandcafe.com">rosalyn@bagelandcafe.com</a><br/>
+    Address: 733 Cathcart, Montreal, QC<br/>
+    Web: <a href="https://hinnawibrosbagelandcafe.com">hinnawibrosbagelandcafe.com</a>
+  </p>
+</div>`;
+
+  return { subject, text, html };
 }
 
 /**
- * Download a file from a URL to a local path if not already cached.
+ * Queue brochure email for a lead.
+ * The email is saved to the pending_emails table and will be sent by the
+ * scheduled Manus task via Outlook MCP.
+ * Returns the pending email ID, or null on failure.
  */
-async function ensureFileDownloaded(url: string, localPath: string): Promise<string> {
-  if (fs.existsSync(localPath)) {
-    return localPath;
-  }
-
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(localPath);
-    const get = url.startsWith("https") ? https.get : http.get;
-    get(url, (response) => {
-      // Follow redirects
-      if (response.statusCode === 301 || response.statusCode === 302) {
-        const redirectUrl = response.headers.location;
-        if (redirectUrl) {
-          const getRedirect = redirectUrl.startsWith("https") ? https.get : http.get;
-          getRedirect(redirectUrl, (res2) => {
-            res2.pipe(file);
-            file.on("finish", () => {
-              file.close();
-              resolve(localPath);
-            });
-          }).on("error", reject);
-          return;
-        }
-      }
-      response.pipe(file);
-      file.on("finish", () => {
-        file.close();
-        resolve(localPath);
-      });
-    }).on("error", (err) => {
-      fs.unlink(localPath, () => {});
-      reject(err);
-    });
-  });
-}
-
-/**
- * Try to send an email via the Outlook MCP integration.
- * Returns true if the MCP tool was available and the send succeeded.
- */
-async function sendViaOutlookMCP(
-  lead: LeadInfo,
-  subject: string,
-  content: string
-): Promise<boolean> {
-  try {
-    // Download the brochure PDF and bagel image locally so we can attach them
-    const pdfPath = await ensureFileDownloaded(BROCHURE_URL, BROCHURE_LOCAL_PATH);
-    const imagePath = await ensureFileDownloaded(BAGEL_IMAGE_URL, BAGEL_IMAGE_LOCAL_PATH);
-
-    const inputObj = {
-      messages: [
-        {
-          subject,
-          to: [lead.email],
-          content,
-          attachments: [imagePath, pdfPath],
-        },
-      ],
-    };
-
-    // Write JSON to a temp file to avoid shell escaping issues with special chars
-    const tmpInputPath = `/tmp/mcp-brochure-input-${Date.now()}.json`;
-    fs.writeFileSync(tmpInputPath, JSON.stringify(inputObj), "utf-8");
-
-    // Use exec (shell) because manus-mcp-cli requires shell invocation.
-    // Read the JSON from the temp file to avoid any shell escaping issues.
-    const cmd = `manus-mcp-cli tool call outlook_send_messages --server outlook-mail --input "$(cat ${tmpInputPath})"`;
-
-    console.log(`[Brochure] Executing MCP command for ${lead.email}...`);
-
-    const { stdout, stderr } = await execAsync(cmd, {
-      timeout: 60_000,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-
-    // Clean up temp file
-    try { fs.unlinkSync(tmpInputPath); } catch (_) {}
-
-    console.log(`[Brochure] Outlook MCP response: ${stdout}`);
-    if (stderr) {
-      console.warn(`[Brochure] Outlook MCP stderr: ${stderr}`);
-    }
-
-    // Check for success indicators in the output
-    if (stdout.includes("error") && !stdout.includes("success") && !stdout.includes("result")) {
-      console.warn(`[Brochure] Outlook MCP may have failed: ${stdout}`);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.warn(`[Brochure] Outlook MCP not available or failed:`, error);
-    return false;
-  }
-}
-
-/**
- * Send brochure email to a lead.
- * Tries Outlook MCP first, falls back to owner notification.
- * Returns true if the email was sent successfully via either method.
- */
-export async function sendBrochureEmail(lead: LeadInfo): Promise<boolean> {
-  const { subject, content } = composeBrochureEmail(lead);
+export async function sendBrochureEmail(lead: LeadInfo): Promise<number | null> {
+  const { subject, text } = composeBrochureEmail(lead);
 
   console.log(
-    `[Brochure] Sending wholesale brochure to ${lead.email} (${lead.business})`
-  );
-
-  // Attempt 1: Send via Outlook MCP (real email with PDF attachment)
-  const sentViaOutlook = await sendViaOutlookMCP(lead, subject, content);
-
-  if (sentViaOutlook) {
-    console.log(
-      `[Brochure] Successfully sent brochure via Outlook to ${lead.email}`
-    );
-
-    // Also notify the owner about the send
-    try {
-      await notifyOwner({
-        title: `Brochure Sent: ${lead.business}`,
-        content: `Wholesale brochure automatically emailed to ${lead.name} (${lead.email}) at ${lead.business}.\n\nFollow up within 48 hours to schedule a tasting.`,
-      });
-    } catch (e) {
-      // Non-critical — the email was already sent
-      console.warn("[Brochure] Failed to notify owner about brochure send:", e);
-    }
-
-    return true;
-  }
-
-  // Attempt 2: Fall back to owner notification (production / no MCP)
-  console.log(
-    `[Brochure] Falling back to owner notification for ${lead.email}`
+    `[Brochure] Queuing wholesale brochure for ${lead.email} (${lead.business})`
   );
 
   try {
-    await notifyOwner({
-      title: `Brochure Requested: ${lead.business}`,
-      content: `Wholesale brochure could not be auto-emailed to ${lead.name} (${lead.email}) at ${lead.business}.\n\nPlease forward the brochure manually:\n${BROCHURE_URL}\n\nFollow up within 48 hours to schedule a tasting.`,
+    const emailId = await createPendingEmail({
+      toEmail: lead.email,
+      toName: lead.name,
+      subject,
+      body: text,
+      attachments: JSON.stringify([BROCHURE_URL, BAGEL_IMAGE_URL]),
+      leadId: undefined,
     });
 
-    console.log(
-      `[Brochure] Owner notified to manually send brochure to ${lead.email}`
-    );
-    return true;
+    console.log(`[Brochure] Email queued (id=${emailId}) for ${lead.email}`);
+    return emailId;
   } catch (error) {
-    console.error(
-      `[Brochure] Failed to send brochure to ${lead.email}:`,
-      error
-    );
-    return false;
+    console.error(`[Brochure] Failed to queue email for ${lead.email}:`, error);
+    return null;
   }
 }
 

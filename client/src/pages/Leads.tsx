@@ -793,110 +793,26 @@ export default function Leads() {
                     ? [brochureLead]
                     : (leads ?? []).filter(l => l.status === 'new' && l.email);
 
-                  const brochureUrl = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure_v4.pdf';
-                  const tastingUrl = 'https://salesdash-x4qkp2kk.manus.space/tasting';
-
-                  // For single lead: open mailto with pre-composed email
-                  if (brochureLead) {
-                    const subject = encodeURIComponent('Hinnawi Bros Wholesale Partnership - Product Guide & Pricing');
-                    const body = encodeURIComponent(
-`Hi ${brochureLead.name},
-
-Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.
-
-Our Wholesale Partnership Guide includes:
-
-- Our 4 signature varieties: Plain, Sesame, Multigrain & Everything
-- Wholesale pricing starting at $8.00 per dozen
-- Volume discount tiers: up to 15% off for high-volume partners
-- Delivery coverage across the Greater Montreal area
-- How to get started with your first order
-
-Download the brochure here:
-${brochureUrl}
-
-REQUEST A FREE TASTING
-
-We'd love to bring fresh bagels right to your door - no commitment, no cost, just great bagels!
-
-Request a tasting: ${tastingUrl}
-
-Or simply reply to this email and we'll set something up!
-
-Looking forward to working with ${brochureLead.business}!
-
-Warm regards,
-
-Rosalyn Manneh
-Wholesale Manager
-Hinnawi Bros Bagel & Cafe
-Phone: 514-571-7672
-Email: rosalyn@bagelandcafe.com
-Address: 733 Cathcart, Montreal, QC
-Web: hinnawibrosbagelandcafe.com`
-                    );
-                    window.open(`mailto:${brochureLead.email}?subject=${subject}&body=${body}`, '_blank');
-                  } else {
-                    // For bulk: open mailto with all emails in BCC
-                    const emails = targets.map(t => t.email).join(',');
-                    const subject = encodeURIComponent('Hinnawi Bros Wholesale Partnership - Product Guide & Pricing');
-                    const body = encodeURIComponent(
-`Hi there,
-
-Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.
-
-Our Wholesale Partnership Guide includes:
-
-- Our 4 signature varieties: Plain, Sesame, Multigrain & Everything
-- Wholesale pricing starting at $8.00 per dozen
-- Volume discount tiers: up to 15% off for high-volume partners
-- Delivery coverage across the Greater Montreal area
-- How to get started with your first order
-
-Download the brochure here:
-${brochureUrl}
-
-REQUEST A FREE TASTING
-
-We'd love to bring fresh bagels right to your door - no commitment, no cost, just great bagels!
-
-Request a tasting: ${tastingUrl}
-
-Or simply reply to this email and we'll set something up!
-
-Warm regards,
-
-Rosalyn Manneh
-Wholesale Manager
-Hinnawi Bros Bagel & Cafe
-Phone: 514-571-7672
-Email: rosalyn@bagelandcafe.com
-Address: 733 Cathcart, Montreal, QC
-Web: hinnawibrosbagelandcafe.com`
-                    );
-                    window.open(`mailto:?bcc=${emails}&subject=${subject}&body=${body}`, '_blank');
-                  }
-
-                  // Update status to contacted for new leads
+                  // Queue brochure emails via backend
                   for (const target of targets) {
-                    if (target.status === 'new') {
-                      try {
-                        await updateStatus.mutateAsync({ id: target.id, status: 'contacted' });
-                      } catch {
-                        // non-critical
-                      }
-                    }
+                    await sendBrochureMut.mutateAsync({
+                      name: target.name,
+                      business: target.business,
+                      email: target.email,
+                      leadId: target.id,
+                    });
                   }
 
+                  utils.leads.list.invalidate();
                   toast.success(
                     brochureLead
-                      ? `Email opened for ${brochureLead.name}!`
-                      : `Email opened for ${targets.length} leads!`,
-                    { description: 'Your email client should open with the brochure email ready to send. Don\'t forget to attach the PDF brochure!' }
+                      ? `Brochure sending to ${brochureLead.name}!`
+                      : `Brochure sending to ${targets.length} leads!`,
+                    { description: 'Email will be delivered from Rosalyn@bagelandcafe.com shortly.' }
                   );
                   setBrochureOpen(false);
                 } catch (err) {
-                  toast.error('Failed to open email');
+                  toast.error('Failed to send brochure email. Please try again.');
                 } finally {
                   setSendingBrochure(false);
                 }

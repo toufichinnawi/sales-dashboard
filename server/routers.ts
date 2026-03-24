@@ -45,6 +45,9 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   deleteNotification,
+  createPendingEmail,
+  getPendingEmails,
+  updatePendingEmailStatus,
 } from "./db";
 import crypto from "crypto";
 import { notifyOwner } from "./_core/notification";
@@ -130,14 +133,11 @@ export const appRouter = router({
           console.warn("[Leads] Failed to create notification:", e);
         }
 
-        // Auto-send wholesale brochure to the lead
+        // Send wholesale brochure email directly via SMTP
         if (input.email) {
           try {
-            await sendBrochureEmail({
-              name: input.name,
-              business: input.business,
-              email: input.email,
-            });
+            await sendBrochureEmail({ name: input.name, business: input.business, email: input.email });
+            console.log(`[Leads] Brochure email queued for ${input.email}`);
           } catch (e) {
             console.warn("[Leads] Failed to send brochure email:", e);
           }
@@ -175,16 +175,40 @@ export const appRouter = router({
           name: z.string(),
           business: z.string(),
           email: z.string().email(),
+          leadId: z.number().optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const emailContent = getBrochureEmailContent(input);
-        const sent = await sendBrochureEmail(input);
+        // Queue brochure email for sending via Outlook MCP
+        const emailId = await sendBrochureEmail(input);
+        console.log(`[Brochure] Email queued (id=${emailId}) for ${input.email}`);
+
+        // Update lead status to contacted if we have a leadId
+        if (emailId && input.leadId) {
+          try {
+            await updateLeadStatus(input.leadId, "contacted");
+          } catch (e) {
+            console.warn("[Brochure] Failed to update lead status:", e);
+          }
+        }
+
+        if (!emailId) {
+          throw new Error("Failed to queue brochure email. Please try again.");
+        }
+
         return {
-          success: sent,
-          emailContent,
+          success: true,
+          emailId,
           brochureUrl: BROCHURE_URL,
         };
+      }),
+
+    // Get pending email status
+    emailStatus: protectedProcedure
+      .input(z.object({}))
+      .query(async () => {
+        const pending = await getPendingEmails();
+        return { pendingCount: pending.length, emails: pending };
       }),
   }),
 

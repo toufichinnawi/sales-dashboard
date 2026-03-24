@@ -11,6 +11,7 @@ import {
   customerInvites, InsertCustomerInvite, CustomerInvite,
   tastingRequests, InsertTastingRequest, TastingRequest,
   notifications, InsertNotification, Notification,
+  pendingEmails, InsertPendingEmail, PendingEmail,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -790,4 +791,42 @@ export async function deleteNotification(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.delete(notifications).where(eq(notifications.id, id));
+}
+
+// ─── Pending Emails (email queue) ───────────────────────────────────────────
+
+export async function createPendingEmail(data: {
+  toEmail: string;
+  toName: string;
+  subject: string;
+  body: string;
+  attachments?: string;
+  leadId?: number;
+}): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(pendingEmails).values(data).$returningId();
+  return result[0]?.id ?? null;
+}
+
+export async function getPendingEmails(): Promise<PendingEmail[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pendingEmails).where(eq(pendingEmails.status, "pending")).orderBy(pendingEmails.createdAt);
+}
+
+export async function updatePendingEmailStatus(id: number, status: "pending" | "sending" | "sent" | "failed", errorMessage?: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const updates: any = { status };
+  if (status === "sent") updates.sentAt = new Date();
+  if (errorMessage) updates.errorMessage = errorMessage;
+  await db.update(pendingEmails).set(updates).where(eq(pendingEmails.id, id));
+}
+
+export async function getPendingEmailById(id: number): Promise<PendingEmail | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(pendingEmails).where(eq(pendingEmails.id, id));
+  return rows[0] ?? null;
 }

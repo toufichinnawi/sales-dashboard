@@ -217,3 +217,22 @@ export const notifications = mysqlTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+// ─── Pending Emails table (email queue for Outlook MCP sending) ─────────────
+
+export const pendingEmails = mysqlTable("pending_emails", {
+  id: int("id").autoincrement().primaryKey(),
+  toEmail: varchar("toEmail", { length: 320 }).notNull(),
+  toName: varchar("toName", { length: 255 }).notNull(),
+  subject: varchar("subject", { length: 500 }).notNull(),
+  body: text("body").notNull(),
+  attachments: text("attachments"), // JSON array of file URLs
+  status: mysqlEnum("emailStatus", ["pending", "sending", "sent", "failed"]).default("pending").notNull(),
+  errorMessage: text("errorMessage"),
+  leadId: int("leadId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  sentAt: timestamp("sentAt"),
+});
+
+export type PendingEmail = typeof pendingEmails.$inferSelect;
+export type InsertPendingEmail = typeof pendingEmails.$inferInsert;

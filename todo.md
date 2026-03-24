@@ -275,3 +275,10 @@
 - [x] Fix Send Brochure button on Leads page — now calls leads.sendBrochure tRPC procedure to actually send email via Outlook
 - [x] Fix Send Brochure button — replaced raw fetch with proper tRPC mutation (sendBrochureMut.mutateAsync) for correct auth and serialization
 - [x] Fix: Send Brochure dialog button does nothing when clicked for individual lead — changed to mailto: approach that opens email client with pre-composed brochure email + added Copy Email button
+
+## Direct Email Send from Dashboard
+- [x] Per-row Send Brochure button sends email from Rosalyn@bagelandcafe.com via Outlook MCP (queue + scheduled task)
+- [x] Implement email queue: server saves pending email to DB, scheduled task sends via Outlook MCP every 5 min
+- [x] Show send status feedback to user (sending spinner + success toast)
+- [x] Test end-to-end email delivery (confirmed samirkennedy1@gmail.com received brochure)
+- [x] Send Brochure button queues email instantly, Outlook MCP scheduled task delivers within 5 minutes

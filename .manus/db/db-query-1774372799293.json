@@ -1,0 +1,42 @@
+{
+  "query": "SELECT id, toEmail, toName, subject, body FROM pending_emails WHERE id = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT id, toEmail, toName, subject, body FROM pending_emails WHERE id = 1;",
+  "rows": [
+    {
+      "id": "1",
+      "toEmail": "samirkennedy1@gmail.com",
+      "toName": "Test Queue",
+      "subject": "Hinnawi Bros Wholesale Partnership - Product Guide & Pricing",
+      "body": "Hi Test Queue,"
+    }
+  ],
+  "messages": [
+    "Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.",
+    "Our Wholesale Partnership Guide includes:",
+    "- Our 4 signature varieties: Plain, Sesame, Multigrain & Everything",
+    "- Wholesale pricing starting at $8.00 per dozen",
+    "- Volume discount tiers: up to 15% off for high-volume partners",
+    "- Delivery coverage across the Greater Montreal area",
+    "- How to get started with your first order",
+    "Download the brochure here:",
+    "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure_v4.pdf",
+    "---",
+    "REQUEST A FREE TASTING",
+    "---",
+    "We'd love to bring fresh bagels right to your door - no commitment, no cost, just great bagels!",
+    "Request a tasting: https://salesdash-x4qkp2kk.manus.space/tasting",
+    "Or simply reply to this email and we'll set something up!",
+    "Looking forward to working with Test Business!",
+    "Warm regards,",
+    "Rosalyn Manneh",
+    "Wholesale Manager",
+    "Hinnawi Bros Bagel & Cafe",
+    "Phone: 514-571-7672",
+    "Email: rosalyn@bagelandcafe.com",
+    "Address: 733 Cathcart, Montreal, QC",
+    "Web: hinnawibrosbagelandcafe.com"
+  ],
+  "stdout": "id\ttoEmail\ttoName\tsubject\tbody\n1\tsamirkennedy1@gmail.com\tTest Queue\tHinnawi Bros Wholesale Partnership - Product Guide & Pricing\tHi Test Queue,\n\nThank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.\n\nOur Wholesale Partnership Guide includes:\n\n- Our 4 signature varieties: Plain, Sesame, Multigrain & Everything\n- Wholesale pricing starting at $8.00 per dozen\n- Volume discount tiers: up to 15% off for high-volume partners\n- Delivery coverage across the Greater Montreal area\n- How to get started with your first order\n\nDownload the brochure here:\nhttps://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/brochure/Hinnawi_Bros_Wholesale_Brochure_v4.pdf\n\n---\nREQUEST A FREE TASTING\n---\n\nWe'd love to bring fresh bagels right to your door - no commitment, no cost, just great bagels!\n\nRequest a tasting: https://salesdash-x4qkp2kk.manus.space/tasting\n\nOr simply reply to this email and we'll set something up!\n\nLooking forward to working with Test Business!\n\nWarm regards,\n\nRosalyn Manneh\nWholesale Manager\nHinnawi Bros Bagel & Cafe\nPhone: 514-571-7672\nEmail: rosalyn@bagelandcafe.com\nAddress: 733 Cathcart, Montreal, QC\nWeb: hinnawibrosbagelandcafe.com\n",
+  "stderr": "",
+  "execution_time_ms": 374
+}

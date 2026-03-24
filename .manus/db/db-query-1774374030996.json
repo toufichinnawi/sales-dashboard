@@ -1,0 +1,14 @@
+{
+  "query": "SELECT id, toEmail, toName, subject, LEFT(body, 200) as bodyPreview, emailStatus FROM pending_emails WHERE emailStatus = 'pending' ORDER BY id ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT id, toEmail, toName, subject, LEFT(body, 200) as bodyPreview, emailStatus FROM pending_emails WHERE emailStatus = 'pending' ORDER BY id ASC;",
+  "rows": [],
+  "messages": [
+    "4\tsamirkennedy1@gmail.com\tSamir\tHinnawi Bros Wholesale Partnership - Product Guide & Pricing\tHi Samir,",
+    "Thank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.",
+    "Our Wholesale Partnership Guide includes:",
+    "- Our 4 signatur\tpending"
+  ],
+  "stdout": "id\ttoEmail\ttoName\tsubject\tbodyPreview\temailStatus\n4\tsamirkennedy1@gmail.com\tSamir\tHinnawi Bros Wholesale Partnership - Product Guide & Pricing\tHi Samir,\n\nThank you for your interest in partnering with Hinnawi Bros Bagel & Cafe! We're excited to share our wholesale program with you.\n\nOur Wholesale Partnership Guide includes:\n\n- Our 4 signatur\tpending\n",
+  "stderr": "",
+  "execution_time_ms": 363
+}
