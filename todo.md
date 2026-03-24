@@ -273,3 +273,4 @@
 - [x] Write vitest tests for notification procedures (13/13 passed, 128 total)
 - [x] Remove ✅ 🚚 📦 💰 emojis from brochure email template
 - [x] Fix Send Brochure button on Leads page — now calls leads.sendBrochure tRPC procedure to actually send email via Outlook
+- [x] Fix Send Brochure button — replaced raw fetch with proper tRPC mutation (sendBrochureMut.mutateAsync) for correct auth and serialization

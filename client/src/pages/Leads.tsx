@@ -161,6 +161,8 @@ export default function Leads() {
     },
   });
 
+  const sendBrochureMut = trpc.leads.sendBrochure.useMutation();
+
   const createLeadMut = trpc.leads.create.useMutation({
     onSuccess: () => {
       utils.leads.list.invalidate();
@@ -776,20 +778,12 @@ export default function Leads() {
                   // Send brochure email to each target via the backend
                   for (const target of targets) {
                     try {
-                      const result = await fetch('/api/trpc/leads.sendBrochure', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                          json: {
-                            name: target.name,
-                            business: target.business,
-                            email: target.email,
-                          }
-                        }),
+                      const result = await sendBrochureMut.mutateAsync({
+                        name: target.name,
+                        business: target.business,
+                        email: target.email,
                       });
-                      const data = await result.json();
-                      if (data?.result?.data?.json?.success) {
+                      if (result.success) {
                         sentCount++;
                       } else {
                         failedCount++;
