@@ -182,6 +182,9 @@ export const appRouter = router({
           assignedTo: z.string().nullable().optional(),
           lastContactDate: z.date().nullable().optional(),
           nextFollowUpDate: z.date().nullable().optional(),
+          followUpPriority: z.enum(["low", "normal", "high", "urgent"]).nullable().optional(),
+          followUpNote: z.string().nullable().optional(),
+          followUpStatus: z.enum(["pending", "done"]).nullable().optional(),
           notes: z.string().nullable().optional(),
           lostReason: z.enum(["price_too_high", "no_response", "not_interested", "already_has_supplier", "location_issue", "product_mismatch", "other"]).nullable().optional(),
         })
@@ -230,6 +233,16 @@ export const appRouter = router({
                 metadata: JSON.stringify({ from: oldDate, to: newDate }),
               });
             }
+          }
+          if (data.followUpStatus && oldLead && data.followUpStatus !== oldLead.followUpStatus) {
+            await createLeadActivity({
+              leadId: id,
+              activityType: "follow_up_scheduled",
+              note: data.followUpStatus === "done" ? "Follow-up marked as done" : "Follow-up status reset to pending",
+              userId,
+              userName,
+              metadata: JSON.stringify({ followUpStatus: data.followUpStatus }),
+            });
           }
         } catch (e) {
           console.warn("[Leads] Failed to create activity:", e);

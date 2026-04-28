@@ -314,3 +314,17 @@
 - [x] Add "Add Activity" button with type selector and note input
 - [x] Write vitest tests for activity procedures (11/11 passed, 150 total)
 - [x] Test in browser and verify TypeScript/build passes
+
+## Follow-up Control Improvements
+- [x] Add follow-up fields to leads schema: followUpPriority, followUpNote, followUpStatus
+- [x] Push database migration
+- [x] Update db helpers for follow-up fields
+- [x] Update tRPC procedures for follow-up management (markDone, reschedule, clear)
+- [x] Add overdue detection logic (past date + not done = overdue)
+- [x] Update Lead Profile UI: follow-up section with priority, note, status, overdue warning
+- [x] Add quick buttons: Mark follow-up done, Reschedule, Clear follow-up
+- [x] Add visual overdue warning on Lead Profile page
+- [x] Update Leads list: show next follow-up date column
+- [x] Update Leads list: show overdue badge if follow-up is overdue
+- [x] Write vitest tests for follow-up procedures (6/6 passed, 156 total)
+- [x] Test in browser and verify TypeScript/build passes

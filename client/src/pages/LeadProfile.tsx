@@ -52,6 +52,9 @@ import {
   DollarSign,
   Activity,
   History,
+  Flame,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -108,6 +111,38 @@ const LOST_REASON_OPTIONS = [
   { value: "product_mismatch", label: "Product Mismatch" },
   { value: "other", label: "Other" },
 ] as const;
+
+const FOLLOW_UP_PRIORITY_OPTIONS = [
+  { value: "low", label: "Low", color: "bg-stone-100 text-stone-600 border-stone-200" },
+  { value: "normal", label: "Normal", color: "bg-blue-100 text-blue-600 border-blue-200" },
+  { value: "high", label: "High", color: "bg-orange-100 text-orange-700 border-orange-200" },
+  { value: "urgent", label: "Urgent", color: "bg-red-100 text-red-700 border-red-200" },
+] as const;
+
+function getFollowUpComputedStatus(lead: { nextFollowUpDate: Date | string | null; followUpStatus: string | null }) {
+  if (!lead.nextFollowUpDate) return null;
+  if (lead.followUpStatus === "done") return "done";
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const followDate = new Date(lead.nextFollowUpDate);
+  followDate.setHours(0, 0, 0, 0);
+  if (followDate < now) return "overdue";
+  return "pending";
+}
+
+function getFollowUpStatusBadge(computedStatus: string | null) {
+  if (!computedStatus) return null;
+  switch (computedStatus) {
+    case "done":
+      return <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 text-xs">Done</Badge>;
+    case "overdue":
+      return <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs animate-pulse">Overdue</Badge>;
+    case "pending":
+      return <Badge variant="outline" className="bg-blue-100 text-blue-600 border-blue-200 text-xs">Pending</Badge>;
+    default:
+      return null;
+  }
+}
 
 const ACTIVITY_TYPE_OPTIONS = [
   { value: "phone_call", label: "Phone Call" },
@@ -242,6 +277,10 @@ export default function LeadProfile() {
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [activityType, setActivityType] = useState("");
   const [activityNote, setActivityNote] = useState("");
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [reschedulePriority, setReschedulePriority] = useState("normal");
+  const [rescheduleNote, setRescheduleNote] = useState("");
 
   const { data: lead, isLoading, error } = trpc.leads.getById.useQuery(
     { id: leadId },
@@ -381,6 +420,38 @@ export default function LeadProfile() {
     updateMut.mutate(payload as any);
   };
 
+  // Follow-up quick actions
+  const handleMarkFollowUpDone = () => {
+    updateMut.mutate({ id: leadId, followUpStatus: "done", lastContactDate: new Date() } as any);
+  };
+
+  const handleClearFollowUp = () => {
+    updateMut.mutate({ id: leadId, nextFollowUpDate: null, followUpPriority: null, followUpNote: null, followUpStatus: null } as any);
+  };
+
+  const handleRescheduleFollowUp = () => {
+    if (!rescheduleDate) {
+      toast.error("Please select a date");
+      return;
+    }
+    updateMut.mutate({
+      id: leadId,
+      nextFollowUpDate: new Date(rescheduleDate),
+      followUpPriority: reschedulePriority || "normal",
+      followUpNote: rescheduleNote || null,
+      followUpStatus: "pending",
+    } as any, {
+      onSuccess: () => {
+        setRescheduleDialogOpen(false);
+        setRescheduleDate("");
+        setReschedulePriority("normal");
+        setRescheduleNote("");
+      },
+    });
+  };
+
+  const followUpComputedStatus = lead ? getFollowUpComputedStatus(lead) : null;
+
   // ─── Loading / Error states ────────────────────────────────────────────────
 
   if (isLoading) {
@@ -454,6 +525,48 @@ export default function LeadProfile() {
           )}
         </div>
       </div>
+
+      {/* Overdue Follow-up Warning */}
+      {followUpComputedStatus === "overdue" && (
+        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 shrink-0">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-800">Follow-up is overdue</p>
+            <p className="text-xs text-red-600">
+              Scheduled for {formatDisplayDate(lead.nextFollowUpDate)}
+              {lead.followUpPriority && lead.followUpPriority !== "normal" && (
+                <> · <span className="font-medium capitalize">{lead.followUpPriority}</span> priority</>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-red-200 text-red-700 hover:bg-red-100"
+              onClick={() => {
+                setRescheduleDate("");
+                setReschedulePriority(lead.followUpPriority || "normal");
+                setRescheduleNote(lead.followUpNote || "");
+                setRescheduleDialogOpen(true);
+              }}
+              disabled={updateMut.isPending}
+            >
+              <RotateCcw className="h-3 w-3 mr-1" /> Reschedule
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleMarkFollowUpDone}
+              disabled={updateMut.isPending}
+            >
+              <CheckCircle2 className="h-3 w-3 mr-1" /> Mark Done
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -709,20 +822,129 @@ export default function LeadProfile() {
                   )}
                 </div>
               </div>
-              <Separator className="opacity-50" />
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-orange-50 text-orange-600 shrink-0">
-                  <Clock className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Next Follow-up</p>
-                  {editing ? (
-                    <Input type="date" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} className="h-7 text-xs mt-0.5" />
-                  ) : (
-                    <p className="text-sm">{formatDisplayDate(lead.nextFollowUpDate)}</p>
-                  )}
-                </div>
+            </CardContent>
+          </Card>
+
+          {/* Follow-up Control */}
+          <Card className={`py-0 ${
+            followUpComputedStatus === "overdue" ? "border-red-300 bg-red-50/30" :
+            followUpComputedStatus === "pending" ? "border-blue-200" : "border-border/50"
+          }`}>
+            <CardHeader className="pb-2 pt-4 px-5">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-display font-semibold flex items-center gap-2">
+                  <CalendarPlus className={`h-4 w-4 ${
+                    followUpComputedStatus === "overdue" ? "text-red-600" : "text-amber-600"
+                  }`} />
+                  Follow-up
+                </CardTitle>
+                {getFollowUpStatusBadge(followUpComputedStatus)}
               </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-5 space-y-3">
+              {lead.nextFollowUpDate ? (
+                <>
+                  <div className="flex items-center gap-2.5">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-md shrink-0 ${
+                      followUpComputedStatus === "overdue" ? "bg-red-100 text-red-600" :
+                      followUpComputedStatus === "done" ? "bg-green-50 text-green-600" :
+                      "bg-orange-50 text-orange-600"
+                    }`}>
+                      <Calendar className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Date</p>
+                      <p className={`text-sm font-medium ${
+                        followUpComputedStatus === "overdue" ? "text-red-700" : ""
+                      }`}>{formatDisplayDate(lead.nextFollowUpDate)}</p>
+                    </div>
+                  </div>
+                  <Separator className="opacity-50" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-50 text-amber-600 shrink-0">
+                      <Flame className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Priority</p>
+                      {(() => {
+                        const pOpt = FOLLOW_UP_PRIORITY_OPTIONS.find(p => p.value === (lead.followUpPriority || "normal"));
+                        return pOpt ? (
+                          <Badge variant="outline" className={`${pOpt.color} border text-xs font-medium mt-0.5`}>{pOpt.label}</Badge>
+                        ) : <span className="text-sm">Normal</span>;
+                      })()}
+                    </div>
+                  </div>
+                  {lead.followUpNote && (
+                    <>
+                      <Separator className="opacity-50" />
+                      <div className="flex items-start gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-stone-50 text-stone-600 shrink-0">
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Note</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{lead.followUpNote}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  <Separator className="opacity-50" />
+                  <div className="flex gap-2">
+                    {followUpComputedStatus !== "done" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-7 text-xs text-green-700 hover:bg-green-50 border-green-200"
+                        onClick={handleMarkFollowUpDone}
+                        disabled={updateMut.isPending}
+                      >
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Done
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-7 text-xs text-blue-700 hover:bg-blue-50 border-blue-200"
+                      onClick={() => {
+                        setRescheduleDate("");
+                        setReschedulePriority(lead.followUpPriority || "normal");
+                        setRescheduleNote(lead.followUpNote || "");
+                        setRescheduleDialogOpen(true);
+                      }}
+                      disabled={updateMut.isPending}
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" /> Reschedule
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs text-stone-500 hover:bg-stone-50 border-stone-200 px-2"
+                      onClick={handleClearFollowUp}
+                      disabled={updateMut.isPending}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-3">
+                  <Clock className="h-6 w-6 text-muted-foreground/30 mx-auto mb-1.5" />
+                  <p className="text-xs text-muted-foreground mb-2">No follow-up scheduled</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs text-amber-700 hover:bg-amber-50 border-amber-200"
+                    onClick={() => {
+                      setRescheduleDate(new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0]);
+                      setReschedulePriority("normal");
+                      setRescheduleNote("");
+                      setRescheduleDialogOpen(true);
+                    }}
+                  >
+                    <CalendarPlus className="h-3 w-3 mr-1" /> Schedule Follow-up
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -947,6 +1169,64 @@ export default function LeadProfile() {
             >
               {addActivityMut.isPending ? <Spinner className="h-3.5 w-3.5 mr-1.5" /> : <Plus className="h-3.5 w-3.5 mr-1.5" />}
               Add Activity
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Reschedule Follow-up Dialog ──────────────────────────────────── */}
+      <Dialog open={rescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Schedule Follow-up</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Follow-up Date</Label>
+              <Input
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                className="h-9"
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Priority</Label>
+              <Select value={reschedulePriority} onValueChange={setReschedulePriority}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FOLLOW_UP_PRIORITY_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Note (optional)</Label>
+              <Textarea
+                value={rescheduleNote}
+                onChange={(e) => setRescheduleNote(e.target.value)}
+                placeholder="Add a note about this follow-up..."
+                rows={2}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setRescheduleDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleRescheduleFollowUp}
+              disabled={!rescheduleDate || updateMut.isPending}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {updateMut.isPending ? <Spinner className="h-3.5 w-3.5 mr-1.5" /> : <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />}
+              Schedule
             </Button>
           </DialogFooter>
         </DialogContent>

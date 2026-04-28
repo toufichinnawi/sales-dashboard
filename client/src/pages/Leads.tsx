@@ -58,6 +58,8 @@ import {
   ExternalLink,
   Copy,
   Eye,
+  CalendarPlus,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Tooltip,
@@ -551,6 +553,9 @@ export default function Leads() {
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-36">
                       Received
                     </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-32">
+                      Follow-up
+                    </TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28 text-right">
                       Actions
                     </TableHead>
@@ -665,6 +670,37 @@ export default function Leads() {
                               {formatDate(lead.createdAt)}
                             </span>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {lead.nextFollowUpDate ? (() => {
+                            const isOverdue = lead.followUpStatus !== "done" && new Date(lead.nextFollowUpDate) < new Date(new Date().toDateString());
+                            const isDone = lead.followUpStatus === "done";
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                {isOverdue ? (
+                                  <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />
+                                ) : isDone ? (
+                                  <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                                ) : (
+                                  <CalendarPlus className="h-3 w-3 text-blue-500 shrink-0" />
+                                )}
+                                <span className={`text-xs ${
+                                  isOverdue ? "text-red-600 font-medium" :
+                                  isDone ? "text-green-600 line-through" :
+                                  "text-muted-foreground"
+                                }`}>
+                                  {new Date(lead.nextFollowUpDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                </span>
+                                {isOverdue && (
+                                  <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[9px] h-4 px-1 font-medium">
+                                    Overdue
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })() : (
+                            <span className="text-xs text-muted-foreground/40">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
