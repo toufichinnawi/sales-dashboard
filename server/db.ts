@@ -128,6 +128,21 @@ export async function updateLeadStatus(id: number, status: Lead["status"]): Prom
   await db.update(leads).set({ status }).where(eq(leads.id, id));
 }
 
+export async function getLeadById(id: number): Promise<Lead | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function updateLead(id: number, data: Partial<Omit<InsertLead, 'id'>>): Promise<Lead | null> {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(leads).set(data).where(eq(leads.id, id));
+  const result = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+  return result[0] ?? null;
+}
+
 export async function deleteLead(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
@@ -403,7 +418,7 @@ export async function getDashboardStats(dateRange?: { startDate?: string; endDat
 
   // Lead conversion rate — not date-filtered
   const totalLeads = await db.select({ count: sql<number>`COUNT(*)` }).from(leads);
-  const convertedLeads = await db.select({ count: sql<number>`COUNT(*)` }).from(leads).where(eq(leads.status, "converted"));
+  const convertedLeads = await db.select({ count: sql<number>`COUNT(*)` }).from(leads).where(eq(leads.status, "won"));
 
   // Pipeline stages from leads — not date-filtered
   const leadsByStatus = await db

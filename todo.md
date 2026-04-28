@@ -282,3 +282,21 @@
 - [x] Show send status feedback to user (sending spinner + success toast)
 - [x] Test end-to-end email delivery (confirmed samirkennedy1@gmail.com received brochure)
 - [x] Send Brochure button queues email instantly, Outlook MCP scheduled task delivers within 5 minutes
+
+## Lead Profile Page
+- [x] Update leads schema with new fields: businessType, leadSource, potentialValue, estimatedWeeklyOrder, productsInterested, assignedTo, lastContactDate, nextFollowUpDate, notes, lostReason, address
+- [x] Push database migration for new lead fields
+- [x] Add getLeadById db helper
+- [x] Add updateLead db helper
+- [x] Add leads.getById tRPC procedure
+- [x] Add leads.update tRPC procedure
+- [x] Build LeadProfile.tsx page with premium UI layout
+- [x] Add header with business name, status badge, potential badge
+- [x] Add left/main section for lead details (editable)
+- [x] Add right sidebar for contact info, assigned person, next follow-up, quick actions
+- [x] Add quick actions: Mark as Contacted, Schedule Follow-up, Mark as Won, Mark as Lost
+- [x] Add lost reason field (only visible when status is Lost)
+- [x] Make lead rows clickable in Leads list page + add View action button
+- [x] Register /leads/:id route in App.tsx
+- [x] Write vitest tests for getById and update procedures (8/8 passed)
+- [x] Test in browser and verify TypeScript/build passes

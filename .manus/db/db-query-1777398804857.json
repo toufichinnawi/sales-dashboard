@@ -1,0 +1,18 @@
+{
+  "query": "SELECT status, COUNT(*) as cnt FROM leads GROUP BY status;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute SELECT status, COUNT(*) as cnt FROM leads GROUP BY status;",
+  "rows": [
+    {
+      "status": "contacted",
+      "cnt": "26"
+    },
+    {
+      "status": "converted",
+      "cnt": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "status\tcnt\ncontacted\t26\nconverted\t3\n",
+  "stderr": "",
+  "execution_time_ms": 633
+}

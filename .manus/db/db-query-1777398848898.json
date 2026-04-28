@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE leads ADD COLUMN address text, ADD COLUMN businessType enum('cafe','restaurant','grocery','hotel','caterer','other'), ADD COLUMN leadSource enum('instagram','referral','website','walk_in','cold_call','other'), ADD COLUMN potentialValue enum('low','medium','high'), ADD COLUMN estimatedWeeklyOrder varchar(100), ADD COLUMN productsInterested text, ADD COLUMN assignedTo varchar(255), ADD COLUMN lastContactDate timestamp NULL, ADD COLUMN nextFollowUpDate timestamp NULL, ADD COLUMN notes text, ADD COLUMN lostReason enum('price_too_high','no_response','not_interested','already_has_supplier','location_issue','product_mismatch','other');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3M4hPncfDS8MBAb.d2c4bdf1aaee --database X4Qkp2kKx9JEdEZTkB9mBy --execute ALTER TABLE leads ADD COLUMN address text, ADD COLUMN businessType enum('cafe','restaurant','grocery','hotel','caterer','other'), ADD COLUMN leadSource enum('instagram','referral','website','walk_in','cold_call','other'), ADD COLUMN potentialValue enum('low','medium','high'), ADD COLUMN estimatedWeeklyOrder varchar(100), ADD COLUMN productsInterested text, ADD COLUMN assignedTo varchar(255), ADD COLUMN lastContactDate timestamp NULL, ADD COLUMN nextFollowUpDate timestamp NULL, ADD COLUMN notes text, ADD COLUMN lostReason enum('price_too_high','no_response','not_interested','already_has_supplier','location_issue','product_mismatch','other');",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2726
+}

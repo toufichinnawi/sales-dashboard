@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,7 @@ import {
   Send,
   ExternalLink,
   Copy,
+  Eye,
 } from "lucide-react";
 import {
   Tooltip,
@@ -98,14 +100,29 @@ const statusConfig: Record<
     color: "bg-amber-100 text-amber-800 border-amber-200",
     icon: Mail,
   },
-  qualified: {
-    label: "Qualified",
+  interested: {
+    label: "Interested",
+    color: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    icon: CheckCircle2,
+  },
+  tasting_scheduled: {
+    label: "Tasting Scheduled",
     color: "bg-violet-100 text-violet-800 border-violet-200",
     icon: UserCheck,
   },
-  converted: {
-    label: "Converted",
-    color: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  quote_sent: {
+    label: "Quote Sent",
+    color: "bg-orange-100 text-orange-800 border-orange-200",
+    icon: FileText,
+  },
+  negotiation: {
+    label: "Negotiation",
+    color: "bg-cyan-100 text-cyan-800 border-cyan-200",
+    icon: MessageSquare,
+  },
+  won: {
+    label: "Won",
+    color: "bg-green-100 text-green-800 border-green-200",
     icon: CheckCircle2,
   },
   lost: {
@@ -125,6 +142,7 @@ const emptyForm = {
 };
 
 export default function Leads() {
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [addOpen, setAddOpen] = useState(false);
@@ -180,7 +198,7 @@ export default function Leads() {
   const createCustomerMut = trpc.customers.create.useMutation({
     onSuccess: () => {
       if (convertLead) {
-        updateStatus.mutate({ id: convertLead.id, status: "converted" });
+        updateStatus.mutate({ id: convertLead.id, status: "won" });
       }
       utils.customers.list.invalidate();
       setConvertOpen(false);
@@ -542,7 +560,7 @@ export default function Leads() {
                   {filteredLeads.map((lead) => {
                     const status = statusConfig[lead.status];
                     return (
-                      <TableRow key={lead.id} className="group">
+                      <TableRow key={lead.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/leads/${lead.id}`)}>
                         <TableCell>
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-1.5">
@@ -649,7 +667,21 @@ export default function Leads() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            {/* View Profile */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-stone-500 hover:text-stone-700 hover:bg-stone-50"
+                                  onClick={() => navigate(`/leads/${lead.id}`)}
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>View Profile</TooltipContent>
+                            </Tooltip>
                             {/* Send Brochure */}
                             {lead.email && (
                               <Tooltip>
@@ -672,7 +704,7 @@ export default function Leads() {
                               </Tooltip>
                             )}
                             {/* Convert to Customer */}
-                            {lead.status !== "converted" && (
+                            {lead.status !== "won" && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button

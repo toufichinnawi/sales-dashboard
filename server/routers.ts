@@ -5,6 +5,8 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import {
   createLead,
   getAllLeads,
+  getLeadById,
+  updateLead,
   updateLeadStatus,
   deleteLead,
   createCustomer,
@@ -150,11 +152,50 @@ export const appRouter = router({
       return getAllLeads();
     }),
 
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const lead = await getLeadById(input.id);
+        if (!lead) throw new Error("Lead not found");
+        return lead;
+      }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          name: z.string().optional(),
+          business: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().nullable().optional(),
+          address: z.string().nullable().optional(),
+          message: z.string().nullable().optional(),
+          status: z.enum(["new", "contacted", "interested", "tasting_scheduled", "quote_sent", "negotiation", "won", "lost"]).optional(),
+          source: z.string().nullable().optional(),
+          businessType: z.enum(["cafe", "restaurant", "grocery", "hotel", "caterer", "other"]).nullable().optional(),
+          leadSource: z.enum(["instagram", "referral", "website", "walk_in", "cold_call", "other"]).nullable().optional(),
+          potentialValue: z.enum(["low", "medium", "high"]).nullable().optional(),
+          estimatedWeeklyOrder: z.string().nullable().optional(),
+          productsInterested: z.string().nullable().optional(),
+          assignedTo: z.string().nullable().optional(),
+          lastContactDate: z.date().nullable().optional(),
+          nextFollowUpDate: z.date().nullable().optional(),
+          notes: z.string().nullable().optional(),
+          lostReason: z.enum(["price_too_high", "no_response", "not_interested", "already_has_supplier", "location_issue", "product_mismatch", "other"]).nullable().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        const lead = await updateLead(id, data);
+        if (!lead) throw new Error("Lead not found");
+        return { success: true, lead };
+      }),
+
     updateStatus: protectedProcedure
       .input(
         z.object({
           id: z.number(),
-          status: z.enum(["new", "contacted", "qualified", "converted", "lost"]),
+          status: z.enum(["new", "contacted", "interested", "tasting_scheduled", "quote_sent", "negotiation", "won", "lost"]),
         })
       )
       .mutation(async ({ input }) => {

@@ -182,9 +182,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <nav className="flex items-center gap-1.5 text-sm">
             <span className="text-muted-foreground text-xs">Wholesale</span>
             <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
-            <span className="font-medium text-xs">
-              {allNavItems.find((n) => n.path === location)?.label || "Overview"}
-            </span>
+            {(() => {
+              const navItem = allNavItems.find((n) => n.path === location);
+              if (navItem) {
+                return <span className="font-medium text-xs">{navItem.label}</span>;
+              }
+              // Handle nested routes like /leads/:id
+              const parentItem = allNavItems.find((n) => location.startsWith(n.path + "/"));
+              if (parentItem) {
+                return (
+                  <>
+                    <Link href={parentItem.path} className="text-muted-foreground text-xs hover:text-foreground transition-colors">
+                      {parentItem.label}
+                    </Link>
+                    <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+                    <span className="font-medium text-xs">Details</span>
+                  </>
+                );
+              }
+              return <span className="font-medium text-xs">Overview</span>;
+            })()}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
