@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import {
   createLead,
   getAllLeads,
@@ -63,6 +63,15 @@ import {
 } from "./quickbooks";
 import { runFullSync } from "./qb-sync";
 import { sendBrochureEmail, getBrochureEmailContent, BROCHURE_URL } from "./brochure-email";
+import {
+  parseFileBuffer,
+  validateRows,
+  checkDuplicates,
+  buildInsertLead,
+  LEAD_FIELDS,
+  type ColumnMapping,
+  type ValidatedRow,
+} from "./lead-import";
 
 export const appRouter = router({
   system: systemRouter,
@@ -366,6 +375,150 @@ export const appRouter = router({
           metadata: input.metadata ?? null,
         });
         return { success: true, id };
+      }),
+
+    // ─── LEAD IMPORT ──────────────────────────────────────────────────────
+
+    importParse: adminProcedure
+      .input(
+        z.object({
+          fileBase64: z.string(),
+          fileName: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const buffer = Buffer.from(input.fileBase64, "base64");
+        // 5MB limit
+        if (buffer.length > 5 * 1024 * 1024) {
+          throw new Error("File size exceeds 5MB limit");
+        }
+        const result = parseFileBuffer(buffer, input.fileName);
+        return {
+          columns: result.columns,
+          rowCount: result.rows.length,
+          rows: result.rows,
+          autoMapping: result.autoMapping,
+          fields: LEAD_FIELDS,
+        };
+      }),
+
+    importValidate: adminProcedure
+      .input(
+        z.object({
+          rows: z.array(
+            z.object({
+              rowIndex: z.number(),
+              cells: z.array(z.string()),
+            })
+          ),
+          mapping: z.record(z.string(), z.number().nullable()),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const validated = validateRows(input.rows, input.mapping as ColumnMapping);
+        const withDuplicates = await checkDuplicates(validated);
+        return {
+          rows: withDuplicates,
+          validCount: withDuplicates.filter((r) => r.isValid && !r.duplicateOf).length,
+          invalidCount: withDuplicates.filter((r) => !r.isValid).length,
+          duplicateCount: withDuplicates.filter((r) => r.isValid && r.duplicateOf).length,
+        };
+      }),
+
+    importConfirm: adminProcedure
+      .input(
+        z.object({
+          rows: z.array(
+            z.object({
+              rowIndex: z.number(),
+              data: z.record(z.string(), z.string()),
+              duplicateOf: z
+                .object({
+                  id: z.number(),
+                  business: z.string(),
+                  email: z.string(),
+                })
+                .nullable()
+                .optional(),
+            })
+          ),
+          duplicateAction: z.enum(["skip", "update", "import_anyway"]),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const userName = ctx.user?.name ?? null;
+        const userId = ctx.user?.id ?? null;
+        let imported = 0;
+        let skipped = 0;
+        let updated = 0;
+        let failed = 0;
+        let duplicates = 0;
+
+        for (const row of input.rows) {
+          try {
+            const isDuplicate = !!row.duplicateOf;
+            if (isDuplicate) duplicates++;
+
+            if (isDuplicate && input.duplicateAction === "skip") {
+              skipped++;
+              continue;
+            }
+
+            if (isDuplicate && input.duplicateAction === "update" && row.duplicateOf) {
+              // Update existing lead
+              const updateData: Record<string, any> = {};
+              for (const [key, value] of Object.entries(row.data)) {
+                if (value && value.trim()) {
+                  updateData[key] = value;
+                }
+              }
+              await updateLead(row.duplicateOf.id, updateData);
+              await createLeadActivity({
+                leadId: row.duplicateOf.id,
+                activityType: "note_added",
+                note: "Lead updated via Excel/CSV import",
+                userId,
+                userName,
+              });
+              updated++;
+              continue;
+            }
+
+            // Import as new lead (or import_anyway for duplicates)
+            const insertData = buildInsertLead(row.data);
+            const newLead = await createLead(insertData);
+            if (newLead) {
+              await createLeadActivity({
+                leadId: newLead.id,
+                activityType: "lead_created",
+                note: "Lead imported from Excel/CSV",
+                userId,
+                userName,
+                metadata: JSON.stringify({ source: "import", rowIndex: row.rowIndex }),
+              });
+              imported++;
+            } else {
+              failed++;
+            }
+          } catch (e) {
+            console.warn(`[Import] Failed to import row ${row.rowIndex}:`, e);
+            failed++;
+          }
+        }
+
+        // Create a notification about the import
+        try {
+          await createNotification({
+            type: "new_lead",
+            title: `Lead Import Complete`,
+            message: `Imported ${imported} leads, updated ${updated}, skipped ${skipped}, failed ${failed}`,
+            link: "/leads",
+          });
+        } catch (e) {
+          console.warn("[Import] Failed to create notification:", e);
+        }
+
+        return { imported, skipped, updated, failed, duplicates };
       }),
   }),
 

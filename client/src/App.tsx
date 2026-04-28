@@ -14,6 +14,7 @@ import Analytics from "./pages/Analytics";
 import Prospects from "./pages/Prospects";
 import Leads from "./pages/Leads";
 import LeadProfile from "./pages/LeadProfile";
+import LeadImport from "./pages/LeadImport";
 import Customers from "./pages/Customers";
 import Orders from "./pages/Orders";
 import RecurringOrders from "./pages/RecurringOrders";
@@ -39,6 +40,7 @@ function DashboardRouter() {
         <Route path={"/prospects"} component={Prospects} />
         <Route path={"/leads"} component={Leads} />
         <Route path={"/leads/:id"} component={LeadProfile} />
+        <Route path={"/leads-import"} component={LeadImport} />
         <Route path={"/customers"} component={Customers} />
         <Route path={"/orders"} component={Orders} />
         <Route path={"/recurring"} component={RecurringOrders} />

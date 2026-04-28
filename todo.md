@@ -328,3 +328,21 @@
 - [x] Update Leads list: show overdue badge if follow-up is overdue
 - [x] Write vitest tests for follow-up procedures (6/6 passed, 156 total)
 - [x] Test in browser and verify TypeScript/build passes
+
+## Lead Import from Excel/CSV
+- [x] Install xlsx library for parsing Excel/CSV files
+- [x] Build server-side tRPC procedures: parseFile, checkDuplicates, confirmImport
+- [x] Add "Import Leads" button on Leads page
+- [x] Build multi-step import wizard: Upload → Map Columns → Preview → Confirm → Summary
+- [x] File upload with .xlsx/.xls/.csv support and size validation
+- [x] Column mapping step with smart auto-mapping
+- [x] Validation: require business/contact + phone/email, validate email format, normalize phones
+- [x] Preview step: show valid/invalid rows, duplicate warnings, allow row removal
+- [x] Duplicate detection by email, phone, business+address
+- [x] Duplicate handling options: skip, update existing, import anyway
+- [x] Confirm import saves to database only after user approval
+- [x] Import summary: imported/skipped/updated/failed/duplicate counts
+- [x] Activity records for imported leads ("Lead imported from Excel/CSV")
+- [x] Admin-only access (protectedProcedure with role check)
+- [x] Write vitest tests for import procedures (21/21 passed, 177 total)
+- [x] Test in browser and verify TypeScript/build passes

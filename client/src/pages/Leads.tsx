@@ -60,6 +60,7 @@ import {
   Eye,
   CalendarPlus,
   AlertTriangle,
+  Upload,
 } from "lucide-react";
 import {
   Tooltip,
@@ -319,6 +320,16 @@ export default function Leads() {
           </div>
 
           <div className="flex items-center gap-2">
+          {/* Import Leads */}
+          <Button
+            variant="outline"
+            className="border-amber-200 text-amber-700 hover:bg-amber-50"
+            onClick={() => navigate("/leads-import")}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import Leads
+          </Button>
+
           {/* Send Brochure to All New Leads */}
           <Tooltip>
             <TooltipTrigger asChild>
