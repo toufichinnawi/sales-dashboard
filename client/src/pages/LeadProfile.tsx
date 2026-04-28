@@ -3,7 +3,7 @@
  * Detailed view and edit page for a single lead.
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,8 +45,22 @@ import {
   TrendingUp,
   UserCheck,
   AlertTriangle,
+  Plus,
+  FileText,
+  Send,
+  UtensilsCrossed,
+  DollarSign,
+  Activity,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -94,6 +108,54 @@ const LOST_REASON_OPTIONS = [
   { value: "product_mismatch", label: "Product Mismatch" },
   { value: "other", label: "Other" },
 ] as const;
+
+const ACTIVITY_TYPE_OPTIONS = [
+  { value: "phone_call", label: "Phone Call" },
+  { value: "email_sent", label: "Email Sent" },
+  { value: "note_added", label: "Note Added" },
+  { value: "follow_up_scheduled", label: "Follow-up Scheduled" },
+  { value: "tasting_scheduled", label: "Tasting Scheduled" },
+  { value: "quote_sent", label: "Quote Sent" },
+] as const;
+
+const ACTIVITY_ICONS: Record<string, React.ElementType> = {
+  lead_created: Building2,
+  status_changed: Activity,
+  note_added: FileText,
+  phone_call: PhoneCall,
+  email_sent: Send,
+  follow_up_scheduled: CalendarPlus,
+  tasting_scheduled: UtensilsCrossed,
+  quote_sent: DollarSign,
+  marked_won: Trophy,
+  marked_lost: Ban,
+};
+
+const ACTIVITY_COLORS: Record<string, string> = {
+  lead_created: "bg-blue-50 text-blue-600",
+  status_changed: "bg-amber-50 text-amber-600",
+  note_added: "bg-stone-50 text-stone-600",
+  phone_call: "bg-sky-50 text-sky-600",
+  email_sent: "bg-violet-50 text-violet-600",
+  follow_up_scheduled: "bg-indigo-50 text-indigo-600",
+  tasting_scheduled: "bg-orange-50 text-orange-600",
+  quote_sent: "bg-emerald-50 text-emerald-600",
+  marked_won: "bg-green-50 text-green-700",
+  marked_lost: "bg-red-50 text-red-600",
+};
+
+const ACTIVITY_LABELS: Record<string, string> = {
+  lead_created: "Lead Created",
+  status_changed: "Status Changed",
+  note_added: "Note Added",
+  phone_call: "Phone Call",
+  email_sent: "Email Sent",
+  follow_up_scheduled: "Follow-up Scheduled",
+  tasting_scheduled: "Tasting Scheduled",
+  quote_sent: "Quote Sent",
+  marked_won: "Marked Won",
+  marked_lost: "Marked Lost",
+};
 
 type FormData = {
   name: string;
@@ -177,16 +239,50 @@ export default function LeadProfile() {
   });
 
   const utils = trpc.useUtils();
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [activityType, setActivityType] = useState("");
+  const [activityNote, setActivityNote] = useState("");
 
   const { data: lead, isLoading, error } = trpc.leads.getById.useQuery(
     { id: leadId },
     { enabled: !isNaN(leadId) && leadId > 0 }
   );
 
+  const { data: activities, isLoading: activitiesLoading } = trpc.leads.getActivities.useQuery(
+    { leadId },
+    { enabled: !isNaN(leadId) && leadId > 0 }
+  );
+
+  const addActivityMut = trpc.leads.addActivity.useMutation({
+    onSuccess: () => {
+      toast.success("Activity added");
+      utils.leads.getActivities.invalidate({ leadId });
+      setActivityDialogOpen(false);
+      setActivityType("");
+      setActivityNote("");
+    },
+    onError: (err) => {
+      toast.error("Failed to add activity", { description: err.message });
+    },
+  });
+
+  const handleAddActivity = useCallback(() => {
+    if (!activityType) {
+      toast.error("Please select an activity type");
+      return;
+    }
+    addActivityMut.mutate({
+      leadId,
+      activityType: activityType as any,
+      note: activityNote || null,
+    });
+  }, [leadId, activityType, activityNote, addActivityMut]);
+
   const updateMut = trpc.leads.update.useMutation({
     onSuccess: () => {
       toast.success("Lead updated successfully");
       utils.leads.getById.invalidate({ id: leadId });
+      utils.leads.getActivities.invalidate({ leadId });
       utils.leads.list.invalidate();
       setEditing(false);
     },
@@ -733,6 +829,128 @@ export default function LeadProfile() {
           </Card>
         </div>
       </div>
+
+      {/* ─── Activity Timeline ─────────────────────────────────────────────── */}
+      <Card className="border-border/50 py-0">
+        <CardHeader className="pb-2 pt-4 px-5">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-display font-semibold flex items-center gap-2">
+              <History className="h-4 w-4 text-amber-600" />
+              Activity Timeline
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActivityDialogOpen(true)}
+              className="h-7 text-xs"
+            >
+              <Plus className="h-3 w-3 mr-1" /> Add Activity
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="px-5 pb-5">
+          {activitiesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner className="h-5 w-5 text-amber-600" />
+            </div>
+          ) : !activities || activities.length === 0 ? (
+            <div className="text-center py-8">
+              <History className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No activity yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-0.5">Activities will appear here as you interact with this lead.</p>
+            </div>
+          ) : (
+            <div className="space-y-0">
+              {activities.map((act, i) => {
+                const Icon = ACTIVITY_ICONS[act.activityType] || Activity;
+                const colorClass = ACTIVITY_COLORS[act.activityType] || "bg-stone-50 text-stone-500";
+                const label = ACTIVITY_LABELS[act.activityType] || act.activityType;
+                const time = new Date(act.createdAt);
+                const timeStr = time.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }) + " at " + time.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                });
+
+                return (
+                  <div key={act.id}>
+                    <div className="flex gap-3 py-3">
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium">{label}</span>
+                          {act.userName && (
+                            <span className="text-xs text-muted-foreground">by {act.userName}</span>
+                          )}
+                        </div>
+                        {act.note && (
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{act.note}</p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground/60 mt-1 font-data">{timeStr}</p>
+                      </div>
+                    </div>
+                    {i < activities.length - 1 && <Separator className="opacity-40" />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ─── Add Activity Dialog ───────────────────────────────────────────── */}
+      <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Add Activity</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Activity Type</Label>
+              <Select value={activityType || "none"} onValueChange={(v) => setActivityType(v === "none" ? "" : v)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select activity type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" disabled>Select activity type</SelectItem>
+                  {ACTIVITY_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Note (optional)</Label>
+              <Textarea
+                value={activityNote}
+                onChange={(e) => setActivityNote(e.target.value)}
+                placeholder="Add details about this activity..."
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setActivityDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAddActivity}
+              disabled={!activityType || addActivityMut.isPending}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {addActivityMut.isPending ? <Spinner className="h-3.5 w-3.5 mr-1.5" /> : <Plus className="h-3.5 w-3.5 mr-1.5" />}
+              Add Activity
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -50,6 +50,8 @@ import {
   createPendingEmail,
   getPendingEmails,
   updatePendingEmailStatus,
+  createLeadActivity,
+  getLeadActivities,
 } from "./db";
 import crypto from "crypto";
 import { notifyOwner } from "./_core/notification";
@@ -184,10 +186,55 @@ export const appRouter = router({
           lostReason: z.enum(["price_too_high", "no_response", "not_interested", "already_has_supplier", "location_issue", "product_mismatch", "other"]).nullable().optional(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { id, ...data } = input;
+        // Fetch old lead to detect changes
+        const oldLead = await getLeadById(id);
         const lead = await updateLead(id, data);
         if (!lead) throw new Error("Lead not found");
+
+        // Auto-create activities for tracked changes
+        const userName = ctx.user?.name ?? null;
+        const userId = ctx.user?.id ?? null;
+
+        try {
+          if (data.status && oldLead && data.status !== oldLead.status) {
+            await createLeadActivity({
+              leadId: id,
+              activityType: data.status === "won" ? "marked_won" : data.status === "lost" ? "marked_lost" : "status_changed",
+              note: `Status changed from ${oldLead.status} to ${data.status}`,
+              userId,
+              userName,
+              metadata: JSON.stringify({ from: oldLead.status, to: data.status }),
+            });
+          }
+          if (data.notes !== undefined && oldLead && data.notes !== oldLead.notes) {
+            await createLeadActivity({
+              leadId: id,
+              activityType: "note_added",
+              note: data.notes ? (data.notes.length > 120 ? data.notes.slice(0, 120) + "…" : data.notes) : "Notes cleared",
+              userId,
+              userName,
+            });
+          }
+          if (data.nextFollowUpDate !== undefined && oldLead) {
+            const oldDate = oldLead.nextFollowUpDate ? new Date(oldLead.nextFollowUpDate).toISOString() : null;
+            const newDate = data.nextFollowUpDate ? new Date(data.nextFollowUpDate).toISOString() : null;
+            if (oldDate !== newDate) {
+              await createLeadActivity({
+                leadId: id,
+                activityType: "follow_up_scheduled",
+                note: newDate ? `Follow-up scheduled for ${new Date(data.nextFollowUpDate!).toLocaleDateString()}` : "Follow-up date cleared",
+                userId,
+                userName,
+                metadata: JSON.stringify({ from: oldDate, to: newDate }),
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("[Leads] Failed to create activity:", e);
+        }
+
         return { success: true, lead };
       }),
 
@@ -198,8 +245,24 @@ export const appRouter = router({
           status: z.enum(["new", "contacted", "interested", "tasting_scheduled", "quote_sent", "negotiation", "won", "lost"]),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const oldLead = await getLeadById(input.id);
         await updateLeadStatus(input.id, input.status);
+
+        // Auto-create activity for status change
+        try {
+          await createLeadActivity({
+            leadId: input.id,
+            activityType: input.status === "won" ? "marked_won" : input.status === "lost" ? "marked_lost" : "status_changed",
+            note: `Status changed from ${oldLead?.status ?? "unknown"} to ${input.status}`,
+            userId: ctx.user?.id ?? null,
+            userName: ctx.user?.name ?? null,
+            metadata: JSON.stringify({ from: oldLead?.status, to: input.status }),
+          });
+        } catch (e) {
+          console.warn("[Leads] Failed to create status activity:", e);
+        }
+
         return { success: true };
       }),
 
@@ -250,6 +313,46 @@ export const appRouter = router({
       .query(async () => {
         const pending = await getPendingEmails();
         return { pendingCount: pending.length, emails: pending };
+      }),
+
+    // ─── LEAD ACTIVITIES ──────────────────────────────────────────────────
+
+    getActivities: protectedProcedure
+      .input(z.object({ leadId: z.number() }))
+      .query(async ({ input }) => {
+        return getLeadActivities(input.leadId);
+      }),
+
+    addActivity: protectedProcedure
+      .input(
+        z.object({
+          leadId: z.number(),
+          activityType: z.enum([
+            "lead_created",
+            "status_changed",
+            "note_added",
+            "phone_call",
+            "email_sent",
+            "follow_up_scheduled",
+            "tasting_scheduled",
+            "quote_sent",
+            "marked_won",
+            "marked_lost",
+          ]),
+          note: z.string().nullable().optional(),
+          metadata: z.string().nullable().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const id = await createLeadActivity({
+          leadId: input.leadId,
+          activityType: input.activityType,
+          note: input.note ?? null,
+          userId: ctx.user?.id ?? null,
+          userName: ctx.user?.name ?? null,
+          metadata: input.metadata ?? null,
+        });
+        return { success: true, id };
       }),
   }),
 

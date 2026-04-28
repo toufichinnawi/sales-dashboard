@@ -300,3 +300,17 @@
 - [x] Register /leads/:id route in App.tsx
 - [x] Write vitest tests for getById and update procedures (8/8 passed)
 - [x] Test in browser and verify TypeScript/build passes
+
+## Activity Timeline
+- [x] Add lead_activities table to database schema (leadId, activityType, note, userId, createdAt)
+- [x] Push database migration
+- [x] Add db helpers: createActivity, getActivitiesByLeadId
+- [x] Add tRPC procedures: leads.getActivities, leads.addActivity
+- [x] Auto-create activity on status change
+- [x] Auto-create activity on marked won/lost
+- [x] Auto-create activity on follow-up date change
+- [x] Auto-create activity on notes added
+- [x] Build Activity Timeline UI in LeadProfile page (newest first, empty state)
+- [x] Add "Add Activity" button with type selector and note input
+- [x] Write vitest tests for activity procedures (11/11 passed, 150 total)
+- [x] Test in browser and verify TypeScript/build passes

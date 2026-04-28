@@ -85,6 +85,13 @@
       "when": 1777398790925,
       "tag": "0010_tiny_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1777404908206,
+      "tag": "0011_smiling_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }

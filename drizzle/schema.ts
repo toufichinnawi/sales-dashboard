@@ -247,3 +247,30 @@ export const pendingEmails = mysqlTable("pending_emails", {
 
 export type PendingEmail = typeof pendingEmails.$inferSelect;
 export type InsertPendingEmail = typeof pendingEmails.$inferInsert;
+
+// ─── Lead Activities table (activity timeline for leads) ─────────────────────
+
+export const leadActivities = mysqlTable("lead_activities", {
+  id: int("id").autoincrement().primaryKey(),
+  leadId: int("leadId").notNull(),
+  activityType: mysqlEnum("activityType", [
+    "lead_created",
+    "status_changed",
+    "note_added",
+    "phone_call",
+    "email_sent",
+    "follow_up_scheduled",
+    "tasting_scheduled",
+    "quote_sent",
+    "marked_won",
+    "marked_lost",
+  ]).notNull(),
+  note: text("note"),
+  userId: int("userId"),
+  userName: varchar("userName", { length: 255 }),
+  metadata: text("metadata"), // JSON for extra data like old/new status
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LeadActivity = typeof leadActivities.$inferSelect;
+export type InsertLeadActivity = typeof leadActivities.$inferInsert;

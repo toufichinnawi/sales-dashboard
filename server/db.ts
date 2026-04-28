@@ -12,6 +12,7 @@ import {
   tastingRequests, InsertTastingRequest, TastingRequest,
   notifications, InsertNotification, Notification,
   pendingEmails, InsertPendingEmail, PendingEmail,
+  leadActivities, InsertLeadActivity, LeadActivity,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -844,4 +845,43 @@ export async function getPendingEmailById(id: number): Promise<PendingEmail | nu
   if (!db) return null;
   const rows = await db.select().from(pendingEmails).where(eq(pendingEmails.id, id));
   return rows[0] ?? null;
+}
+
+// ─── Lead Activities ─────────────────────────────────────────────────────────
+
+export async function createLeadActivity(data: {
+  leadId: number;
+  activityType: InsertLeadActivity["activityType"];
+  note?: string | null;
+  userId?: number | null;
+  userName?: string | null;
+  metadata?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(leadActivities).values({
+    leadId: data.leadId,
+    activityType: data.activityType,
+    note: data.note ?? null,
+    userId: data.userId ?? null,
+    userName: data.userName ?? null,
+    metadata: data.metadata ?? null,
+  });
+  return result.insertId;
+}
+
+export async function getLeadActivities(leadId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(leadActivities)
+    .where(eq(leadActivities.leadId, leadId))
+    .orderBy(desc(leadActivities.createdAt));
+}
+
+export async function deleteLeadActivities(leadId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(leadActivities).where(eq(leadActivities.leadId, leadId));
 }
