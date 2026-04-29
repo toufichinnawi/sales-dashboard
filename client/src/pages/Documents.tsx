@@ -221,14 +221,6 @@ export default function Documents() {
     setDeleteConfirmOpen(true);
   }
 
-  if (user?.role !== "admin") {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">You do not have permission to access this page.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 px-4 md:px-6 py-6">
       {/* Header */}

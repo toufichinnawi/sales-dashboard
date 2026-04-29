@@ -152,16 +152,22 @@ describe("documents procedures", () => {
   });
 
   describe("access control", () => {
-    it("blocks non-admin users from listing documents", async () => {
+    it("allows authenticated users to list documents", async () => {
       const { ctx } = createUserContext();
       const caller = appRouter.createCaller(ctx);
+
+      const result = await caller.documents.list();
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it("blocks unauthenticated users from listing documents", async () => {
+      const caller = appRouter.createCaller({ user: null } as any);
 
       await expect(caller.documents.list()).rejects.toThrow();
     });
 
-    it("blocks non-admin users from uploading documents", async () => {
-      const { ctx } = createUserContext();
-      const caller = appRouter.createCaller(ctx);
+    it("blocks unauthenticated users from uploading documents", async () => {
+      const caller = appRouter.createCaller({ user: null } as any);
 
       await expect(
         caller.documents.upload({
@@ -175,16 +181,14 @@ describe("documents procedures", () => {
       ).rejects.toThrow();
     });
 
-    it("blocks non-admin users from deleting documents", async () => {
-      const { ctx } = createUserContext();
-      const caller = appRouter.createCaller(ctx);
+    it("blocks unauthenticated users from deleting documents", async () => {
+      const caller = appRouter.createCaller({ user: null } as any);
 
       await expect(caller.documents.delete({ id: 1 })).rejects.toThrow();
     });
 
-    it("blocks non-admin users from updating documents", async () => {
-      const { ctx } = createUserContext();
-      const caller = appRouter.createCaller(ctx);
+    it("blocks unauthenticated users from updating documents", async () => {
+      const caller = appRouter.createCaller({ user: null } as any);
 
       await expect(
         caller.documents.update({ id: 1, title: "New Title" })

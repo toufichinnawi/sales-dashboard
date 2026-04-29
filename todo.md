@@ -377,3 +377,6 @@
 - [x] Customers cannot upload or edit documents
 - [x] Write vitest tests for document procedures (185 total pass)
 - [x] Test in browser and verify TypeScript/build passes
+
+## Fix Document Upload Not Working
+- [x] Investigate and fix document upload issue reported by user (permission was admin-only, changed to protectedProcedure for all team members)

@@ -1022,13 +1022,13 @@ export const appRouter = router({
   // ─── PORTAL DOCUMENTS ───────────────────────────────────────────────
 
   documents: router({
-    // Admin: list all documents
-    list: adminProcedure.query(async () => {
+    // Team: list all documents
+    list: protectedProcedure.query(async () => {
       return getAllPortalDocuments();
     }),
 
-    // Admin: upload a document (receives base64 PDF)
-    upload: adminProcedure
+    // Team: upload a document (receives base64 PDF)
+    upload: protectedProcedure
       .input(
         z.object({
           title: z.string().min(1, "Title is required").max(255),
@@ -1074,8 +1074,8 @@ export const appRouter = router({
         return doc;
       }),
 
-    // Admin: update document metadata
-    update: adminProcedure
+    // Team: update document metadata
+    update: protectedProcedure
       .input(
         z.object({
           id: z.number(),
@@ -1089,8 +1089,8 @@ export const appRouter = router({
         return updatePortalDocument(id, data);
       }),
 
-    // Admin: delete a document
-    delete: adminProcedure
+    // Team: delete a document
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deletePortalDocument(input.id);
