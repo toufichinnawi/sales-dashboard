@@ -52,8 +52,15 @@ import {
   updatePendingEmailStatus,
   createLeadActivity,
   getLeadActivities,
+  createPortalDocument,
+  getAllPortalDocuments,
+  getClientPortalDocuments,
+  getPortalDocumentById,
+  updatePortalDocument,
+  deletePortalDocument,
 } from "./db";
 import crypto from "crypto";
+import { storagePut } from "./storage";
 import { notifyOwner } from "./_core/notification";
 import { z } from "zod";
 import {
@@ -1010,6 +1017,90 @@ export const appRouter = router({
         await updateCustomer(customer.id, input);
         return { success: true };
       }),
+  }),
+
+  // ─── PORTAL DOCUMENTS ───────────────────────────────────────────────
+
+  documents: router({
+    // Admin: list all documents
+    list: adminProcedure.query(async () => {
+      return getAllPortalDocuments();
+    }),
+
+    // Admin: upload a document (receives base64 PDF)
+    upload: adminProcedure
+      .input(
+        z.object({
+          title: z.string().min(1, "Title is required").max(255),
+          documentType: z.enum(["brochure", "spec_sheet", "client_summary", "pricing", "other"]),
+          visibility: z.enum(["admin_only", "client_portal"]),
+          fileName: z.string().min(1),
+          fileBase64: z.string().min(1),
+          fileSize: z.number().min(1),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        // Validate file extension
+        const ext = input.fileName.toLowerCase().split(".").pop();
+        if (ext === "doc" || ext === "docx") {
+          throw new Error(
+            "Please export this document as PDF before uploading it to the client portal."
+          );
+        }
+        if (ext !== "pdf") {
+          throw new Error("Only PDF files are accepted. Please convert your document to PDF first.");
+        }
+
+        // Upload to S3
+        const suffix = crypto.randomBytes(6).toString("hex");
+        const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const fileKey = `portal-documents/${suffix}-${safeFileName}`;
+        const buffer = Buffer.from(input.fileBase64, "base64");
+        const { url } = await storagePut(fileKey, buffer, "application/pdf");
+
+        // Save to database
+        const doc = await createPortalDocument({
+          title: input.title,
+          documentType: input.documentType,
+          visibility: input.visibility,
+          fileUrl: url,
+          fileKey,
+          fileName: input.fileName,
+          fileSize: input.fileSize,
+          uploadedBy: ctx.user.id,
+          uploadedByName: ctx.user.name ?? "Admin",
+        });
+
+        return doc;
+      }),
+
+    // Admin: update document metadata
+    update: adminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().min(1).max(255).optional(),
+          documentType: z.enum(["brochure", "spec_sheet", "client_summary", "pricing", "other"]).optional(),
+          visibility: z.enum(["admin_only", "client_portal"]).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updatePortalDocument(id, data);
+      }),
+
+    // Admin: delete a document
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deletePortalDocument(input.id);
+        return { success: true };
+      }),
+
+    // Client portal: list visible documents
+    clientList: protectedProcedure.query(async () => {
+      return getClientPortalDocuments();
+    }),
   }),
 
   // ─── QUICKBOOKS INTEGRATION ──────────────────────────────────────────

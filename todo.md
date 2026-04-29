@@ -363,3 +363,17 @@
 - [x] Only block rows for serious issues (missing name/contact + phone/email)
 - [x] Update tests for new normalization behavior
 - [x] Verify TypeScript/build passes (177 tests pass)
+
+## Portal Document Upload
+- [x] Add documents table to database schema (title, type, visibility, fileUrl, fileKey, uploadedBy, createdAt)
+- [x] Push database migration
+- [x] Add db helpers: createDocument, getDocuments, deleteDocument
+- [x] Add tRPC procedures: documents.list, documents.upload, documents.delete (admin-only)
+- [x] Add tRPC procedure: documents.clientList (public/client-facing)
+- [x] Block Word file uploads (.doc/.docx) with clear message
+- [x] Build admin Document Management page with upload form
+- [x] Document fields: title, type (Brochure/Spec Sheet/Client Summary/Pricing/Other), visibility (Admin only/Client portal)
+- [x] Build client portal documents view (read-only, downloadable PDFs)
+- [x] Customers cannot upload or edit documents
+- [x] Write vitest tests for document procedures (185 total pass)
+- [x] Test in browser and verify TypeScript/build passes

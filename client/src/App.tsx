@@ -27,6 +27,8 @@ import PortalStandingOrders from "./pages/portal/PortalStandingOrders";
 import PortalQuickOrder from "./pages/portal/PortalQuickOrder";
 import PortalProfile from "./pages/portal/PortalProfile";
 import PortalAcceptInvite from "./pages/portal/PortalAcceptInvite";
+import Documents from "./pages/Documents";
+import PortalDocuments from "./pages/portal/PortalDocuments";
 
 function DashboardRouter() {
   return (
@@ -46,6 +48,7 @@ function DashboardRouter() {
         <Route path={"/recurring"} component={RecurringOrders} />
         <Route path={"/quickbooks"} component={QuickBooksSettings} />
         <Route path={"/tastings"} component={TastingRequests} />
+        <Route path={"/documents"} component={Documents} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -61,6 +64,7 @@ function PortalRouter() {
         <Route path={"/portal/standing"} component={PortalStandingOrders} />
         <Route path={"/portal/order"} component={PortalQuickOrder} />
         <Route path={"/portal/profile"} component={PortalProfile} />
+        <Route path={"/portal/documents"} component={PortalDocuments} />
         <Route component={NotFound} />
       </Switch>
     </PortalLayout>

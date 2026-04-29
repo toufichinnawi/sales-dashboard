@@ -277,3 +277,23 @@ export const leadActivities = mysqlTable("lead_activities", {
 
 export type LeadActivity = typeof leadActivities.$inferSelect;
 export type InsertLeadActivity = typeof leadActivities.$inferInsert;
+
+// ─── Portal Documents table ─────────────────────────────────────────────────
+
+export const portalDocuments = mysqlTable("portal_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  documentType: mysqlEnum("documentType", ["brochure", "spec_sheet", "client_summary", "pricing", "other"]).default("other").notNull(),
+  visibility: mysqlEnum("visibility", ["admin_only", "client_portal"]).default("admin_only").notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: text("fileKey").notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  fileSize: int("fileSize").notNull().default(0),
+  uploadedBy: int("uploadedBy"),
+  uploadedByName: varchar("uploadedByName", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PortalDocument = typeof portalDocuments.$inferSelect;
+export type InsertPortalDocument = typeof portalDocuments.$inferInsert;

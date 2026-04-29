@@ -11,6 +11,7 @@ import {
   User,
   Cookie,
   LogOut,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const portalNav = [
   { path: "/portal", label: "Orders", icon: ShoppingBag },
   { path: "/portal/standing", label: "Standing", icon: Repeat },
   { path: "/portal/order", label: "Order", icon: PlusCircle },
+  { path: "/portal/documents", label: "Docs", icon: FileText },
   { path: "/portal/profile", label: "Profile", icon: User },
 ];
 

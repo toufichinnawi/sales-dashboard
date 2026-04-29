@@ -13,6 +13,7 @@ import {
   notifications, InsertNotification, Notification,
   pendingEmails, InsertPendingEmail, PendingEmail,
   leadActivities, InsertLeadActivity, LeadActivity,
+  portalDocuments, InsertPortalDocument, PortalDocument,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -884,4 +885,52 @@ export async function deleteLeadActivities(leadId: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(leadActivities).where(eq(leadActivities.leadId, leadId));
+}
+
+
+// ─── Portal Documents helpers ────────────────────────────────────────────────
+
+export async function createPortalDocument(data: InsertPortalDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(portalDocuments).values(data).$returningId();
+  const [doc] = await db.select().from(portalDocuments).where(eq(portalDocuments.id, result.id));
+  return doc;
+}
+
+export async function getAllPortalDocuments() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(portalDocuments).orderBy(desc(portalDocuments.createdAt));
+}
+
+export async function getClientPortalDocuments() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(portalDocuments)
+    .where(eq(portalDocuments.visibility, "client_portal"))
+    .orderBy(desc(portalDocuments.createdAt));
+}
+
+export async function getPortalDocumentById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [doc] = await db.select().from(portalDocuments).where(eq(portalDocuments.id, id));
+  return doc ?? null;
+}
+
+export async function updatePortalDocument(id: number, data: Partial<InsertPortalDocument>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(portalDocuments).set(data).where(eq(portalDocuments.id, id));
+  const [doc] = await db.select().from(portalDocuments).where(eq(portalDocuments.id, id));
+  return doc;
+}
+
+export async function deletePortalDocument(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(portalDocuments).where(eq(portalDocuments.id, id));
 }
