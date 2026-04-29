@@ -77,7 +77,7 @@ describe("Lead Import Module", () => {
     it("throws for empty file", () => {
       const buffer = createTestExcel(["Header"], []);
       expect(() => parseFileBuffer(buffer, "empty.xlsx")).toThrow(
-        "at least a header row and one data row"
+        "at least one data row after the header row"
       );
     });
   });

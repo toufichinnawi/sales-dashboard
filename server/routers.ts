@@ -399,6 +399,7 @@ export const appRouter = router({
           rows: result.rows,
           autoMapping: result.autoMapping,
           fields: LEAD_FIELDS,
+          headerRowIndex: result.headerRowIndex,
         };
       }),
 

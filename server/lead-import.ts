@@ -66,8 +66,10 @@ export const LEAD_FIELDS = [
 export type LeadFieldKey = (typeof LEAD_FIELDS)[number]["key"];
 
 // ─── Smart auto-mapping dictionary ──────────────────────────────────────────
+// Each key is a lowercase keyword/phrase; value is the lead field it maps to.
+// We also support partial/substring matching for common patterns.
 
-const AUTO_MAP: Record<string, LeadFieldKey> = {
+const AUTO_MAP_EXACT: Record<string, LeadFieldKey> = {
   // Business Name
   "company": "business",
   "company name": "business",
@@ -80,8 +82,16 @@ const AUTO_MAP: Record<string, LeadFieldKey> = {
   "establishment": "business",
   "shop": "business",
   "store": "business",
+  "store name": "business",
+  "storename": "business",
   "cafe": "business",
   "restaurant": "business",
+  "client": "business",
+  "client name": "business",
+  "account": "business",
+  "account name": "business",
+  "firm": "business",
+  "venue": "business",
 
   // Contact Person
   "name": "name",
@@ -97,6 +107,10 @@ const AUTO_MAP: Record<string, LeadFieldKey> = {
   "fullname": "name",
   "owner": "name",
   "manager": "name",
+  "first name": "name",
+  "firstname": "name",
+  "last name": "name",
+  "lastname": "name",
 
   // Phone
   "phone": "phone",
@@ -109,6 +123,9 @@ const AUTO_MAP: Record<string, LeadFieldKey> = {
   "telephone": "phone",
   "cell": "phone",
   "number": "phone",
+  "cell phone": "phone",
+  "work phone": "phone",
+  "fax": "phone",
 
   // Email
   "email": "email",
@@ -117,6 +134,7 @@ const AUTO_MAP: Record<string, LeadFieldKey> = {
   "emailaddress": "email",
   "e-mail": "email",
   "mail": "email",
+  "courriel": "email",
 
   // Address
   "address": "address",
@@ -125,6 +143,7 @@ const AUTO_MAP: Record<string, LeadFieldKey> = {
   "street address": "address",
   "city": "address",
   "full address": "address",
+  "adresse": "address",
 
   // Lead Source
   "source": "leadSource",
@@ -133,6 +152,7 @@ const AUTO_MAP: Record<string, LeadFieldKey> = {
   "leadsource": "leadSource",
   "how found": "leadSource",
   "referral source": "leadSource",
+  "origin": "leadSource",
 
   // Business Type
   "type": "businessType",
@@ -192,12 +212,174 @@ const AUTO_MAP: Record<string, LeadFieldKey> = {
   "message": "notes",
 };
 
+// Substring patterns: if the header CONTAINS one of these, map to the field.
+// Checked after exact matching fails. Order matters — more specific first.
+const AUTO_MAP_CONTAINS: { pattern: string; field: LeadFieldKey }[] = [
+  { pattern: "business name", field: "business" },
+  { pattern: "company name", field: "business" },
+  { pattern: "store name", field: "business" },
+  { pattern: "client name", field: "business" },
+  { pattern: "account name", field: "business" },
+  { pattern: "contact person", field: "name" },
+  { pattern: "contact name", field: "name" },
+  { pattern: "full name", field: "name" },
+  { pattern: "phone number", field: "phone" },
+  { pattern: "phone", field: "phone" },
+  { pattern: "mobile", field: "phone" },
+  { pattern: "telephone", field: "phone" },
+  { pattern: "email", field: "email" },
+  { pattern: "e-mail", field: "email" },
+  { pattern: "mail", field: "email" },
+  { pattern: "address", field: "address" },
+  { pattern: "location", field: "address" },
+  { pattern: "lead source", field: "leadSource" },
+  { pattern: "source", field: "leadSource" },
+  { pattern: "business type", field: "businessType" },
+  { pattern: "category", field: "businessType" },
+  { pattern: "follow-up", field: "nextFollowUpDate" },
+  { pattern: "follow up", field: "nextFollowUpDate" },
+  { pattern: "followup", field: "nextFollowUpDate" },
+  { pattern: "notes", field: "notes" },
+  { pattern: "comment", field: "notes" },
+  { pattern: "remark", field: "notes" },
+  { pattern: "weekly order", field: "estimatedWeeklyOrder" },
+  { pattern: "product", field: "productsInterested" },
+  { pattern: "assigned", field: "assignedTo" },
+  { pattern: "company", field: "business" },
+  { pattern: "business", field: "business" },
+  { pattern: "contact", field: "name" },
+  { pattern: "name", field: "name" },
+];
+
+// ─── Header detection helpers ───────────────────────────────────────────────
+
+/**
+ * Determine if a row looks like a header row:
+ * - Has at least 2 non-empty cells
+ * - Most cells are short text (not long data)
+ * - At least one cell matches a known keyword
+ */
+function isLikelyHeaderRow(row: string[]): boolean {
+  const nonEmpty = row.filter((c) => String(c ?? "").trim() !== "");
+  if (nonEmpty.length < 2) return false;
+
+  // Check if at least one cell matches a known auto-map keyword
+  let matchCount = 0;
+  for (const cell of nonEmpty) {
+    const normalized = String(cell).toLowerCase().trim().replace(/[_\-]/g, " ");
+    if (AUTO_MAP_EXACT[normalized]) {
+      matchCount++;
+    } else {
+      // Check substring patterns
+      for (const { pattern } of AUTO_MAP_CONTAINS) {
+        if (normalized.includes(pattern)) {
+          matchCount++;
+          break;
+        }
+      }
+    }
+  }
+
+  // If at least 1 cell matches a known keyword, it's likely a header
+  if (matchCount >= 1) return true;
+
+  // Fallback: if most cells are short (< 40 chars) and non-numeric, likely a header
+  const shortTextCount = nonEmpty.filter((c) => {
+    const s = String(c).trim();
+    return s.length < 40 && isNaN(Number(s));
+  }).length;
+
+  return shortTextCount >= nonEmpty.length * 0.7;
+}
+
+/**
+ * Find the header row index from the raw data.
+ * Scans the first 10 rows to find the best header candidate.
+ */
+function findHeaderRowIndex(rawData: string[][]): number {
+  const maxScan = Math.min(rawData.length, 10);
+
+  // First pass: find a row that matches known keywords
+  for (let i = 0; i < maxScan; i++) {
+    const row = rawData[i];
+    if (!row) continue;
+    const nonEmpty = row.filter((c) => String(c ?? "").trim() !== "");
+    if (nonEmpty.length < 2) continue;
+
+    // Count keyword matches
+    let matchCount = 0;
+    for (const cell of nonEmpty) {
+      const normalized = String(cell).toLowerCase().trim().replace(/[_\-]/g, " ");
+      if (AUTO_MAP_EXACT[normalized]) {
+        matchCount++;
+      } else {
+        for (const { pattern } of AUTO_MAP_CONTAINS) {
+          if (normalized.includes(pattern)) {
+            matchCount++;
+            break;
+          }
+        }
+      }
+    }
+
+    // If at least 2 cells match known keywords, this is very likely the header
+    if (matchCount >= 2) return i;
+  }
+
+  // Second pass: find the first row with at least 2 non-empty cells
+  for (let i = 0; i < maxScan; i++) {
+    const row = rawData[i];
+    if (!row) continue;
+    if (isLikelyHeaderRow(row)) return i;
+  }
+
+  // Default to row 0
+  return 0;
+}
+
+/**
+ * Auto-map a single column header to a lead field.
+ * Uses exact match first, then substring match.
+ */
+function autoMapColumn(header: string): LeadFieldKey | null {
+  if (!header) return null;
+
+  // Normalize: lowercase, trim, replace underscores/dashes with spaces, collapse whitespace
+  const normalized = header
+    .toLowerCase()
+    .trim()
+    .replace(/[_\-]+/g, " ")
+    .replace(/\s+/g, " ");
+
+  // Exact match
+  if (AUTO_MAP_EXACT[normalized]) {
+    return AUTO_MAP_EXACT[normalized];
+  }
+
+  // Try without common prefixes/suffixes like "lead ", "customer "
+  const stripped = normalized
+    .replace(/^(lead|customer|client|account)\s+/, "")
+    .trim();
+  if (stripped !== normalized && AUTO_MAP_EXACT[stripped]) {
+    return AUTO_MAP_EXACT[stripped];
+  }
+
+  // Substring match
+  for (const { pattern, field } of AUTO_MAP_CONTAINS) {
+    if (normalized.includes(pattern)) {
+      return field;
+    }
+  }
+
+  return null;
+}
+
 // ─── Parse file ─────────────────────────────────────────────────────────────
 
 export function parseFileBuffer(
   buffer: Buffer,
   fileName: string
-): { columns: ParsedColumn[]; rows: ParsedRow[]; autoMapping: ColumnMapping } {
+): { columns: ParsedColumn[]; rows: ParsedRow[]; autoMapping: ColumnMapping; headerRowIndex: number } {
   const workbook = XLSX.read(buffer, { type: "buffer" });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) throw new Error("No sheets found in file");
@@ -209,41 +391,65 @@ export function parseFileBuffer(
     raw: false,
   });
 
-  if (rawData.length < 2) {
-    throw new Error("File must have at least a header row and one data row");
+  if (rawData.length < 1) {
+    throw new Error("File is empty");
   }
 
-  // Extract headers
-  const headerRow = rawData[0]!;
+  // Find the header row (first non-empty row with recognizable column names)
+  const headerRowIdx = findHeaderRowIndex(rawData);
+  const headerRow = rawData[headerRowIdx]!;
+
+  // Check that we actually have headers
+  const nonEmptyHeaders = headerRow.filter((h) => String(h ?? "").trim() !== "");
+  if (nonEmptyHeaders.length === 0) {
+    throw new Error(
+      "No column headers detected. Please make sure your first non-empty row contains column names."
+    );
+  }
+
+  // Extract columns from the header row
   const columns: ParsedColumn[] = headerRow.map((h, i) => ({
     index: i,
-    header: String(h).trim(),
+    header: String(h ?? "").trim(),
   }));
 
-  // Extract data rows (skip header)
-  const rows: ParsedRow[] = rawData.slice(1).map((row, i) => ({
-    rowIndex: i + 2, // 1-indexed, +1 for header
-    cells: row.map((c) => String(c ?? "").trim()),
-  }));
+  // Extract data rows (everything after the header row)
+  const dataRows = rawData.slice(headerRowIdx + 1);
+  if (dataRows.length === 0) {
+    throw new Error("File must have at least one data row after the header row");
+  }
 
-  // Auto-map columns
+  const rows: ParsedRow[] = dataRows
+    .map((row, i) => ({
+      rowIndex: headerRowIdx + 2 + i, // 1-indexed Excel row number
+      cells: row.map((c) => String(c ?? "").trim()),
+    }))
+    .filter((row) => row.cells.some((c) => c !== "")); // skip fully empty rows
+
+  if (rows.length === 0) {
+    throw new Error("No data rows found after the header row");
+  }
+
+  // Auto-map columns using improved matching
   const autoMapping: ColumnMapping = {};
   const usedColumns = new Set<number>();
 
+  // Initialize all fields to null
   for (const field of LEAD_FIELDS) {
     autoMapping[field.key] = null;
   }
 
+  // Map each column to a field
   for (const col of columns) {
-    const normalized = col.header.toLowerCase().trim();
-    const matchedField = AUTO_MAP[normalized];
+    if (!col.header) continue; // skip empty headers
+    const matchedField = autoMapColumn(col.header);
     if (matchedField && autoMapping[matchedField] === null && !usedColumns.has(col.index)) {
       autoMapping[matchedField] = col.index;
       usedColumns.add(col.index);
     }
   }
 
-  return { columns, rows, autoMapping };
+  return { columns, rows, autoMapping, headerRowIndex: headerRowIdx };
 }
 
 // ─── Validation ─────────────────────────────────────────────────────────────

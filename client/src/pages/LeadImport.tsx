@@ -551,6 +551,19 @@ function MappingStep({
     return samples.join(" · ");
   };
 
+  // Minimum mapping validation:
+  // Must have (Business Name OR Contact Person) AND (Phone OR Email)
+  const hasIdentity =
+    mapping["business"] !== null || mapping["name"] !== null;
+  const hasContact =
+    mapping["phone"] !== null || mapping["email"] !== null;
+  const isMinimumMet = hasIdentity && hasContact;
+
+  // Detected column names for display
+  const detectedHeaders = columns
+    .filter((c) => c.header)
+    .map((c) => c.header);
+
   return (
     <Card className="max-w-3xl mx-auto">
       <CardHeader className="pb-3">
@@ -570,26 +583,64 @@ function MappingStep({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Detected columns info */}
+        {detectedHeaders.length > 0 && (
+          <div className="bg-muted/50 border border-border rounded-md p-2.5">
+            <p className="text-[11px] font-medium text-muted-foreground mb-1">Detected columns:</p>
+            <div className="flex flex-wrap gap-1">
+              {detectedHeaders.map((h, i) => (
+                <Badge key={i} variant="outline" className="text-[10px] font-data">
+                  {h}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="bg-amber-50/50 border border-amber-200 rounded-md p-2.5 flex items-start gap-2">
           <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
           <p className="text-xs text-amber-800">
             Columns with matching names were auto-mapped. Review and adjust as
-            needed. At minimum, map Business Name or Contact Person, plus Phone
-            or Email.
+            needed. At minimum, map <strong>Business Name or Contact Person</strong>, plus <strong>Phone
+            or Email</strong>.
           </p>
         </div>
+
+        {/* Validation warning if minimum not met */}
+        {!isMinimumMet && mappedFieldCount > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-2.5 flex items-start gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-red-800">
+              {!hasIdentity && !hasContact
+                ? "Map at least Business Name or Contact Person, and Phone or Email to continue."
+                : !hasIdentity
+                ? "Map at least Business Name or Contact Person to continue."
+                : "Map at least Phone or Email to continue."}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           {fields.map((field) => {
             const colIdx = mapping[field.key] ?? null;
             const preview = getPreview(colIdx);
+            const isMapped = colIdx !== null;
             return (
               <div
                 key={field.key}
-                className="flex items-center gap-3 p-2.5 rounded-md border border-border/50 hover:border-border transition-colors"
+                className={`flex items-center gap-3 p-2.5 rounded-md border transition-colors ${
+                  isMapped
+                    ? "border-green-200 bg-green-50/30"
+                    : "border-border/50 hover:border-border"
+                }`}
               >
                 <div className="w-44 shrink-0">
                   <div className="flex items-center gap-1.5">
+                    {isMapped ? (
+                      <Check className="h-3 w-3 text-green-600 shrink-0" />
+                    ) : (
+                      <div className="h-3 w-3 shrink-0" />
+                    )}
                     <span className="text-xs font-medium">{field.label}</span>
                     {field.required && (
                       <span className="text-[10px] text-amber-600">*</span>
@@ -638,7 +689,7 @@ function MappingStep({
           <Button
             size="sm"
             onClick={onNext}
-            disabled={mappedFieldCount < 2 || isLoading}
+            disabled={!isMinimumMet || isLoading}
             className="bg-amber-600 hover:bg-amber-700"
           >
             {isLoading ? (

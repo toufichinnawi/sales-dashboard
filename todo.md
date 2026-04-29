@@ -346,3 +346,11 @@
 - [x] Admin-only access (protectedProcedure with role check)
 - [x] Write vitest tests for import procedures (21/21 passed, 177 total)
 - [x] Test in browser and verify TypeScript/build passes
+
+## Fix Lead Import Column Mapping
+- [x] Fix header detection: detect from first non-empty row, not only row 1
+- [x] Improve auto-mapping with expanded keyword list
+- [x] Show detected column names clearly in mapping dropdowns
+- [x] Show clear error if no headers detected
+- [x] Validate minimum required mapping before allowing continue
+- [x] Verify TypeScript/build passes
