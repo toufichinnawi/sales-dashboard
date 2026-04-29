@@ -28,10 +28,18 @@ export interface ValidationError {
   message: string;
 }
 
+export interface ValidationWarning {
+  field: string;
+  message: string;
+  originalValue: string;
+  normalizedValue: string;
+}
+
 export interface ValidatedRow {
   rowIndex: number;
   data: Record<string, string>;
   errors: ValidationError[];
+  warnings: ValidationWarning[];
   isValid: boolean;
   duplicateOf?: { id: number; business: string; email: string } | null;
 }
@@ -461,6 +469,108 @@ const VALID_BUSINESS_TYPES = ["cafe", "restaurant", "grocery", "hotel", "caterer
 const VALID_LEAD_SOURCES = ["instagram", "referral", "website", "walk_in", "cold_call", "other"];
 const VALID_POTENTIAL_VALUES = ["low", "medium", "high"];
 
+// ─── Enum normalization maps ────────────────────────────────────────────────
+// Maps common imported values to valid enum values.
+
+const BUSINESS_TYPE_NORMALIZE: Record<string, string> = {
+  // cafe
+  "café": "cafe", "cafe": "cafe", "coffee shop": "cafe", "coffee": "cafe",
+  "café / coffee shop": "cafe", "cafe / coffee shop": "cafe",
+  "bakery cafe": "cafe", "bakery café": "cafe", "bakery": "cafe",
+  "coffee house": "cafe", "coffeehouse": "cafe", "tea shop": "cafe",
+  "tea house": "cafe", "espresso bar": "cafe", "juice bar": "cafe",
+  "boulangerie": "cafe", "patisserie": "cafe", "pâtisserie": "cafe",
+  // restaurant
+  "restaurant": "restaurant", "food service": "restaurant", "deli": "restaurant",
+  "sandwich shop": "restaurant", "bistro": "restaurant", "brasserie": "restaurant",
+  "diner": "restaurant", "eatery": "restaurant", "pizzeria": "restaurant",
+  "traiteur": "restaurant", "food truck": "restaurant", "fast food": "restaurant",
+  "pub": "restaurant", "bar": "restaurant", "grill": "restaurant",
+  "steakhouse": "restaurant", "sushi": "restaurant", "buffet": "restaurant",
+  "canteen": "restaurant", "cafeteria": "restaurant",
+  // grocery
+  "grocery": "grocery", "grocery store": "grocery", "market": "grocery",
+  "supermarket": "grocery", "épicerie": "grocery", "epicerie": "grocery",
+  "convenience store": "grocery", "dépanneur": "grocery", "depanneur": "grocery",
+  "food store": "grocery", "general store": "grocery", "mini mart": "grocery",
+  // hotel
+  "hotel": "hotel", "hospitality": "hotel", "motel": "hotel",
+  "inn": "hotel", "resort": "hotel", "b&b": "hotel", "bed and breakfast": "hotel",
+  "auberge": "hotel", "hostel": "hotel", "lodge": "hotel",
+  // caterer
+  "caterer": "caterer", "catering": "caterer", "catering company": "caterer",
+  "catering service": "caterer", "event catering": "caterer",
+  "food catering": "caterer", "traiteur service": "caterer",
+  // other
+  "other": "other", "unknown": "other", "n/a": "other", "na": "other",
+};
+
+const STATUS_NORMALIZE: Record<string, string> = {
+  "new": "new", "nouveau": "new", "fresh": "new",
+  "contacted": "contacted", "contact made": "contacted", "reached out": "contacted",
+  "interested": "interested", "warm": "interested", "hot": "interested",
+  "tasting scheduled": "tasting_scheduled", "tasting_scheduled": "tasting_scheduled",
+  "tasting": "tasting_scheduled", "sample": "tasting_scheduled",
+  "quote sent": "quote_sent", "quote_sent": "quote_sent", "quoted": "quote_sent",
+  "negotiation": "negotiation", "negotiating": "negotiation", "in progress": "negotiation",
+  "won": "won", "closed won": "won", "converted": "won", "active": "won",
+  "lost": "lost", "closed lost": "lost", "dead": "lost", "rejected": "lost",
+};
+
+const LEAD_SOURCE_NORMALIZE: Record<string, string> = {
+  "instagram": "instagram", "ig": "instagram", "insta": "instagram",
+  "referral": "referral", "referred": "referral", "word of mouth": "referral",
+  "recommendation": "referral", "reference": "referral",
+  "website": "website", "web": "website", "online": "website", "google": "website",
+  "walk in": "walk_in", "walk_in": "walk_in", "walkin": "walk_in", "walk-in": "walk_in",
+  "door to door": "walk_in", "in person": "walk_in",
+  "cold call": "cold_call", "cold_call": "cold_call", "coldcall": "cold_call",
+  "phone": "cold_call", "telemarketing": "cold_call",
+  "other": "other", "unknown": "other", "n/a": "other", "na": "other",
+};
+
+const POTENTIAL_VALUE_NORMALIZE: Record<string, string> = {
+  "low": "low", "small": "low", "minor": "low",
+  "medium": "medium", "med": "medium", "moderate": "medium", "average": "medium",
+  "high": "high", "large": "high", "big": "high", "major": "high",
+};
+
+/**
+ * Normalize an enum value using a lookup map.
+ * Returns { normalized, matched } where matched=true if a mapping was found.
+ */
+export function normalizeEnumValue(
+  value: string,
+  normalizeMap: Record<string, string>,
+  validValues: string[]
+): { normalized: string; matched: boolean } {
+  if (!value) return { normalized: "", matched: true };
+  const lower = value.toLowerCase().trim();
+
+  // Direct match to valid values
+  if (validValues.includes(lower)) {
+    return { normalized: lower, matched: true };
+  }
+
+  // Check normalization map
+  if (normalizeMap[lower]) {
+    return { normalized: normalizeMap[lower], matched: true };
+  }
+
+  // Try partial matching: check if the value contains a key from the map
+  for (const [key, mapped] of Object.entries(normalizeMap)) {
+    if (lower.includes(key) || key.includes(lower)) {
+      return { normalized: mapped, matched: true };
+    }
+  }
+
+  // No match found — default to "other" if available, otherwise empty
+  if (validValues.includes("other")) {
+    return { normalized: "other", matched: false };
+  }
+  return { normalized: "", matched: false };
+}
+
 export function normalizePhone(phone: string): string {
   if (!phone) return "";
   // Remove all non-digit characters except + at start
@@ -486,6 +596,7 @@ export function validateRows(
     .map((row) => {
       const data: Record<string, string> = {};
       const errors: ValidationError[] = [];
+      const warnings: ValidationWarning[] = [];
 
       // Extract mapped values
       for (const field of LEAD_FIELDS) {
@@ -526,48 +637,100 @@ export function validateRows(
         });
       }
 
-      // Validate enum fields
-      if (data.status && !VALID_STATUSES.includes(data.status.toLowerCase())) {
-        errors.push({
-          field: "status",
-          message: `Invalid status: ${data.status}. Valid: ${VALID_STATUSES.join(", ")}`,
-        });
-      }
-
+      // Normalize enum fields (warnings, not errors)
       if (data.businessType) {
-        const normalized = data.businessType.toLowerCase();
-        if (!VALID_BUSINESS_TYPES.includes(normalized)) {
-          errors.push({
+        const original = data.businessType;
+        const { normalized, matched } = normalizeEnumValue(original, BUSINESS_TYPE_NORMALIZE, VALID_BUSINESS_TYPES);
+        if (normalized && original.toLowerCase().trim() !== normalized) {
+          warnings.push({
             field: "businessType",
-            message: `Invalid business type: ${data.businessType}. Valid: ${VALID_BUSINESS_TYPES.join(", ")}`,
+            message: `Business type normalized: "${original}" → "${normalized}"`,
+            originalValue: original,
+            normalizedValue: normalized,
           });
         }
+        if (!matched) {
+          warnings.push({
+            field: "businessType",
+            message: `Unrecognized business type: "${original}" → defaulting to "other"`,
+            originalValue: original,
+            normalizedValue: "other",
+          });
+        }
+        data._businessTypeNormalized = normalized || "other";
+      }
+
+      if (data.status) {
+        const original = data.status;
+        const { normalized, matched } = normalizeEnumValue(original, STATUS_NORMALIZE, VALID_STATUSES);
+        if (normalized && original.toLowerCase().trim() !== normalized) {
+          warnings.push({
+            field: "status",
+            message: `Status normalized: "${original}" → "${normalized}"`,
+            originalValue: original,
+            normalizedValue: normalized,
+          });
+        }
+        if (!matched) {
+          warnings.push({
+            field: "status",
+            message: `Unrecognized status: "${original}" → defaulting to "new"`,
+            originalValue: original,
+            normalizedValue: "new",
+          });
+        }
+        data._statusNormalized = normalized || "new";
       }
 
       if (data.leadSource) {
-        const normalized = data.leadSource.toLowerCase().replace(/\s+/g, "_");
-        if (!VALID_LEAD_SOURCES.includes(normalized)) {
-          errors.push({
+        const original = data.leadSource;
+        const { normalized, matched } = normalizeEnumValue(original, LEAD_SOURCE_NORMALIZE, VALID_LEAD_SOURCES);
+        if (normalized && original.toLowerCase().trim() !== normalized) {
+          warnings.push({
             field: "leadSource",
-            message: `Invalid lead source: ${data.leadSource}. Valid: ${VALID_LEAD_SOURCES.join(", ")}`,
+            message: `Lead source normalized: "${original}" → "${normalized}"`,
+            originalValue: original,
+            normalizedValue: normalized,
           });
         }
+        if (!matched) {
+          warnings.push({
+            field: "leadSource",
+            message: `Unrecognized lead source: "${original}" → defaulting to "other"`,
+            originalValue: original,
+            normalizedValue: "other",
+          });
+        }
+        data._leadSourceNormalized = normalized || "other";
       }
 
       if (data.potentialValue) {
-        const normalized = data.potentialValue.toLowerCase();
-        if (!VALID_POTENTIAL_VALUES.includes(normalized)) {
-          errors.push({
+        const original = data.potentialValue;
+        const { normalized, matched } = normalizeEnumValue(original, POTENTIAL_VALUE_NORMALIZE, VALID_POTENTIAL_VALUES);
+        if (normalized && original.toLowerCase().trim() !== normalized) {
+          warnings.push({
             field: "potentialValue",
-            message: `Invalid potential value: ${data.potentialValue}. Valid: ${VALID_POTENTIAL_VALUES.join(", ")}`,
+            message: `Potential value normalized: "${original}" → "${normalized}"`,
+            originalValue: original,
+            normalizedValue: normalized,
           });
         }
+        if (!matched) {
+          warnings.push({
+            field: "potentialValue",
+            message: `Unrecognized potential value: "${original}" → ignored`,
+            originalValue: original,
+            normalizedValue: "",
+          });
+        }
+        data._potentialValueNormalized = normalized;
       }
 
       return {
         rowIndex: row.rowIndex,
         data,
         errors,
+        warnings,
         isValid: errors.length === 0,
         duplicateOf: null,
       };
@@ -655,33 +818,37 @@ export function buildInsertLead(data: Record<string, string>): InsertLead {
     assignedTo: data.assignedTo || null,
   };
 
-  // Map status
-  if (data.status) {
-    const s = data.status.toLowerCase();
+  // Map status — use pre-normalized value if available
+  const statusVal = data._statusNormalized || data.status;
+  if (statusVal) {
+    const s = statusVal.toLowerCase();
     if (VALID_STATUSES.includes(s)) {
       lead.status = s as InsertLead["status"];
     }
   }
 
-  // Map business type
-  if (data.businessType) {
-    const bt = data.businessType.toLowerCase();
+  // Map business type — use pre-normalized value if available
+  const btVal = data._businessTypeNormalized || data.businessType;
+  if (btVal) {
+    const bt = btVal.toLowerCase();
     if (VALID_BUSINESS_TYPES.includes(bt)) {
       lead.businessType = bt as InsertLead["businessType"];
     }
   }
 
-  // Map lead source
-  if (data.leadSource) {
-    const ls = data.leadSource.toLowerCase().replace(/\s+/g, "_");
+  // Map lead source — use pre-normalized value if available
+  const lsVal = data._leadSourceNormalized || data.leadSource;
+  if (lsVal) {
+    const ls = lsVal.toLowerCase().replace(/\s+/g, "_");
     if (VALID_LEAD_SOURCES.includes(ls)) {
       lead.leadSource = ls as InsertLead["leadSource"];
     }
   }
 
-  // Map potential value
-  if (data.potentialValue) {
-    const pv = data.potentialValue.toLowerCase();
+  // Map potential value — use pre-normalized value if available
+  const pvVal = data._potentialValueNormalized || data.potentialValue;
+  if (pvVal) {
+    const pv = pvVal.toLowerCase();
     if (VALID_POTENTIAL_VALUES.includes(pv)) {
       lead.potentialValue = pv as InsertLead["potentialValue"];
     }

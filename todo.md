@@ -354,3 +354,12 @@
 - [x] Show clear error if no headers detected
 - [x] Validate minimum required mapping before allowing continue
 - [x] Verify TypeScript/build passes
+
+## Fix Lead Import Business Type Validation
+- [x] Add business type normalization map (cafe, restaurant, grocery, hotel, caterer, other)
+- [x] Update validateRows to normalize instead of reject business type mismatches
+- [x] Add warnings (not errors) for normalized values
+- [x] Update preview UI to show original vs normalized value with warning badge
+- [x] Only block rows for serious issues (missing name/contact + phone/email)
+- [x] Update tests for new normalization behavior
+- [x] Verify TypeScript/build passes (177 tests pass)

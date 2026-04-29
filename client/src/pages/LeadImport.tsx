@@ -58,10 +58,18 @@ interface ValidationError {
   message: string;
 }
 
+interface ValidationWarning {
+  field: string;
+  message: string;
+  originalValue: string;
+  normalizedValue: string;
+}
+
 interface ValidatedRow {
   rowIndex: number;
   data: Record<string, string>;
   errors: ValidationError[];
+  warnings: ValidationWarning[];
   isValid: boolean;
   duplicateOf?: { id: number; business: string; email: string } | null;
 }
@@ -757,7 +765,7 @@ function PreviewStep({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <div className="bg-green-50 border border-green-200 rounded-md p-3 text-center">
             <div className="text-lg font-data font-bold text-green-700">
               {validCount}
@@ -775,6 +783,12 @@ function PreviewStep({
               {duplicateCount}
             </div>
             <div className="text-[11px] text-amber-600">Duplicates</div>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-center">
+            <div className="text-lg font-data font-bold text-blue-700">
+              {validatedRows.filter((r) => r.warnings && r.warnings.length > 0).length}
+            </div>
+            <div className="text-[11px] text-blue-600">Normalized</div>
           </div>
         </div>
 
@@ -797,6 +811,7 @@ function PreviewStep({
                   </th>
                   <th className="px-2 py-1.5 text-left font-medium">Email</th>
                   <th className="px-2 py-1.5 text-left font-medium">Phone</th>
+                  <th className="px-2 py-1.5 text-left font-medium">Type</th>
                   <th className="px-2 py-1.5 text-left font-medium">Status</th>
                   <th className="px-2 py-1.5 text-center font-medium w-12">
                     Action
@@ -821,7 +836,34 @@ function PreviewStep({
                       <td className="px-2 py-1.5">{row.data.email}</td>
                       <td className="px-2 py-1.5">{row.data.phone}</td>
                       <td className="px-2 py-1.5">
-                        {row.data.status || "new"}
+                        {row.warnings?.some((w) => w.field === "businessType") ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="line-through text-muted-foreground">
+                              {row.warnings.find((w) => w.field === "businessType")?.originalValue}
+                            </span>
+                            <span className="text-[10px]">→</span>
+                            <Badge variant="secondary" className="text-[10px] h-4 px-1 bg-blue-50 text-blue-700 border-blue-200">
+                              {row.data._businessTypeNormalized || row.data.businessType || "—"}
+                            </Badge>
+                          </span>
+                        ) : (
+                          <span>{row.data.businessType || "—"}</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-1.5">
+                        {row.warnings?.some((w) => w.field === "status") ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="line-through text-muted-foreground">
+                              {row.warnings.find((w) => w.field === "status")?.originalValue}
+                            </span>
+                            <span className="text-[10px]">→</span>
+                            <Badge variant="secondary" className="text-[10px] h-4 px-1 bg-blue-50 text-blue-700 border-blue-200">
+                              {row.data._statusNormalized || row.data.status || "new"}
+                            </Badge>
+                          </span>
+                        ) : (
+                          <span>{row.data.status || "new"}</span>
+                        )}
                       </td>
                       <td className="px-2 py-1.5 text-center">
                         <Button
