@@ -380,3 +380,18 @@
 
 ## Fix Document Upload Not Working
 - [x] Investigate and fix document upload issue reported by user (permission was admin-only, changed to protectedProcedure for all team members)
+
+## Send Brochure Assisted Email Action
+- [x] Upload Hinnawi Bros Client Summary PDF to CDN (CloudFront)
+- [x] Rewrite brochure-email.ts with new professional template (Rosalyn Menneh, wholesale partnership)
+- [x] Add composeBrochureMailto tRPC procedure (returns mailtoUrl, subject, body, brochureUrl + creates activity)
+- [x] Add buildMailtoUrl() helper for mailto: URL construction
+- [x] Add "Send Brochure" button on Lead Profile page (Quick Actions section, blue styling)
+- [x] Update "Send Brochure" action in Leads table to use mailto flow (replaced legacy queue-based sendBrochure)
+- [x] Open mailto: with pre-filled subject, body (template with dynamic replacements), and brochure PDF link
+- [x] Check for lead email before showing Send Brochure button (hidden if no email)
+- [x] Create activity record "Brochure email prepared" after composing mailto
+- [x] Show confirmation toast after opening email compose ("Opening your email client...")
+- [x] Only authenticated users can use Send Brochure (protectedProcedure)
+- [x] Update brochure-email tests to match new template (191 tests passing)
+- [x] Verify TypeScript/build passes (0 errors)

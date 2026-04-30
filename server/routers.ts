@@ -69,7 +69,7 @@ import {
   getRecentSyncLogs,
 } from "./quickbooks";
 import { runFullSync } from "./qb-sync";
-import { sendBrochureEmail, getBrochureEmailContent, BROCHURE_URL } from "./brochure-email";
+import { sendBrochureEmail, getBrochureEmailContent, buildMailtoUrl, composeBrochureEmail, BROCHURE_URL } from "./brochure-email";
 import {
   parseFileBuffer,
   validateRows,
@@ -332,6 +332,45 @@ export const appRouter = router({
         return {
           success: true,
           emailId,
+          brochureUrl: BROCHURE_URL,
+        };
+      }),
+
+    // Assisted email flow: compose brochure email and return mailto URL + content
+    composeBrochureMailto: protectedProcedure
+      .input(
+        z.object({
+          leadId: z.number(),
+          business: z.string(),
+          email: z.string().email(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { subject, body } = composeBrochureEmail({
+          name: input.business,
+          business: input.business,
+          email: input.email,
+        });
+        const mailtoUrl = buildMailtoUrl({
+          name: input.business,
+          business: input.business,
+          email: input.email,
+        });
+
+        // Create activity record: "Brochure email prepared"
+        await createLeadActivity({
+          leadId: input.leadId,
+          activityType: "email_sent",
+          note: `Brochure email prepared for ${input.email}. Document: Hinnawi Bros Wholesale Product Summary.`,
+          userId: null,
+          userName: ctx.user?.name || null,
+        });
+
+        return {
+          success: true,
+          mailtoUrl,
+          subject,
+          body,
           brochureUrl: BROCHURE_URL,
         };
       }),

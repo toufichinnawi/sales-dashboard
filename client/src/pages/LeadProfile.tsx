@@ -330,6 +330,19 @@ export default function LeadProfile() {
     },
   });
 
+  const composeBrochureMailtoMut = trpc.leads.composeBrochureMailto.useMutation({
+    onSuccess: (data) => {
+      window.open(data.mailtoUrl, "_blank");
+      toast.success("Opening your email client...", {
+        description: "The brochure email has been composed. Send it from your email client.",
+      });
+      utils.leads.getActivities.invalidate({ leadId });
+    },
+    onError: (err) => {
+      toast.error("Failed to compose brochure email", { description: err.message });
+    },
+  });
+
   // Populate form when lead data loads
   useEffect(() => {
     if (lead) {
@@ -964,6 +977,24 @@ export default function LeadProfile() {
                 >
                   <PhoneCall className="h-3.5 w-3.5 mr-2" />
                   Mark as Contacted
+                </Button>
+              )}
+              {lead.email && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-blue-700 hover:bg-blue-50 hover:text-blue-800 border-blue-200"
+                  onClick={() => {
+                    composeBrochureMailtoMut.mutate({
+                      leadId,
+                      business: lead.business || lead.name || "",
+                      email: lead.email!,
+                    });
+                  }}
+                  disabled={composeBrochureMailtoMut.isPending}
+                >
+                  <Send className="h-3.5 w-3.5 mr-2" />
+                  {composeBrochureMailtoMut.isPending ? "Preparing..." : "Send Brochure"}
                 </Button>
               )}
               <Button

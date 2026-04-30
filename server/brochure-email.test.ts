@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { getBrochureEmailContent, composeBrochureEmail, BROCHURE_URL, BAGEL_IMAGE_URL } from "./brochure-email";
+import { getBrochureEmailContent, composeBrochureEmail, buildMailtoUrl, BROCHURE_URL, BAGEL_IMAGE_URL } from "./brochure-email";
 
 describe("brochure-email", () => {
   describe("BROCHURE_URL", () => {
-    it("points to the v4 PDF on CloudFront CDN", () => {
+    it("points to the Client Summary PDF on CloudFront CDN", () => {
       expect(BROCHURE_URL).toContain("cloudfront.net");
-      expect(BROCHURE_URL).toContain("Hinnawi_Bros_Wholesale_Brochure");
+      expect(BROCHURE_URL).toContain("Hinnawi_Bros_Client_Summary");
       expect(BROCHURE_URL).toMatch(/\.pdf$/);
     });
   });
@@ -25,59 +25,42 @@ describe("brochure-email", () => {
       email: "alice@cafelumiere.com",
     };
 
-    it("returns subject, text, and html strings", () => {
+    it("returns subject and body strings", () => {
       const result = composeBrochureEmail(lead);
       expect(result).toHaveProperty("subject");
-      expect(result).toHaveProperty("text");
-      expect(result).toHaveProperty("html");
+      expect(result).toHaveProperty("body");
       expect(typeof result.subject).toBe("string");
-      expect(typeof result.text).toBe("string");
-      expect(typeof result.html).toBe("string");
+      expect(typeof result.body).toBe("string");
     });
 
-    it("includes the lead's name in the greeting", () => {
+    it("includes the lead's business name in the greeting", () => {
       const result = composeBrochureEmail(lead);
-      expect(result.text).toContain("Hi Alice Martin");
-      expect(result.html).toContain("Hi Alice Martin");
-    });
-
-    it("includes the lead's business name in the closing", () => {
-      const result = composeBrochureEmail(lead);
-      expect(result.text).toContain("Cafe Lumiere");
-      expect(result.html).toContain("Cafe Lumiere");
+      expect(result.body).toContain("Cafe Lumiere");
     });
 
     it("includes the brochure download URL", () => {
       const result = composeBrochureEmail(lead);
-      expect(result.text).toContain(BROCHURE_URL);
-      expect(result.html).toContain(BROCHURE_URL);
+      expect(result.body).toContain(BROCHURE_URL);
     });
 
-    it("includes wholesale pricing information", () => {
+    it("mentions signature bagel varieties", () => {
       const result = composeBrochureEmail(lead);
-      expect(result.text).toContain("$8.00 per dozen");
-      expect(result.html).toContain("$8.00 per dozen");
-    });
-
-    it("mentions the 4 signature bagel varieties", () => {
-      const result = composeBrochureEmail(lead);
-      expect(result.text).toContain("Plain");
-      expect(result.text).toContain("Sesame");
-      expect(result.text).toContain("Multigrain");
-      expect(result.text).toContain("Everything");
+      expect(result.body).toContain("Sesame");
+      expect(result.body).toContain("Plain");
+      expect(result.body).toContain("Multigrain");
+      expect(result.body).toContain("Everything");
     });
 
     it("includes Rosalyn's contact information", () => {
       const result = composeBrochureEmail(lead);
-      expect(result.text).toContain("Rosalyn Manneh");
-      expect(result.text).toContain("514-571-7672");
-      expect(result.text).toContain("rosalyn@bagelandcafe.com");
+      expect(result.body).toContain("Rosalyn Menneh");
+      expect(result.body).toContain("Hinnawi Bros. Bagel");
     });
 
-    it("has a professional subject line", () => {
+    it("has a professional subject line about wholesale partnership", () => {
       const result = composeBrochureEmail(lead);
-      expect(result.subject).toContain("Hinnawi Bros");
       expect(result.subject).toContain("Wholesale");
+      expect(result.subject).toContain("Montréal Bagels");
     });
 
     it("personalizes content for different leads", () => {
@@ -87,19 +70,48 @@ describe("brochure-email", () => {
         email: "bob@goldendragon.ca",
       };
       const result = composeBrochureEmail(lead2);
-      expect(result.text).toContain("Hi Bob Chen");
-      expect(result.text).toContain("Golden Dragon Restaurant");
+      expect(result.body).toContain("Golden Dragon Restaurant");
     });
 
-    it("includes HTML with styled brochure download button", () => {
+    it("mentions complimentary tasting offer", () => {
       const result = composeBrochureEmail(lead);
-      expect(result.html).toContain("Download the Brochure");
-      expect(result.html).toContain("Request a Free Tasting");
+      expect(result.body).toContain("complimentary tasting");
     });
 
-    it("includes bagel image in HTML email", () => {
+    it("mentions Hinnawi Bros Bagel", () => {
       const result = composeBrochureEmail(lead);
-      expect(result.html).toContain(BAGEL_IMAGE_URL);
+      expect(result.body).toContain("Hinnawi Bros");
+    });
+
+    it("mentions pack size and shelf life details", () => {
+      const result = composeBrochureEmail(lead);
+      expect(result.body).toContain("6 bagels per bag");
+      expect(result.body).toContain("7 days ambient");
+    });
+  });
+
+  describe("buildMailtoUrl", () => {
+    const lead = {
+      name: "Test User",
+      business: "Test Cafe",
+      email: "test@example.com",
+    };
+
+    it("returns a mailto: URL with the recipient email", () => {
+      const url = buildMailtoUrl(lead);
+      expect(url).toMatch(/^mailto:/);
+      expect(url).toContain(encodeURIComponent("test@example.com"));
+    });
+
+    it("includes subject parameter", () => {
+      const url = buildMailtoUrl(lead);
+      expect(url).toContain("subject=");
+    });
+
+    it("includes body parameter with brochure URL", () => {
+      const url = buildMailtoUrl(lead);
+      expect(url).toContain("body=");
+      expect(url).toContain(encodeURIComponent(BROCHURE_URL));
     });
   });
 
@@ -109,8 +121,7 @@ describe("brochure-email", () => {
       const a = getBrochureEmailContent(lead);
       const b = composeBrochureEmail(lead);
       expect(a.subject).toBe(b.subject);
-      expect(a.text).toBe(b.text);
-      expect(a.html).toBe(b.html);
+      expect(a.body).toBe(b.body);
     });
   });
 });

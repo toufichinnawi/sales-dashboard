@@ -184,7 +184,7 @@ export default function Leads() {
     },
   });
 
-  const sendBrochureMut = trpc.leads.sendBrochure.useMutation();
+  const composeBrochureMailtoMut = trpc.leads.composeBrochureMailto.useMutation();
 
   const createLeadMut = trpc.leads.create.useMutation({
     onSuccess: () => {
@@ -872,26 +872,26 @@ export default function Leads() {
                     ? [brochureLead]
                     : (leads ?? []).filter(l => l.status === 'new' && l.email);
 
-                  // Queue brochure emails via backend
+                  // Use mailto flow for each target
                   for (const target of targets) {
-                    await sendBrochureMut.mutateAsync({
-                      name: target.name,
-                      business: target.business,
-                      email: target.email,
+                    const result = await composeBrochureMailtoMut.mutateAsync({
                       leadId: target.id,
+                      business: target.business || target.name || '',
+                      email: target.email,
                     });
+                    window.open(result.mailtoUrl, '_blank');
                   }
 
                   utils.leads.list.invalidate();
                   toast.success(
                     brochureLead
-                      ? `Brochure sending to ${brochureLead.name}!`
-                      : `Brochure sending to ${targets.length} leads!`,
-                    { description: 'Email will be delivered from Rosalyn@bagelandcafe.com shortly.' }
+                      ? `Opening email client for ${brochureLead.name}...`
+                      : `Opening email client for ${targets.length} leads...`,
+                    { description: 'Send the brochure email from your email client.' }
                   );
                   setBrochureOpen(false);
                 } catch (err) {
-                  toast.error('Failed to send brochure email. Please try again.');
+                  toast.error('Failed to compose brochure email. Please try again.');
                 } finally {
                   setSendingBrochure(false);
                 }
