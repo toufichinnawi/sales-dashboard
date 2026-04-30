@@ -43,6 +43,8 @@ export const leads = mysqlTable("leads", {
   followUpStatus: mysqlEnum("followUpStatus", ["pending", "done"]).default("pending"),
   notes: text("notes"),
   lostReason: mysqlEnum("lostReason", ["price_too_high", "no_response", "not_interested", "already_has_supplier", "location_issue", "product_mismatch", "other"]),
+  convertedAt: timestamp("convertedAt"),
+  convertedCustomerId: int("convertedCustomerId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

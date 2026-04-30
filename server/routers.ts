@@ -58,6 +58,8 @@ import {
   getPortalDocumentById,
   updatePortalDocument,
   deletePortalDocument,
+  findDuplicateCustomers,
+  convertLeadToCustomer,
 } from "./db";
 import crypto from "crypto";
 import { storagePut } from "./storage";
@@ -419,6 +421,96 @@ export const appRouter = router({
           userName: ctx.user?.name || null,
         });
         return { success: true };
+      }),
+
+    // Check for duplicate clients before conversion
+    checkDuplicateClients: protectedProcedure
+      .input(
+        z.object({
+          email: z.string().optional(),
+          phone: z.string().optional(),
+          businessName: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const duplicates = await findDuplicateCustomers({
+          email: input.email,
+          phone: input.phone,
+          businessName: input.businessName,
+        });
+        return { duplicates };
+      }),
+
+    // Convert a lead to a client/customer
+    convertToClient: protectedProcedure
+      .input(
+        z.object({
+          leadId: z.number(),
+          // If linking to existing customer instead of creating new
+          existingCustomerId: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        // Get the lead
+        const lead = await getLeadById(input.leadId);
+        if (!lead) {
+          throw new Error("Lead not found");
+        }
+        if (lead.convertedCustomerId) {
+          throw new Error("Lead has already been converted to a client");
+        }
+
+        let customerId: number;
+
+        if (input.existingCustomerId) {
+          // Link to existing customer
+          customerId = input.existingCustomerId;
+        } else {
+          // Create new customer from lead data
+          const segmentMap: Record<string, string> = {
+            cafe: "cafe",
+            restaurant: "restaurant",
+            grocery: "grocery",
+            hotel: "hotel",
+            caterer: "catering",
+            other: "other",
+          };
+          const segment = (lead.businessType && segmentMap[lead.businessType]) || "cafe";
+
+          const newCustomer = await createCustomer({
+            businessName: lead.business || lead.name,
+            contactName: lead.name,
+            email: lead.email || "",
+            phone: lead.phone || undefined,
+            address: lead.address || undefined,
+            notes: lead.notes || undefined,
+            segment: segment as any,
+            status: "active",
+          });
+
+          if (!newCustomer) {
+            throw new Error("Failed to create customer record");
+          }
+          customerId = newCustomer.id;
+        }
+
+        // Update lead with conversion info
+        const updatedLead = await convertLeadToCustomer(input.leadId, customerId);
+
+        // Record activity
+        await createLeadActivity({
+          leadId: input.leadId,
+          activityType: "marked_won",
+          note: `Lead converted to client (Customer ID: ${customerId}).`,
+          userId: null,
+          userName: ctx.user?.name || null,
+        });
+
+        return {
+          success: true,
+          customerId,
+          lead: updatedLead,
+        };
       }),
 
     // Get pending email status

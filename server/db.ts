@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, sql, desc, count, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, count, inArray, or, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -149,6 +149,52 @@ export async function deleteLead(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.delete(leads).where(eq(leads.id, id));
+}
+
+/**
+ * Check for duplicate customers by email, phone, or business name.
+ * Returns matching customers if any exist.
+ */
+export async function findDuplicateCustomers(params: {
+  email?: string;
+  phone?: string;
+  businessName?: string;
+}): Promise<Customer[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [];
+  if (params.email && params.email.trim()) {
+    conditions.push(eq(customers.email, params.email.trim()));
+  }
+  if (params.phone && params.phone.trim()) {
+    conditions.push(eq(customers.phone, params.phone.trim()));
+  }
+  if (params.businessName && params.businessName.trim()) {
+    conditions.push(eq(customers.businessName, params.businessName.trim()));
+  }
+
+  if (conditions.length === 0) return [];
+
+  return db.select().from(customers).where(or(...conditions));
+}
+
+/**
+ * Convert a lead to a customer.
+ * Creates a new customer record and updates the lead with conversion info.
+ */
+export async function convertLeadToCustomer(leadId: number, customerId: number): Promise<Lead | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  await db.update(leads).set({
+    status: "won",
+    convertedAt: new Date(),
+    convertedCustomerId: customerId,
+  }).where(eq(leads.id, leadId));
+
+  const result = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
+  return result[0] ?? null;
 }
 
 // ─── Customer queries ─────────────────────────────────────────────────────

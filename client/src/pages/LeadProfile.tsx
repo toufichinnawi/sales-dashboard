@@ -347,6 +347,45 @@ export default function LeadProfile() {
     },
   });
 
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [duplicateClients, setDuplicateClients] = useState<any[]>([]);
+  const [convertingLead, setConvertingLead] = useState(false);
+
+  const checkDuplicatesMut = trpc.leads.checkDuplicateClients.useMutation();
+  const convertToClientMut = trpc.leads.convertToClient.useMutation({
+    onSuccess: (data) => {
+      utils.leads.getById.invalidate({ id: leadId });
+      utils.leads.getActivities.invalidate({ leadId });
+      toast.success("Lead converted to client successfully!");
+      setShowConvertDialog(false);
+      setConvertingLead(false);
+    },
+    onError: (err) => {
+      toast.error("Failed to convert lead", { description: err.message });
+      setConvertingLead(false);
+    },
+  });
+
+  const handleConvertClick = async () => {
+    if (!lead) return;
+    // Check for duplicates first
+    const result = await checkDuplicatesMut.mutateAsync({
+      email: lead.email || undefined,
+      phone: lead.phone || undefined,
+      businessName: lead.business || undefined,
+    });
+    setDuplicateClients(result.duplicates);
+    setShowConvertDialog(true);
+  };
+
+  const handleConvert = (existingCustomerId?: number) => {
+    setConvertingLead(true);
+    convertToClientMut.mutate({
+      leadId,
+      existingCustomerId,
+    });
+  };
+
   const [showBrochureModal, setShowBrochureModal] = useState(false);
   const [brochurePreview, setBrochurePreview] = useState<{
     subject?: string;
@@ -531,6 +570,12 @@ export default function LeadProfile() {
               </h1>
               {getStatusBadge(lead.status)}
               {getPotentialBadge(lead.potentialValue)}
+              {lead.convertedCustomerId && (
+                <Badge className="bg-green-100 text-green-800 border-green-200 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Converted to Client
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
               {lead.name} · Added {formatDisplayDate(lead.createdAt)}
@@ -1034,18 +1079,28 @@ export default function LeadProfile() {
                 <CalendarPlus className="h-3.5 w-3.5 mr-2" />
                 Schedule Follow-up
               </Button>
-              {lead.status !== "won" && (
+              {lead.convertedCustomerId ? (
                 <Button
                   variant="outline"
                   size="sm"
                   className="w-full justify-start text-green-700 hover:bg-green-50 hover:text-green-800 border-green-200"
-                  onClick={() => handleQuickAction("won")}
-                  disabled={updateMut.isPending}
+                  onClick={() => navigate(`/accounts/${lead.convertedCustomerId}`)}
+                >
+                  <UserCheck className="h-3.5 w-3.5 mr-2" />
+                  View Client Account
+                </Button>
+              ) : lead.status !== "won" && lead.status !== "lost" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-green-700 hover:bg-green-50 hover:text-green-800 border-green-200"
+                  onClick={handleConvertClick}
+                  disabled={checkDuplicatesMut.isPending || convertToClientMut.isPending}
                 >
                   <Trophy className="h-3.5 w-3.5 mr-2" />
-                  Mark as Won
+                  {checkDuplicatesMut.isPending ? "Checking..." : "Convert to Client"}
                 </Button>
-              )}
+              ) : null}
               {lead.status !== "lost" && (
                 <Button
                   variant="outline"
@@ -1310,6 +1365,89 @@ export default function LeadProfile() {
               Schedule
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Convert to Client Dialog ──────────────────────────────────── */}
+      <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-green-600" />
+              Convert to Client
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {duplicateClients.length > 0 ? (
+              <>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Potential duplicate client(s) found
+                  </p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    A client with matching information already exists. Would you like to link this lead to an existing client or create a new one?
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {duplicateClients.map((client: any) => (
+                    <div key={client.id} className="border rounded-lg p-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{client.businessName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {client.contactName} · {client.email}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-700 border-green-200 hover:bg-green-50"
+                        onClick={() => handleConvert(client.id)}
+                        disabled={convertingLead}
+                      >
+                        Link to this client
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Separator />
+                <Button
+                  className="w-full bg-green-700 hover:bg-green-800 text-white"
+                  onClick={() => handleConvert()}
+                  disabled={convertingLead}
+                >
+                  {convertingLead ? <Spinner className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Create New Client Anyway
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  This will create a new client record using this lead's information and mark the lead as converted.
+                </p>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+                  <p className="text-sm"><strong>Business:</strong> {lead?.business}</p>
+                  <p className="text-sm"><strong>Contact:</strong> {lead?.name}</p>
+                  {lead?.email && <p className="text-sm"><strong>Email:</strong> {lead.email}</p>}
+                  {lead?.phone && <p className="text-sm"><strong>Phone:</strong> {lead.phone}</p>}
+                  {lead?.address && <p className="text-sm"><strong>Address:</strong> {lead.address}</p>}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowConvertDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-green-700 hover:bg-green-800 text-white"
+                    onClick={() => handleConvert()}
+                    disabled={convertingLead}
+                  >
+                    {convertingLead ? <Spinner className="h-4 w-4 mr-2" /> : <Trophy className="h-4 w-4 mr-2" />}
+                    Convert to Client
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

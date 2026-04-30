@@ -425,3 +425,18 @@
 - [x] Record "Brochure SMS prepared" activity for SMS opens (note_added type)
 - [x] Update brochure-email tests for new URL builders and clean link (213 tests passing)
 - [x] Verify TypeScript/build passes (0 errors)
+
+## Lead-to-Client Conversion
+- [x] Add convertedAt (timestamp) and convertedCustomerId (int) columns to leads table
+- [x] Push migration with pnpm db:push
+- [x] Add convertLead tRPC procedure: duplicate check, create customer, update lead, create activity
+- [x] Add duplicate client check (email, phone, or business name + address)
+- [x] Update Leads page: default view shows Active leads only (new, contacted, interested, tasting_scheduled, quote_sent, negotiation)
+- [x] Add filter tabs: Active / Won-Converted / Lost / All
+- [x] Add "Convert to Client" action on Lead Profile page
+- [x] Add "Convert to Client" action in Leads table row actions
+- [x] Show "Converted to Client" badge on Lead Profile when converted
+- [x] Add "View Client Account" link from converted lead profile
+- [x] Record activity "Lead converted to client" on conversion
+- [x] Do not delete converted leads (keep for history)
+- [x] Verify TypeScript/build passes (0 errors, 227 tests passing)

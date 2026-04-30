@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -148,7 +149,7 @@ const emptyForm = {
 export default function Leads() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const [addOpen, setAddOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
   const [convertLead, setConvertLead] = useState<any>(null);
@@ -217,18 +218,23 @@ export default function Leads() {
     },
   });
 
-  const createCustomerMut = trpc.customers.create.useMutation({
+  const [duplicateClients, setDuplicateClients] = useState<any[]>([]);
+  const [convertingLead, setConvertingLead] = useState(false);
+
+  const checkDuplicatesMut = trpc.leads.checkDuplicateClients.useMutation();
+  const convertToClientMut = trpc.leads.convertToClient.useMutation({
     onSuccess: () => {
-      if (convertLead) {
-        updateStatus.mutate({ id: convertLead.id, status: "won" });
-      }
+      utils.leads.list.invalidate();
       utils.customers.list.invalidate();
       setConvertOpen(false);
       setConvertLead(null);
-      toast.success("Lead converted to customer!");
+      setDuplicateClients([]);
+      setConvertingLead(false);
+      toast.success("Lead converted to client!");
     },
     onError: (err) => {
       toast.error("Failed to convert lead", { description: err.message });
+      setConvertingLead(false);
     },
   });
 
@@ -244,25 +250,30 @@ export default function Leads() {
     });
   };
 
-  const handleConvert = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!convertLead) return;
-    createCustomerMut.mutate({
-      businessName: convertLead.business,
-      contactName: convertLead.name,
-      email: convertLead.email,
-      phone: convertLead.phone || undefined,
-      address: convertForm.address || undefined,
-      segment: convertForm.segment as any,
-      notes: convertForm.notes || undefined,
-      status: "active",
-    });
-  };
-
-  const openConvertDialog = (lead: any) => {
+  const openConvertDialog = async (lead: any) => {
     setConvertLead(lead);
     setConvertForm({ segment: "cafe", address: "", notes: "" });
+    // Check for duplicates
+    try {
+      const result = await checkDuplicatesMut.mutateAsync({
+        email: lead.email || undefined,
+        phone: lead.phone || undefined,
+        businessName: lead.business || undefined,
+      });
+      setDuplicateClients(result.duplicates);
+    } catch {
+      setDuplicateClients([]);
+    }
     setConvertOpen(true);
+  };
+
+  const handleConvertToClient = (existingCustomerId?: number) => {
+    if (!convertLead) return;
+    setConvertingLead(true);
+    convertToClientMut.mutate({
+      leadId: convertLead.id,
+      existingCustomerId,
+    });
   };
 
   if (isLoading) {
@@ -289,14 +300,29 @@ export default function Leads() {
     );
   }
 
+  const ACTIVE_STATUSES = ["new", "contacted", "interested", "tasting_scheduled", "quote_sent", "negotiation"];
+  const CONVERTED_STATUSES = ["won"];
+  const LOST_STATUSES = ["lost"];
+
   const filteredLeads = (leads ?? []).filter((lead) => {
     const matchesSearch =
       search === "" ||
       lead.name.toLowerCase().includes(search.toLowerCase()) ||
       lead.business.toLowerCase().includes(search.toLowerCase()) ||
       lead.email.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || lead.status === statusFilter;
+
+    let matchesStatus = false;
+    if (statusFilter === "all") {
+      matchesStatus = true;
+    } else if (statusFilter === "active") {
+      matchesStatus = ACTIVE_STATUSES.includes(lead.status);
+    } else if (statusFilter === "converted") {
+      matchesStatus = CONVERTED_STATUSES.includes(lead.status);
+    } else if (statusFilter === "lost") {
+      matchesStatus = LOST_STATUSES.includes(lead.status);
+    } else {
+      matchesStatus = lead.status === statusFilter;
+    }
     return matchesSearch && matchesStatus;
   });
 
@@ -521,19 +547,33 @@ export default function Leads() {
               className="pl-9 h-9 text-sm"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 h-9 text-sm">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {Object.entries(statusConfig).map(([key, config]) => (
-                <SelectItem key={key} value={key}>
-                  {config.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+            {[
+              { key: "active", label: "Active", count: (leads ?? []).filter(l => ACTIVE_STATUSES.includes(l.status)).length },
+              { key: "converted", label: "Won / Converted", count: (leads ?? []).filter(l => CONVERTED_STATUSES.includes(l.status)).length },
+              { key: "lost", label: "Lost", count: (leads ?? []).filter(l => LOST_STATUSES.includes(l.status)).length },
+              { key: "all", label: "All", count: (leads ?? []).length },
+            ].map((tab) => (
+              <Button
+                key={tab.key}
+                variant={statusFilter === tab.key ? "default" : "ghost"}
+                size="sm"
+                className={`h-7 text-xs px-3 ${
+                  statusFilter === tab.key
+                    ? "bg-amber-700 hover:bg-amber-800 text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={() => setStatusFilter(tab.key)}
+              >
+                {tab.label}
+                <span className={`ml-1.5 text-[10px] font-data ${
+                  statusFilter === tab.key ? "text-white/80" : "text-muted-foreground/60"
+                }`}>
+                  {tab.count}
+                </span>
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Leads table */}
@@ -955,68 +995,67 @@ export default function Leads() {
         />
       )}
 
-      {/* Convert to Customer Dialog */}
+      {/* Convert to Client Dialog */}
       <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-emerald-600" />
-              Convert to Customer
+              Convert to Client
             </DialogTitle>
             <DialogDescription>
               {convertLead && (
                 <>
                   Convert <strong>{convertLead.name}</strong> from{" "}
-                  <strong>{convertLead.business}</strong> into an active
-                  customer.
+                  <strong>{convertLead.business}</strong> into an active client.
                 </>
               )}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleConvert} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Business Segment *</Label>
-              <Select
-                value={convertForm.segment}
-                onValueChange={(v) =>
-                  setConvertForm({ ...convertForm, segment: v })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cafe">Cafe</SelectItem>
-                  <SelectItem value="restaurant">Restaurant</SelectItem>
-                  <SelectItem value="hotel">Hotel</SelectItem>
-                  <SelectItem value="grocery">Grocery Store</SelectItem>
-                  <SelectItem value="catering">Catering Company</SelectItem>
-                  <SelectItem value="university">University</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Delivery Address</Label>
-              <Input
-                placeholder="123 Rue Saint-Laurent, Montreal"
-                value={convertForm.address}
-                onChange={(e) =>
-                  setConvertForm({ ...convertForm, address: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Notes</Label>
-              <Textarea
-                placeholder="Delivery preferences, order frequency, etc."
-                value={convertForm.notes}
-                onChange={(e) =>
-                  setConvertForm({ ...convertForm, notes: e.target.value })
-                }
-                rows={3}
-              />
-            </div>
+          <div className="space-y-4">
+            {duplicateClients.length > 0 && (
+              <>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Potential duplicate client(s) found
+                  </p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    A client with matching information already exists. Link to an existing client or create a new one.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {duplicateClients.map((client: any) => (
+                    <div key={client.id} className="border rounded-lg p-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{client.businessName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {client.contactName} {client.email && `· ${client.email}`}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-700 border-green-200 hover:bg-green-50"
+                        onClick={() => handleConvertToClient(client.id)}
+                        disabled={convertingLead}
+                      >
+                        Link to this client
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Separator />
+              </>
+            )}
+            {convertLead && duplicateClients.length === 0 && (
+              <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+                <p className="text-sm"><strong>Business:</strong> {convertLead.business}</p>
+                <p className="text-sm"><strong>Contact:</strong> {convertLead.name}</p>
+                {convertLead.email && <p className="text-sm"><strong>Email:</strong> {convertLead.email}</p>}
+                {convertLead.phone && <p className="text-sm"><strong>Phone:</strong> {convertLead.phone}</p>}
+              </div>
+            )}
             <DialogFooter>
               <Button
                 type="button"
@@ -1026,19 +1065,19 @@ export default function Leads() {
                 Cancel
               </Button>
               <Button
-                type="submit"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={createCustomerMut.isPending}
+                onClick={() => handleConvertToClient()}
+                disabled={convertingLead}
               >
-                {createCustomerMut.isPending ? (
+                {convertingLead ? (
                   <Spinner className="h-4 w-4 mr-2" />
                 ) : (
                   <UserPlus className="h-4 w-4 mr-2" />
                 )}
-                Convert to Customer
+                {duplicateClients.length > 0 ? "Create New Client Anyway" : "Convert to Client"}
               </Button>
             </DialogFooter>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
