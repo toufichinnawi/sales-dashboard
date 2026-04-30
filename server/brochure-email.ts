@@ -1,7 +1,7 @@
 /**
  * Brochure Email Helper
  * Provides email template composition for the "Send Brochure" assisted email flow.
- * Opens the user's email client (mailto:) with pre-filled content.
+ * Generates Gmail and Outlook Web compose URLs for reliable cross-platform email opening.
  */
 
 import { createPendingEmail } from "./db";
@@ -20,7 +20,7 @@ interface LeadInfo {
 }
 
 /**
- * Compose the brochure email content using the new template.
+ * Compose the brochure email content using the approved template.
  * Dynamic replacements:
  * - [Business Name] → lead business name (or "your team" if missing)
  * - [Brochure PDF Link] → BROCHURE_URL
@@ -60,8 +60,35 @@ Hinnawi Bros. Bagel & Café`;
 }
 
 /**
- * Build a mailto: URL for the assisted email flow.
- * Opens the user's default email client with pre-filled fields.
+ * Build a Gmail compose URL.
+ * Opens Gmail in a new tab with pre-filled To, Subject, and Body.
+ */
+export function buildGmailUrl(lead: LeadInfo): string {
+  const { subject, body } = composeBrochureEmail(lead);
+  const params = new URLSearchParams({
+    to: lead.email,
+    su: subject,
+    body: body,
+  });
+  return `https://mail.google.com/mail/?view=cm&${params.toString()}`;
+}
+
+/**
+ * Build an Outlook Web compose URL.
+ * Opens Outlook Web in a new tab with pre-filled To, Subject, and Body.
+ */
+export function buildOutlookUrl(lead: LeadInfo): string {
+  const { subject, body } = composeBrochureEmail(lead);
+  const params = new URLSearchParams({
+    to: lead.email,
+    subject: subject,
+    body: body,
+  });
+  return `https://outlook.office.com/mail/deeplink/compose?${params.toString()}`;
+}
+
+/**
+ * Build a mailto: URL (kept as fallback).
  */
 export function buildMailtoUrl(lead: LeadInfo): string {
   const { subject, body } = composeBrochureEmail(lead);

@@ -69,7 +69,7 @@ import {
   getRecentSyncLogs,
 } from "./quickbooks";
 import { runFullSync } from "./qb-sync";
-import { sendBrochureEmail, getBrochureEmailContent, buildMailtoUrl, composeBrochureEmail, BROCHURE_URL } from "./brochure-email";
+import { sendBrochureEmail, getBrochureEmailContent, buildMailtoUrl, buildGmailUrl, buildOutlookUrl, composeBrochureEmail, BROCHURE_URL } from "./brochure-email";
 import {
   parseFileBuffer,
   validateRows,
@@ -337,6 +337,7 @@ export const appRouter = router({
       }),
 
     // Assisted email flow: compose brochure email and return mailto URL + content
+    // Get brochure email preview content (no activity created yet)
     composeBrochureMailto: protectedProcedure
       .input(
         z.object({
@@ -345,19 +346,38 @@ export const appRouter = router({
           email: z.string().email(),
         })
       )
-      .mutation(async ({ input, ctx }) => {
-        const { subject, body } = composeBrochureEmail({
+      .mutation(async ({ input }) => {
+        const leadInfo = {
           name: input.business,
           business: input.business,
           email: input.email,
-        });
-        const mailtoUrl = buildMailtoUrl({
-          name: input.business,
-          business: input.business,
-          email: input.email,
-        });
+        };
+        const { subject, body } = composeBrochureEmail(leadInfo);
+        const gmailUrl = buildGmailUrl(leadInfo);
+        const outlookUrl = buildOutlookUrl(leadInfo);
+        const mailtoUrl = buildMailtoUrl(leadInfo);
 
-        // Create activity record: "Brochure email prepared"
+        return {
+          success: true,
+          subject,
+          body,
+          brochureUrl: BROCHURE_URL,
+          gmailUrl,
+          outlookUrl,
+          mailtoUrl,
+          toEmail: input.email,
+        };
+      }),
+
+    // Record activity after user clicks Gmail/Outlook (separate from preview)
+    recordBrochureActivity: protectedProcedure
+      .input(
+        z.object({
+          leadId: z.number(),
+          email: z.string().email(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
         await createLeadActivity({
           leadId: input.leadId,
           activityType: "email_sent",
@@ -365,14 +385,7 @@ export const appRouter = router({
           userId: null,
           userName: ctx.user?.name || null,
         });
-
-        return {
-          success: true,
-          mailtoUrl,
-          subject,
-          body,
-          brochureUrl: BROCHURE_URL,
-        };
+        return { success: true };
       }),
 
     // Get pending email status

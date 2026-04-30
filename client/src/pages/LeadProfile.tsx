@@ -64,6 +64,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { SendBrochureModal } from "@/components/SendBrochureModal";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -332,16 +333,29 @@ export default function LeadProfile() {
 
   const composeBrochureMailtoMut = trpc.leads.composeBrochureMailto.useMutation({
     onSuccess: (data) => {
-      window.open(data.mailtoUrl, "_blank");
-      toast.success("Opening your email client...", {
-        description: "The brochure email has been composed. Send it from your email client.",
-      });
-      utils.leads.getActivities.invalidate({ leadId });
+      setBrochurePreview(data);
+      setShowBrochureModal(true);
     },
     onError: (err) => {
       toast.error("Failed to compose brochure email", { description: err.message });
     },
   });
+
+  const recordBrochureActivityMut = trpc.leads.recordBrochureActivity.useMutation({
+    onSuccess: () => {
+      utils.leads.getActivities.invalidate({ leadId });
+    },
+  });
+
+  const [showBrochureModal, setShowBrochureModal] = useState(false);
+  const [brochurePreview, setBrochurePreview] = useState<{
+    subject: string;
+    body: string;
+    brochureUrl: string;
+    gmailUrl: string;
+    outlookUrl: string;
+    toEmail: string;
+  } | null>(null);
 
   // Populate form when lead data loads
   useEffect(() => {
@@ -1204,6 +1218,26 @@ export default function LeadProfile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Send Brochure Preview Modal ──────────────────────────────────── */}
+      {brochurePreview && (
+        <SendBrochureModal
+          open={showBrochureModal}
+          onOpenChange={setShowBrochureModal}
+          toEmail={brochurePreview.toEmail}
+          subject={brochurePreview.subject}
+          body={brochurePreview.body}
+          brochureUrl={brochurePreview.brochureUrl}
+          gmailUrl={brochurePreview.gmailUrl}
+          outlookUrl={brochurePreview.outlookUrl}
+          onEmailOpened={() => {
+            recordBrochureActivityMut.mutate({
+              leadId,
+              email: brochurePreview.toEmail,
+            });
+          }}
+        />
+      )}
 
       {/* ─── Reschedule Follow-up Dialog ──────────────────────────────────── */}
       <Dialog open={rescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>

@@ -88,6 +88,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { SendBrochureModal } from "@/components/SendBrochureModal";
 
 const statusConfig: Record<
   string,
@@ -160,6 +161,16 @@ export default function Leads() {
   const [brochureOpen, setBrochureOpen] = useState(false);
   const [brochureLead, setBrochureLead] = useState<any>(null);
   const [sendingBrochure, setSendingBrochure] = useState(false);
+  const [showBrochurePreview, setShowBrochurePreview] = useState(false);
+  const [brochurePreviewData, setBrochurePreviewData] = useState<{
+    subject: string;
+    body: string;
+    brochureUrl: string;
+    gmailUrl: string;
+    outlookUrl: string;
+    toEmail: string;
+  } | null>(null);
+  const [brochurePreviewLeadId, setBrochurePreviewLeadId] = useState<number>(0);
 
   const { data: leads, isLoading, error } = trpc.leads.list.useQuery();
   const utils = trpc.useUtils();
@@ -185,6 +196,11 @@ export default function Leads() {
   });
 
   const composeBrochureMailtoMut = trpc.leads.composeBrochureMailto.useMutation();
+  const recordBrochureActivityMut = trpc.leads.recordBrochureActivity.useMutation({
+    onSuccess: () => {
+      utils.leads.list.invalidate();
+    },
+  });
 
   const createLeadMut = trpc.leads.create.useMutation({
     onSuccess: () => {
@@ -815,7 +831,7 @@ export default function Leads() {
         )}
       </div>
 
-      {/* Send Brochure Dialog */}
+      {/* Send Brochure Dialog — select target then open preview modal */}
       <Dialog open={brochureOpen} onOpenChange={setBrochureOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -834,11 +850,11 @@ export default function Leads() {
           <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 space-y-2">
             <p className="text-sm font-medium text-amber-900">Brochure includes:</p>
             <ul className="text-xs text-amber-800 space-y-1">
-              <li>• Full product lineup with wholesale pricing ($8.00/dz standard)</li>
-              <li>• Volume discount tiers (5-15% off for 20+ dz/week)</li>
-              <li>• Delivery coverage (Montreal metro, Mon-Sat)</li>
-              <li>• Customer portal access for online ordering</li>
-              <li>• Contact info: 514-571-7672 / rosalyn@bagelandcafe.com</li>
+              <li>• Full product lineup with wholesale pricing</li>
+              <li>• Signature flavors: Sesame, Plain, Everything, Multigrain</li>
+              <li>• Pack sizes and shelf life details</li>
+              <li>• Delivery coverage (Greater Montréal)</li>
+              <li>• Contact info: Rosalyn Menneh / Hinnawi Bros. Bagel & Café</li>
             </ul>
           </div>
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
@@ -868,27 +884,22 @@ export default function Leads() {
               onClick={async () => {
                 setSendingBrochure(true);
                 try {
-                  const targets = brochureLead
-                    ? [brochureLead]
-                    : (leads ?? []).filter(l => l.status === 'new' && l.email);
-
-                  // Use mailto flow for each target
-                  for (const target of targets) {
-                    const result = await composeBrochureMailtoMut.mutateAsync({
-                      leadId: target.id,
-                      business: target.business || target.name || '',
-                      email: target.email,
-                    });
-                    window.open(result.mailtoUrl, '_blank');
+                  const target = brochureLead
+                    || (leads ?? []).filter(l => l.status === 'new' && l.email)[0];
+                  if (!target) {
+                    toast.info('No leads with email addresses');
+                    return;
                   }
 
-                  utils.leads.list.invalidate();
-                  toast.success(
-                    brochureLead
-                      ? `Opening email client for ${brochureLead.name}...`
-                      : `Opening email client for ${targets.length} leads...`,
-                    { description: 'Send the brochure email from your email client.' }
-                  );
+                  const result = await composeBrochureMailtoMut.mutateAsync({
+                    leadId: target.id,
+                    business: target.business || target.name || '',
+                    email: target.email,
+                  });
+
+                  setBrochurePreviewData(result);
+                  setBrochurePreviewLeadId(target.id);
+                  setShowBrochurePreview(true);
                   setBrochureOpen(false);
                 } catch (err) {
                   toast.error('Failed to compose brochure email. Please try again.');
@@ -902,11 +913,31 @@ export default function Leads() {
               ) : (
                 <Send className="h-4 w-4 mr-2" />
               )}
-              {brochureLead ? 'Send Brochure' : `Send to ${(leads ?? []).filter(l => l.status === 'new' && l.email).length} Leads`}
+              {brochureLead ? 'Compose Email' : 'Compose Email'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Send Brochure Preview Modal */}
+      {brochurePreviewData && (
+        <SendBrochureModal
+          open={showBrochurePreview}
+          onOpenChange={setShowBrochurePreview}
+          toEmail={brochurePreviewData.toEmail}
+          subject={brochurePreviewData.subject}
+          body={brochurePreviewData.body}
+          brochureUrl={brochurePreviewData.brochureUrl}
+          gmailUrl={brochurePreviewData.gmailUrl}
+          outlookUrl={brochurePreviewData.outlookUrl}
+          onEmailOpened={() => {
+            recordBrochureActivityMut.mutate({
+              leadId: brochurePreviewLeadId,
+              email: brochurePreviewData.toEmail,
+            });
+          }}
+        />
+      )}
 
       {/* Convert to Customer Dialog */}
       <Dialog open={convertOpen} onOpenChange={setConvertOpen}>

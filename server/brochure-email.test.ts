@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getBrochureEmailContent, composeBrochureEmail, buildMailtoUrl, BROCHURE_URL, BAGEL_IMAGE_URL } from "./brochure-email";
+import { getBrochureEmailContent, composeBrochureEmail, buildMailtoUrl, buildGmailUrl, buildOutlookUrl, BROCHURE_URL, BAGEL_IMAGE_URL } from "./brochure-email";
 
 describe("brochure-email", () => {
   describe("BROCHURE_URL", () => {
@@ -88,6 +88,12 @@ describe("brochure-email", () => {
       expect(result.body).toContain("6 bagels per bag");
       expect(result.body).toContain("7 days ambient");
     });
+
+    it("falls back to 'your team' when business name is empty", () => {
+      const leadNoBiz = { name: "Test", business: "", email: "test@test.com" };
+      const result = composeBrochureEmail(leadNoBiz);
+      expect(result.body).toContain("Dear your team team");
+    });
   });
 
   describe("buildMailtoUrl", () => {
@@ -112,6 +118,77 @@ describe("brochure-email", () => {
       const url = buildMailtoUrl(lead);
       expect(url).toContain("body=");
       expect(url).toContain(encodeURIComponent(BROCHURE_URL));
+    });
+  });
+
+  describe("buildGmailUrl", () => {
+    const lead = {
+      name: "Test User",
+      business: "Test Cafe",
+      email: "test@example.com",
+    };
+
+    it("returns a Gmail compose URL", () => {
+      const url = buildGmailUrl(lead);
+      expect(url).toContain("https://mail.google.com/mail/?view=cm");
+    });
+
+    it("includes the recipient email as 'to' parameter", () => {
+      const url = buildGmailUrl(lead);
+      expect(url).toContain("to=test%40example.com");
+    });
+
+    it("includes the subject as 'su' parameter", () => {
+      const url = buildGmailUrl(lead);
+      expect(url).toContain("su=");
+      expect(url).toContain("Wholesale");
+    });
+
+    it("includes the body with brochure URL", () => {
+      const url = buildGmailUrl(lead);
+      expect(url).toContain("body=");
+      // URL-encoded brochure URL should be present
+      expect(url).toContain("cloudfront.net");
+    });
+
+    it("personalizes the body for the lead's business", () => {
+      const url = buildGmailUrl(lead);
+      expect(url).toContain("Test+Cafe");
+    });
+  });
+
+  describe("buildOutlookUrl", () => {
+    const lead = {
+      name: "Test User",
+      business: "Test Cafe",
+      email: "test@example.com",
+    };
+
+    it("returns an Outlook Web compose URL", () => {
+      const url = buildOutlookUrl(lead);
+      expect(url).toContain("https://outlook.office.com/mail/deeplink/compose");
+    });
+
+    it("includes the recipient email as 'to' parameter", () => {
+      const url = buildOutlookUrl(lead);
+      expect(url).toContain("to=test%40example.com");
+    });
+
+    it("includes the subject parameter", () => {
+      const url = buildOutlookUrl(lead);
+      expect(url).toContain("subject=");
+      expect(url).toContain("Wholesale");
+    });
+
+    it("includes the body with brochure URL", () => {
+      const url = buildOutlookUrl(lead);
+      expect(url).toContain("body=");
+      expect(url).toContain("cloudfront.net");
+    });
+
+    it("personalizes the body for the lead's business", () => {
+      const url = buildOutlookUrl(lead);
+      expect(url).toContain("Test+Cafe");
     });
   });
 

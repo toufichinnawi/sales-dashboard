@@ -395,3 +395,19 @@
 - [x] Only authenticated users can use Send Brochure (protectedProcedure)
 - [x] Update brochure-email tests to match new template (191 tests passing)
 - [x] Verify TypeScript/build passes (0 errors)
+
+## Send Brochure Preview Modal (Replace mailto)
+- [x] Add Gmail compose URL builder to brochure-email.ts
+- [x] Add Outlook Web compose URL builder to brochure-email.ts
+- [x] Build SendBrochureModal component with email preview (To, Subject, Body, Brochure link)
+- [x] Add "Open in Gmail" button (opens Gmail compose in new tab)
+- [x] Add "Open in Outlook Web" button (opens Outlook compose in new tab)
+- [x] Add "Copy Subject", "Copy Email Body", "Copy Brochure Link" buttons
+- [x] Add helper text: "This will open your email app in a new tab. Review the email and click Send manually."
+- [x] Show warning if no brochure PDF exists in Documents
+- [x] Update LeadProfile.tsx to open preview modal instead of mailto
+- [x] Update Leads.tsx to open preview modal instead of mailto
+- [x] Create activity "Brochure email prepared" only after Gmail/Outlook button click
+- [x] Update tRPC procedure (separate composeBrochureMailto for preview + recordBrochureActivity for activity)
+- [x] Update brochure-email tests for new URL builders (202 tests passing)
+- [x] Verify TypeScript/build passes (0 errors)
