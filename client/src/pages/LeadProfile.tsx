@@ -349,12 +349,15 @@ export default function LeadProfile() {
 
   const [showBrochureModal, setShowBrochureModal] = useState(false);
   const [brochurePreview, setBrochurePreview] = useState<{
-    subject: string;
-    body: string;
-    brochureUrl: string;
-    gmailUrl: string;
-    outlookUrl: string;
-    toEmail: string;
+    subject?: string;
+    body?: string;
+    brochureShareUrl: string;
+    gmailUrl?: string;
+    outlookUrl?: string;
+    toEmail?: string;
+    phone?: string;
+    smsText?: string;
+    smsUrl?: string;
   } | null>(null);
 
   // Populate form when lead data loads
@@ -993,7 +996,7 @@ export default function LeadProfile() {
                   Mark as Contacted
                 </Button>
               )}
-              {lead.email && (
+              {(lead.email || lead.phone) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -1002,7 +1005,9 @@ export default function LeadProfile() {
                     composeBrochureMailtoMut.mutate({
                       leadId,
                       business: lead.business || lead.name || "",
-                      email: lead.email!,
+                      email: lead.email || undefined,
+                      phone: lead.phone || undefined,
+                      origin: window.location.origin,
                     });
                   }}
                   disabled={composeBrochureMailtoMut.isPending}
@@ -1227,13 +1232,24 @@ export default function LeadProfile() {
           toEmail={brochurePreview.toEmail}
           subject={brochurePreview.subject}
           body={brochurePreview.body}
-          brochureUrl={brochurePreview.brochureUrl}
-          gmailUrl={brochurePreview.gmailUrl}
+          brochureShareUrl={brochurePreview.brochureShareUrl}
           outlookUrl={brochurePreview.outlookUrl}
+          gmailUrl={brochurePreview.gmailUrl}
+          phone={brochurePreview.phone}
+          smsText={brochurePreview.smsText}
+          smsUrl={brochurePreview.smsUrl}
           onEmailOpened={() => {
             recordBrochureActivityMut.mutate({
               leadId,
               email: brochurePreview.toEmail,
+              type: "email",
+            });
+          }}
+          onSmsOpened={() => {
+            recordBrochureActivityMut.mutate({
+              leadId,
+              phone: brochurePreview.phone,
+              type: "sms",
             });
           }}
         />

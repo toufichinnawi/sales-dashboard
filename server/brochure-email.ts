@@ -1,17 +1,24 @@
 /**
  * Brochure Email Helper
  * Provides email template composition for the "Send Brochure" assisted email flow.
- * Generates Gmail and Outlook Web compose URLs for reliable cross-platform email opening.
+ * Generates Outlook Web and Gmail compose URLs for reliable cross-platform email opening.
+ * Also provides SMS text for phone-only leads.
  */
 
 import { createPendingEmail } from "./db";
 
-// The uploaded Hinnawi Bros Client Summary / Wholesale Product Summary PDF
+// The uploaded Hinnawi Bros Client Summary / Wholesale Product Summary PDF (raw CDN)
 export const BROCHURE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/Hinnawi_Bros_Client_Summary_342ca47c.pdf";
 
 export const BAGEL_IMAGE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/bagel-variety_72c673df.jpg";
+
+/**
+ * Clean branded share link path (relative).
+ * The server route at /share/wholesale-product-summary redirects to the actual PDF.
+ */
+export const BROCHURE_SHARE_PATH = "/share/wholesale-product-summary";
 
 interface LeadInfo {
   name: string;
@@ -20,13 +27,23 @@ interface LeadInfo {
 }
 
 /**
- * Compose the brochure email content using the approved template.
- * Dynamic replacements:
- * - [Business Name] → lead business name (or "your team" if missing)
- * - [Brochure PDF Link] → BROCHURE_URL
+ * Build the full clean brochure share URL using the provided origin.
+ * Falls back to relative path if no origin provided.
  */
-export function composeBrochureEmail(lead: LeadInfo): { subject: string; body: string } {
+export function getBrochureShareUrl(origin?: string): string {
+  if (origin) {
+    return `${origin}${BROCHURE_SHARE_PATH}`;
+  }
+  return BROCHURE_SHARE_PATH;
+}
+
+/**
+ * Compose the brochure email content using the approved template.
+ * Uses clean branded share link instead of raw CloudFront URL.
+ */
+export function composeBrochureEmail(lead: LeadInfo, origin?: string): { subject: string; body: string } {
   const businessName = lead.business?.trim() || "your team";
+  const brochureLink = getBrochureShareUrl(origin);
 
   const subject = `Authentic Montréal Bagels for Your Menu — Wholesale Partnership Opportunity`;
 
@@ -47,7 +64,7 @@ Flexible order quantities to suit your volume needs
 Reliable delivery across Greater Montréal and surroundings
 
 Please find our Wholesale Product Summary here:
-${BROCHURE_URL}
+${brochureLink}
 
 We would be delighted to arrange a complimentary tasting or discuss a trial order at your convenience. Feel free to reach out at any time — we look forward to the possibility of working together.
 
@@ -60,54 +77,71 @@ Hinnawi Bros. Bagel & Café`;
 }
 
 /**
+ * Build an Outlook Web compose URL.
+ * Uses the correct Outlook deeplink format with proper encoding.
+ * Outlook primary — this is the team's main email client.
+ */
+export function buildOutlookUrl(lead: LeadInfo, origin?: string): string {
+  const { subject, body } = composeBrochureEmail(lead, origin);
+  // Outlook Web deeplink compose format
+  // Use encodeURIComponent for each parameter individually
+  const to = encodeURIComponent(lead.email);
+  const subj = encodeURIComponent(subject);
+  const bodyEnc = encodeURIComponent(body);
+  return `https://outlook.office.com/mail/deeplink/compose?to=${to}&subject=${subj}&body=${bodyEnc}`;
+}
+
+/**
  * Build a Gmail compose URL.
  * Opens Gmail in a new tab with pre-filled To, Subject, and Body.
  */
-export function buildGmailUrl(lead: LeadInfo): string {
-  const { subject, body } = composeBrochureEmail(lead);
+export function buildGmailUrl(lead: LeadInfo, origin?: string): string {
+  const { subject, body } = composeBrochureEmail(lead, origin);
   const params = new URLSearchParams({
+    view: "cm",
     to: lead.email,
     su: subject,
     body: body,
   });
-  return `https://mail.google.com/mail/?view=cm&${params.toString()}`;
-}
-
-/**
- * Build an Outlook Web compose URL.
- * Opens Outlook Web in a new tab with pre-filled To, Subject, and Body.
- */
-export function buildOutlookUrl(lead: LeadInfo): string {
-  const { subject, body } = composeBrochureEmail(lead);
-  const params = new URLSearchParams({
-    to: lead.email,
-    subject: subject,
-    body: body,
-  });
-  return `https://outlook.office.com/mail/deeplink/compose?${params.toString()}`;
+  return `https://mail.google.com/mail/?${params.toString()}`;
 }
 
 /**
  * Build a mailto: URL (kept as fallback).
  */
-export function buildMailtoUrl(lead: LeadInfo): string {
-  const { subject, body } = composeBrochureEmail(lead);
+export function buildMailtoUrl(lead: LeadInfo, origin?: string): string {
+  const { subject, body } = composeBrochureEmail(lead, origin);
   const mailto = `mailto:${encodeURIComponent(lead.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   return mailto;
 }
 
 /**
+ * Compose SMS text for phone-only leads (short version).
+ */
+export function composeBrochureSms(business: string, origin?: string): string {
+  const businessName = business?.trim() || "there";
+  const brochureLink = getBrochureShareUrl(origin);
+  return `Hi ${businessName}, this is Rosalyn from Hinnawi Bros. Bagel. We're expanding our wholesale program and would love to share our wholesale product summary with you: ${brochureLink}`;
+}
+
+/**
+ * Build an SMS URL (sms: protocol).
+ */
+export function buildSmsUrl(phone: string, business: string, origin?: string): string {
+  const text = composeBrochureSms(business, origin);
+  // Use & separator for iOS/Android compatibility
+  return `sms:${encodeURIComponent(phone)}?&body=${encodeURIComponent(text)}`;
+}
+
+/**
  * Get the brochure email content for preview / manual sending
  */
-export function getBrochureEmailContent(lead: LeadInfo) {
-  return composeBrochureEmail(lead);
+export function getBrochureEmailContent(lead: LeadInfo, origin?: string) {
+  return composeBrochureEmail(lead, origin);
 }
 
 /**
  * Queue brochure email for a lead (legacy - kept for backward compatibility).
- * The email is saved to the pending_emails table and will be sent by the
- * scheduled Manus task via Outlook MCP.
- * Returns the pending email ID, or null on failure.
  */
 export async function sendBrochureEmail(lead: LeadInfo): Promise<number | null> {
   const { subject, body } = composeBrochureEmail(lead);

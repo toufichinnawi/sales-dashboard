@@ -38,6 +38,11 @@ async function startServer() {
   registerOAuthRoutes(app);
   // QuickBooks OAuth routes
   app.use("/api/qb", qbRouter);
+  // Clean branded share links (redirect to actual files)
+  app.get("/share/wholesale-product-summary", (_req, res) => {
+    res.redirect(302, "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/Hinnawi_Bros_Client_Summary_342ca47c.pdf");
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

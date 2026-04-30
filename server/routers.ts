@@ -69,7 +69,7 @@ import {
   getRecentSyncLogs,
 } from "./quickbooks";
 import { runFullSync } from "./qb-sync";
-import { sendBrochureEmail, getBrochureEmailContent, buildMailtoUrl, buildGmailUrl, buildOutlookUrl, composeBrochureEmail, BROCHURE_URL } from "./brochure-email";
+import { sendBrochureEmail, getBrochureEmailContent, buildMailtoUrl, buildGmailUrl, buildOutlookUrl, composeBrochureEmail, composeBrochureSms, buildSmsUrl, getBrochureShareUrl, BROCHURE_URL, BROCHURE_SHARE_PATH } from "./brochure-email";
 import {
   parseFileBuffer,
   validateRows,
@@ -343,45 +343,78 @@ export const appRouter = router({
         z.object({
           leadId: z.number(),
           business: z.string(),
-          email: z.string().email(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+          origin: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const leadInfo = {
-          name: input.business,
-          business: input.business,
-          email: input.email,
-        };
-        const { subject, body } = composeBrochureEmail(leadInfo);
-        const gmailUrl = buildGmailUrl(leadInfo);
-        const outlookUrl = buildOutlookUrl(leadInfo);
-        const mailtoUrl = buildMailtoUrl(leadInfo);
+        const origin = input.origin;
+        const brochureShareUrl = getBrochureShareUrl(origin);
+
+        // Email content (if email available)
+        let subject: string | undefined;
+        let body: string | undefined;
+        let outlookUrl: string | undefined;
+        let gmailUrl: string | undefined;
+        let mailtoUrl: string | undefined;
+
+        if (input.email) {
+          const leadInfo = {
+            name: input.business,
+            business: input.business,
+            email: input.email,
+          };
+          const composed = composeBrochureEmail(leadInfo, origin);
+          subject = composed.subject;
+          body = composed.body;
+          outlookUrl = buildOutlookUrl(leadInfo, origin);
+          gmailUrl = buildGmailUrl(leadInfo, origin);
+          mailtoUrl = buildMailtoUrl(leadInfo, origin);
+        }
+
+        // SMS content (if phone available)
+        let smsText: string | undefined;
+        let smsUrl: string | undefined;
+        if (input.phone) {
+          smsText = composeBrochureSms(input.business, origin);
+          smsUrl = buildSmsUrl(input.phone, input.business, origin);
+        }
 
         return {
           success: true,
           subject,
           body,
-          brochureUrl: BROCHURE_URL,
-          gmailUrl,
+          brochureShareUrl,
           outlookUrl,
+          gmailUrl,
           mailtoUrl,
           toEmail: input.email,
+          phone: input.phone,
+          smsText,
+          smsUrl,
         };
       }),
 
-    // Record activity after user clicks Gmail/Outlook (separate from preview)
+    // Record activity after user clicks Outlook/Gmail/SMS (separate from preview)
     recordBrochureActivity: protectedProcedure
       .input(
         z.object({
           leadId: z.number(),
-          email: z.string().email(),
+          email: z.string().optional(),
+          phone: z.string().optional(),
+          type: z.enum(["email", "sms"]).default("email"),
         })
       )
       .mutation(async ({ input, ctx }) => {
+        const isEmail = input.type === "email";
+        const target = isEmail ? input.email : input.phone;
         await createLeadActivity({
           leadId: input.leadId,
-          activityType: "email_sent",
-          note: `Brochure email prepared for ${input.email}. Document: Hinnawi Bros Wholesale Product Summary.`,
+          activityType: isEmail ? "email_sent" : "note_added",
+          note: isEmail
+            ? `Brochure email prepared for ${target}. Document: Hinnawi Bros Wholesale Product Summary.`
+            : `Brochure SMS prepared for ${target}. Document: Hinnawi Bros Wholesale Product Summary.`,
           userId: null,
           userName: ctx.user?.name || null,
         });

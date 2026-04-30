@@ -411,3 +411,17 @@
 - [x] Update tRPC procedure (separate composeBrochureMailto for preview + recordBrochureActivity for activity)
 - [x] Update brochure-email tests for new URL builders (202 tests passing)
 - [x] Verify TypeScript/build passes (0 errors)
+
+## Send Brochure Flow Improvements (Outlook Primary + SMS + Clean Link)
+- [x] Add /share/wholesale-product-summary route that redirects to the real PDF
+- [x] Fix Outlook Web compose URL (proper deeplink format with encodeURIComponent)
+- [x] Make Outlook the primary button (blue filled), Gmail secondary (outline)
+- [x] Add SMS option for phone-only leads (short message with clean link)
+- [x] Add "Copy SMS Text" fallback button
+- [x] Use clean branded link in email body instead of raw CloudFront URL
+- [x] Improve modal UI: max-w-[900px], max-h-[85vh], no horizontal scroll, large body preview
+- [x] Button order: Outlook > Gmail > Copy Email Body > Copy Subject > Copy Brochure Link > SMS
+- [x] Add fallback helper text for Outlook loading issues
+- [x] Record "Brochure SMS prepared" activity for SMS opens (note_added type)
+- [x] Update brochure-email tests for new URL builders and clean link (213 tests passing)
+- [x] Verify TypeScript/build passes (0 errors)

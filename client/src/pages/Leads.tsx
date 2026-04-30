@@ -163,12 +163,15 @@ export default function Leads() {
   const [sendingBrochure, setSendingBrochure] = useState(false);
   const [showBrochurePreview, setShowBrochurePreview] = useState(false);
   const [brochurePreviewData, setBrochurePreviewData] = useState<{
-    subject: string;
-    body: string;
-    brochureUrl: string;
-    gmailUrl: string;
-    outlookUrl: string;
-    toEmail: string;
+    subject?: string;
+    body?: string;
+    brochureShareUrl: string;
+    gmailUrl?: string;
+    outlookUrl?: string;
+    toEmail?: string;
+    phone?: string;
+    smsText?: string;
+    smsUrl?: string;
   } | null>(null);
   const [brochurePreviewLeadId, setBrochurePreviewLeadId] = useState<number>(0);
 
@@ -894,7 +897,9 @@ export default function Leads() {
                   const result = await composeBrochureMailtoMut.mutateAsync({
                     leadId: target.id,
                     business: target.business || target.name || '',
-                    email: target.email,
+                    email: target.email || undefined,
+                    phone: target.phone || undefined,
+                    origin: window.location.origin,
                   });
 
                   setBrochurePreviewData(result);
@@ -927,13 +932,24 @@ export default function Leads() {
           toEmail={brochurePreviewData.toEmail}
           subject={brochurePreviewData.subject}
           body={brochurePreviewData.body}
-          brochureUrl={brochurePreviewData.brochureUrl}
-          gmailUrl={brochurePreviewData.gmailUrl}
+          brochureShareUrl={brochurePreviewData.brochureShareUrl}
           outlookUrl={brochurePreviewData.outlookUrl}
+          gmailUrl={brochurePreviewData.gmailUrl}
+          phone={brochurePreviewData.phone}
+          smsText={brochurePreviewData.smsText}
+          smsUrl={brochurePreviewData.smsUrl}
           onEmailOpened={() => {
             recordBrochureActivityMut.mutate({
               leadId: brochurePreviewLeadId,
               email: brochurePreviewData.toEmail,
+              type: "email",
+            });
+          }}
+          onSmsOpened={() => {
+            recordBrochureActivityMut.mutate({
+              leadId: brochurePreviewLeadId,
+              phone: brochurePreviewData.phone,
+              type: "sms",
             });
           }}
         />
