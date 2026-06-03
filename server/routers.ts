@@ -117,7 +117,7 @@ export const appRouter = router({
         z.object({
           name: z.string().min(1, "Name is required"),
           business: z.string().min(1, "Business name is required"),
-          email: z.string().email("Valid email is required"),
+          email: z.string().email("Valid email is required").optional(),
           phone: z.string().optional(),
           message: z.string().optional(),
           source: z.string().optional(),
@@ -127,7 +127,7 @@ export const appRouter = router({
         const lead = await createLead({
           name: input.name,
           business: input.business,
-          email: input.email,
+          email: input.email ?? null,
           phone: input.phone ?? null,
           message: input.message ?? null,
           source: input.source ?? "website",

@@ -108,11 +108,17 @@ export async function createLead(lead: InsertLead): Promise<Lead | null> {
   const db = await getDb();
   if (!db) return null;
 
-  await db.insert(leads).values(lead);
+  const insertResult = await db.insert(leads).values(lead);
+  const insertId = (insertResult[0] as any).insertId;
+  if (insertId) {
+    const rows = await db.select().from(leads).where(eq(leads.id, insertId)).limit(1);
+    return rows[0] ?? null;
+  }
+  // Fallback: fetch by name+business if no insertId
   const result = await db
     .select()
     .from(leads)
-    .where(eq(leads.email, lead.email))
+    .where(eq(leads.name, lead.name))
     .orderBy(desc(leads.createdAt))
     .limit(1);
   return result[0] ?? null;

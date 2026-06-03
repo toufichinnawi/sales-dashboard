@@ -24,7 +24,7 @@ export const leads = mysqlTable("leads", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   business: varchar("business", { length: 255 }).notNull(),
-  email: varchar("email", { length: 320 }).notNull(),
+  email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 50 }),
   address: text("address"),
   message: text("message"),

@@ -113,6 +113,13 @@
       "when": 1777576478422,
       "tag": "0014_grey_mole_man",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "5",
+      "when": 1780514374248,
+      "tag": "0015_remarkable_blizzard",
+      "breakpoints": true
     }
   ]
 }

@@ -777,7 +777,7 @@ function findDuplicate(
       const normalizedImport = data.phone.replace(/\D/g, "");
       const normalizedExisting = lead.phone.replace(/\D/g, "");
       if (normalizedImport && normalizedExisting && normalizedImport === normalizedExisting) {
-        return { id: lead.id, business: lead.business, email: lead.email };
+        return { id: lead.id, business: lead.business, email: lead.email ?? "" };
       }
     }
 
@@ -790,7 +790,7 @@ function findDuplicate(
       lead.address &&
       data.address.toLowerCase() === lead.address.toLowerCase()
     ) {
-      return { id: lead.id, business: lead.business, email: lead.email };
+      return { id: lead.id, business: lead.business, email: lead.email ?? "" };
     }
   }
 

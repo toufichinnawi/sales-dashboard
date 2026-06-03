@@ -309,7 +309,7 @@ export default function Leads() {
       search === "" ||
       lead.name.toLowerCase().includes(search.toLowerCase()) ||
       lead.business.toLowerCase().includes(search.toLowerCase()) ||
-      lead.email.toLowerCase().includes(search.toLowerCase());
+      (lead.email ?? "").toLowerCase().includes(search.toLowerCase());
 
     let matchesStatus = false;
     if (statusFilter === "all") {
@@ -442,7 +442,7 @@ export default function Leads() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Email *</Label>
+                    <Label className="text-xs">Email</Label>
                     <Input
                       type="email"
                       placeholder="jean@cafe.com"
@@ -450,7 +450,6 @@ export default function Leads() {
                       onChange={(e) =>
                         setForm({ ...form, email: e.target.value })
                       }
-                      required
                     />
                   </div>
                   <div className="space-y-1.5">
