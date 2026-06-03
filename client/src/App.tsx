@@ -28,6 +28,7 @@ import PortalQuickOrder from "./pages/portal/PortalQuickOrder";
 import PortalProfile from "./pages/portal/PortalProfile";
 import PortalAcceptInvite from "./pages/portal/PortalAcceptInvite";
 import Documents from "./pages/Documents";
+import Goals from "./pages/Goals";
 import PortalDocuments from "./pages/portal/PortalDocuments";
 
 function DashboardRouter() {
@@ -39,6 +40,7 @@ function DashboardRouter() {
         <Route path={"/deals"} component={Deals} />
         <Route path={"/team"} component={Team} />
         <Route path={"/analytics"} component={Analytics} />
+        <Route path={"/goals"} component={Goals} />
         <Route path={"/prospects"} component={Prospects} />
         <Route path={"/leads"} component={Leads} />
         <Route path={"/leads/:id"} component={LeadProfile} />

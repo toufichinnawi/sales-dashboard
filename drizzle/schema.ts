@@ -299,3 +299,19 @@ export const portalDocuments = mysqlTable("portal_documents", {
 
 export type PortalDocument = typeof portalDocuments.$inferSelect;
 export type InsertPortalDocument = typeof portalDocuments.$inferInsert;
+
+// ─── Sales Targets table ────────────────────────────────────────────────────
+// Company-level monthly revenue (and optional dozens) targets, used by the
+// Goals page to track progress.
+
+export const salesTargets = mysqlTable("sales_targets", {
+  id: int("id").autoincrement().primaryKey(),
+  periodMonth: varchar("periodMonth", { length: 7 }).notNull().unique(), // "YYYY-MM"
+  targetRevenue: decimal("targetRevenue", { precision: 10, scale: 2 }).notNull(),
+  targetDozens: decimal("targetDozens", { precision: 10, scale: 2 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SalesTarget = typeof salesTargets.$inferSelect;
+export type InsertSalesTarget = typeof salesTargets.$inferInsert;

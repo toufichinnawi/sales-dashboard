@@ -14,6 +14,7 @@ import {
   pendingEmails, InsertPendingEmail, PendingEmail,
   leadActivities, InsertLeadActivity, LeadActivity,
   portalDocuments, InsertPortalDocument, PortalDocument,
+  salesTargets, InsertSalesTarget, SalesTarget,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1049,4 +1050,77 @@ export async function deletePortalDocument(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(portalDocuments).where(eq(portalDocuments.id, id));
+}
+
+// ─── Sales Target queries ──────────────────────────────────────────────────
+
+export async function getTarget(periodMonth: string): Promise<SalesTarget | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(salesTargets)
+    .where(eq(salesTargets.periodMonth, periodMonth))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function listTargets(): Promise<SalesTarget[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(salesTargets).orderBy(desc(salesTargets.periodMonth));
+}
+
+export async function upsertTarget(input: {
+  periodMonth: string;
+  targetRevenue: string;
+  targetDozens?: string | null;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const values: InsertSalesTarget = {
+    periodMonth: input.periodMonth,
+    targetRevenue: input.targetRevenue,
+    targetDozens: input.targetDozens ?? null,
+  };
+  await db.insert(salesTargets).values(values).onDuplicateKeyUpdate({
+    set: {
+      targetRevenue: values.targetRevenue,
+      targetDozens: values.targetDozens,
+    },
+  });
+}
+
+// Returns one row per month (YYYY-MM) for the last `monthsBack` months, including
+// the current month. Revenue is summed from delivered+paid orders to match the
+// monthly chart in getDashboardStats.
+export async function getMonthlyActuals(
+  monthsBack: number
+): Promise<Array<{ periodMonth: string; actualRevenue: number }>> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const now = new Date();
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1), 1);
+
+  const rows = (await db.execute(
+    sql`SELECT DATE_FORMAT(${orders.createdAt}, '%Y-%m') AS periodMonth,
+               COALESCE(SUM(${orders.total}), 0) AS revenue
+        FROM ${orders}
+        WHERE ${orders.status} IN ('delivered', 'paid')
+          AND ${orders.createdAt} >= ${cutoff}
+        GROUP BY periodMonth
+        ORDER BY periodMonth`
+  ))[0] as unknown as Array<{ periodMonth: string; revenue: string | number }>;
+
+  const byMonth = new Map<string, number>();
+  for (const r of rows) byMonth.set(r.periodMonth, Number(r.revenue));
+
+  const out: Array<{ periodMonth: string; actualRevenue: number }> = [];
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    out.push({ periodMonth: key, actualRevenue: byMonth.get(key) ?? 0 });
+  }
+  return out;
 }

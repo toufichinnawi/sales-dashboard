@@ -71,6 +71,7 @@ const navSections = [
       { path: "/deals", label: "Accounts", icon: Briefcase },
       { path: "/team", label: "Team", icon: Users },
       { path: "/analytics", label: "Analytics", icon: BarChart3 },
+      { path: "/goals", label: "Goals", icon: Target },
       { path: "/prospects", label: "Prospects", icon: Target },
     ],
   },

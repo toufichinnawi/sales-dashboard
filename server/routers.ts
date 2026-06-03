@@ -24,6 +24,10 @@ import {
   getDashboardStats,
   getOpenLeadsFunnel,
   getOpenLeads,
+  getTarget,
+  listTargets,
+  upsertTarget,
+  getMonthlyActuals,
   createRecurringOrder,
   getAllRecurringOrders,
   getRecurringOrderById,
@@ -111,6 +115,47 @@ export const appRouter = router({
       }),
     openLeadsFunnel: protectedProcedure.query(() => getOpenLeadsFunnel()),
     openLeads: protectedProcedure.query(() => getOpenLeads()),
+  }),
+
+  // ─── TARGETS ──────────────────────────────────────────────────────────────
+
+  targets: router({
+    get: protectedProcedure
+      .input(z.object({ periodMonth: z.string().regex(/^\d{4}-\d{2}$/) }))
+      .query(({ input }) => getTarget(input.periodMonth)),
+    list: protectedProcedure.query(() => listTargets()),
+    upsert: adminProcedure
+      .input(
+        z.object({
+          periodMonth: z.string().regex(/^\d{4}-\d{2}$/),
+          targetRevenue: z.number().nonnegative(),
+          targetDozens: z.number().nonnegative().nullable().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        await upsertTarget({
+          periodMonth: input.periodMonth,
+          targetRevenue: input.targetRevenue.toFixed(2),
+          targetDozens:
+            input.targetDozens === null || input.targetDozens === undefined
+              ? null
+              : input.targetDozens.toFixed(2),
+        });
+        return { ok: true };
+      }),
+    progress: protectedProcedure.query(async () => {
+      const actuals = await getMonthlyActuals(6);
+      const targets = await listTargets();
+      const targetByMonth = new Map(targets.map((t) => [t.periodMonth, t]));
+      return actuals.map((a) => {
+        const t = targetByMonth.get(a.periodMonth);
+        return {
+          periodMonth: a.periodMonth,
+          actualRevenue: a.actualRevenue,
+          targetRevenue: t ? Number(t.targetRevenue) : null,
+        };
+      });
+    }),
   }),
 
   // ─── LEADS ────────────────────────────────────────────────────────────────
