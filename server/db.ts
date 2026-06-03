@@ -15,6 +15,7 @@ import {
   leadActivities, InsertLeadActivity, LeadActivity,
   portalDocuments, InsertPortalDocument, PortalDocument,
   salesTargets, InsertSalesTarget, SalesTarget,
+  productCosts, InsertProductCost, ProductCost,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1123,4 +1124,316 @@ export async function getMonthlyActuals(
     out.push({ periodMonth: key, actualRevenue: byMonth.get(key) ?? 0 });
   }
   return out;
+}
+
+// ─── Product costs & profitability ─────────────────────────────────────────
+
+export async function listProductCosts(): Promise<ProductCost[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(productCosts).orderBy(productCosts.productName);
+}
+
+export async function upsertProductCost(input: {
+  productName: string;
+  unitCost: string;
+  unit?: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const values: InsertProductCost = {
+    productName: input.productName,
+    unitCost: input.unitCost,
+    unit: input.unit ?? "dozen",
+  };
+  await db.insert(productCosts).values(values).onDuplicateKeyUpdate({
+    set: { unitCost: values.unitCost, unit: values.unit },
+  });
+}
+
+export async function deleteProductCost(productName: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(productCosts).where(eq(productCosts.productName, productName));
+}
+
+// Distinct product names appearing in order_items, used by the Costs page so
+// the owner knows which products still need a unit cost set.
+export async function listDistinctOrderProducts(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ product: orderItems.product })
+    .from(orderItems)
+    .orderBy(orderItems.product);
+  return rows.map(r => r.product).filter((p): p is string => !!p);
+}
+
+type ProfitDateRange = { startDate?: string; endDate?: string } | undefined;
+
+// Per-customer revenue / cost / profit / margin for delivered+paid orders.
+// Matching rule: case-insensitive SUBSTRING — a canonical productCosts row
+// matches an order line if its productName is contained (case-insensitive) in
+// the line's product. If multiple canonical rows match, the LONGEST name wins
+// (most specific); ties broken alphabetically for determinism. Order line
+// quantity is normalized to dozens (unit "each" → ÷12). Lines that match no
+// canonical row stay in uncostedRevenue and are excluded from profit math
+// (never silently assumed zero-cost).
+export async function profitByCustomer(dateRange?: ProfitDateRange) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const filters = [inArray(orders.status, ['delivered', 'paid'])];
+  if (dateRange?.startDate) filters.push(gte(orders.createdAt, new Date(dateRange.startDate)));
+  if (dateRange?.endDate) {
+    const end = new Date(new Date(dateRange.endDate).getTime() + 24 * 60 * 60 * 1000 - 1);
+    filters.push(lte(orders.createdAt, end));
+  }
+
+  const [lines, catalog] = await Promise.all([
+    db
+      .select({
+        customerId: orders.customerId,
+        businessName: customers.businessName,
+        product: orderItems.product,
+        quantity: orderItems.quantity,
+        unit: orderItems.unit,
+        lineTotal: orderItems.lineTotal,
+      })
+      .from(orders)
+      .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+      .leftJoin(customers, eq(customers.id, orders.customerId))
+      .where(and(...filters)),
+    listProductCosts(),
+  ]);
+
+  // Pre-sort canonical names so the first hit in the loop is the best match:
+  // longest name first; alphabetical as deterministic tiebreaker.
+  const canonical = catalog
+    .map(c => ({
+      productName: c.productName,
+      productNameLower: c.productName.toLowerCase(),
+      unitCost: Number(c.unitCost),
+    }))
+    .sort((a, b) =>
+      b.productNameLower.length - a.productNameLower.length ||
+      a.productNameLower.localeCompare(b.productNameLower)
+    );
+
+  const matchCanonical = (productName: string) => {
+    const lower = productName.toLowerCase();
+    return canonical.find(c => lower.includes(c.productNameLower)) ?? null;
+  };
+
+  type Bucket = {
+    customerId: number;
+    businessName: string | null;
+    revenue: number;
+    cost: number;
+    costedRevenue: number;
+    uncostedRevenue: number;
+  };
+
+  const byCustomer = new Map<number, Bucket>();
+  for (const r of lines) {
+    if (r.customerId == null) continue;
+    const lineRevenue = Number(r.lineTotal);
+    const bucket = byCustomer.get(r.customerId) ?? {
+      customerId: r.customerId,
+      businessName: r.businessName ?? null,
+      revenue: 0,
+      cost: 0,
+      costedRevenue: 0,
+      uncostedRevenue: 0,
+    };
+    bucket.revenue += lineRevenue;
+    const match = matchCanonical(r.product);
+    if (match) {
+      const rawQty = Number(r.quantity);
+      const dozens = r.unit === "each" ? rawQty / 12 : rawQty;
+      bucket.cost += dozens * match.unitCost;
+      bucket.costedRevenue += lineRevenue;
+    } else {
+      bucket.uncostedRevenue += lineRevenue;
+    }
+    byCustomer.set(r.customerId, bucket);
+  }
+
+  return Array.from(byCustomer.values()).map(b => {
+    const profit = b.costedRevenue - b.cost;
+    const marginPct = b.costedRevenue > 0 ? (profit / b.costedRevenue) * 100 : null;
+    return {
+      customerId: b.customerId,
+      businessName: b.businessName,
+      revenue: Math.round(b.revenue * 100) / 100,
+      cost: Math.round(b.cost * 100) / 100,
+      profit: Math.round(profit * 100) / 100,
+      marginPct: marginPct === null ? null : Math.round(marginPct * 10) / 10,
+      uncostedRevenue: Math.round(b.uncostedRevenue * 100) / 100,
+    };
+  }).sort((a, b) => b.revenue - a.revenue);
+}
+
+// ─── Production / order-mix queries ────────────────────────────────────────
+
+type PeriodRange = { from?: string; to?: string } | undefined;
+
+function periodFilters(range: PeriodRange) {
+  const filters = [] as any[];
+  if (range?.from) filters.push(gte(orders.createdAt, new Date(range.from)));
+  if (range?.to) {
+    const end = new Date(new Date(range.to).getTime() + 24 * 60 * 60 * 1000 - 1);
+    filters.push(lte(orders.createdAt, end));
+  }
+  return filters;
+}
+
+// Aggregate all order-line dozens + revenue in the period, grouped by canonical
+// product (same case-insensitive substring rule as profitByCustomer: longest
+// canonical name wins, alphabetical tiebreak). Lines matching no canonical
+// collapse into a single "Uncategorized" bucket. Cancelled orders excluded —
+// they don't represent real factory demand. Returns rows sorted by dozens desc
+// plus a grand-total dozens for KPI display.
+export async function productionDemand(range: PeriodRange) {
+  const db = await getDb();
+  if (!db) return { rows: [], totalDozens: 0 };
+
+  const [lines, catalog] = await Promise.all([
+    db
+      .select({
+        product: orderItems.product,
+        quantity: orderItems.quantity,
+        unit: orderItems.unit,
+        lineTotal: orderItems.lineTotal,
+      })
+      .from(orders)
+      .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+      .where(
+        and(
+          notInArray(orders.status, ['cancelled']),
+          ...periodFilters(range)
+        )
+      ),
+    listProductCosts(),
+  ]);
+
+  const canonical = catalog
+    .map(c => ({
+      productName: c.productName,
+      productNameLower: c.productName.toLowerCase(),
+    }))
+    .sort((a, b) =>
+      b.productNameLower.length - a.productNameLower.length ||
+      a.productNameLower.localeCompare(b.productNameLower)
+    );
+
+  const UNCATEGORIZED = "Uncategorized";
+  const buckets = new Map<string, { product: string; dozens: number; revenue: number; isCanonical: boolean }>();
+
+  for (const r of lines) {
+    const rawQty = Number(r.quantity);
+    const dozens = r.unit === "each" ? rawQty / 12 : rawQty;
+    const revenue = Number(r.lineTotal);
+
+    const lower = r.product.toLowerCase();
+    const match = canonical.find(c => lower.includes(c.productNameLower));
+    const key = match?.productName ?? UNCATEGORIZED;
+    const isCanonical = !!match;
+
+    const bucket = buckets.get(key) ?? { product: key, dozens: 0, revenue: 0, isCanonical };
+    bucket.dozens += dozens;
+    bucket.revenue += revenue;
+    buckets.set(key, bucket);
+  }
+
+  const rows = Array.from(buckets.values())
+    .map(b => ({
+      product: b.product,
+      dozens: Math.round(b.dozens * 100) / 100,
+      revenue: Math.round(b.revenue * 100) / 100,
+      isCanonical: b.isCanonical,
+    }))
+    .sort((a, b) => b.dozens - a.dozens);
+
+  const totalDozens = Math.round(rows.reduce((sum, r) => sum + r.dozens, 0) * 100) / 100;
+
+  return { rows, totalDozens };
+}
+
+// What does this client order — grouped by the RAW order-line product name
+// (no canonical rewriting; the user wants to see what the customer literally
+// orders). Cancelled orders excluded.
+export async function productMixByCustomer(customerId: number, range: PeriodRange) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const lines = await db
+    .select({
+      product: orderItems.product,
+      quantity: orderItems.quantity,
+      unit: orderItems.unit,
+      lineTotal: orderItems.lineTotal,
+      orderId: orderItems.orderId,
+    })
+    .from(orders)
+    .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.customerId, customerId),
+        notInArray(orders.status, ['cancelled']),
+        ...periodFilters(range)
+      )
+    );
+
+  const buckets = new Map<string, { product: string; dozens: number; revenue: number; orderIds: Set<number> }>();
+  for (const r of lines) {
+    const rawQty = Number(r.quantity);
+    const dozens = r.unit === "each" ? rawQty / 12 : rawQty;
+    const bucket = buckets.get(r.product) ?? {
+      product: r.product,
+      dozens: 0,
+      revenue: 0,
+      orderIds: new Set<number>(),
+    };
+    bucket.dozens += dozens;
+    bucket.revenue += Number(r.lineTotal);
+    bucket.orderIds.add(r.orderId);
+    buckets.set(r.product, bucket);
+  }
+
+  return Array.from(buckets.values())
+    .map(b => ({
+      product: b.product,
+      dozens: Math.round(b.dozens * 100) / 100,
+      revenue: Math.round(b.revenue * 100) / 100,
+      orderCount: b.orderIds.size,
+    }))
+    .sort((a, b) => b.dozens - a.dozens);
+}
+
+// Company totals over the same delivered+paid set + optional date range.
+export async function profitSummary(dateRange?: ProfitDateRange) {
+  const rows = await profitByCustomer(dateRange);
+  const totals = rows.reduce(
+    (acc, r) => {
+      acc.revenue += r.revenue;
+      acc.cost += r.cost;
+      acc.profit += r.profit;
+      acc.uncostedRevenue += r.uncostedRevenue;
+      return acc;
+    },
+    { revenue: 0, cost: 0, profit: 0, uncostedRevenue: 0 }
+  );
+  const costedRevenue = totals.revenue - totals.uncostedRevenue;
+  const marginPct = costedRevenue > 0 ? (totals.profit / costedRevenue) * 100 : null;
+  const uncostedRevenueShare =
+    totals.revenue > 0 ? (totals.uncostedRevenue / totals.revenue) * 100 : 0;
+  return {
+    revenue: Math.round(totals.revenue * 100) / 100,
+    cost: Math.round(totals.cost * 100) / 100,
+    profit: Math.round(totals.profit * 100) / 100,
+    marginPct: marginPct === null ? null : Math.round(marginPct * 10) / 10,
+    uncostedRevenue: Math.round(totals.uncostedRevenue * 100) / 100,
+    uncostedRevenueShare: Math.round(uncostedRevenueShare * 10) / 10,
+  };
 }

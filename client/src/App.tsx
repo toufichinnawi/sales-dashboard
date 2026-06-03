@@ -29,6 +29,9 @@ import PortalProfile from "./pages/portal/PortalProfile";
 import PortalAcceptInvite from "./pages/portal/PortalAcceptInvite";
 import Documents from "./pages/Documents";
 import Goals from "./pages/Goals";
+import Costs from "./pages/Costs";
+import Production from "./pages/Production";
+import CustomerDetail from "./pages/CustomerDetail";
 import PortalDocuments from "./pages/portal/PortalDocuments";
 
 function DashboardRouter() {
@@ -41,11 +44,14 @@ function DashboardRouter() {
         <Route path={"/team"} component={Team} />
         <Route path={"/analytics"} component={Analytics} />
         <Route path={"/goals"} component={Goals} />
+        <Route path={"/costs"} component={Costs} />
+        <Route path={"/production"} component={Production} />
         <Route path={"/prospects"} component={Prospects} />
         <Route path={"/leads"} component={Leads} />
         <Route path={"/leads/:id"} component={LeadProfile} />
         <Route path={"/leads-import"} component={LeadImport} />
         <Route path={"/customers"} component={Customers} />
+        <Route path={"/customers/:id"} component={CustomerDetail} />
         <Route path={"/orders"} component={Orders} />
         <Route path={"/recurring"} component={RecurringOrders} />
         <Route path={"/quickbooks"} component={QuickBooksSettings} />

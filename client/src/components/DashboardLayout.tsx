@@ -23,6 +23,8 @@ import {
   Link2,
   UtensilsCrossed,
   FileText,
+  DollarSign,
+  Factory,
 } from "lucide-react";
 import {
   Sidebar,
@@ -57,7 +59,7 @@ const navSections = [
     items: [
       { path: "/", label: "Overview", icon: LayoutDashboard },
       { path: "/leads", label: "Leads", icon: Inbox },
-      { path: "/customers", label: "Accounts", icon: Building2 },
+      { path: "/customers", label: "Customers", icon: Building2 },
       { path: "/orders", label: "Orders", icon: ShoppingBag },
       { path: "/recurring", label: "Standing Orders", icon: Repeat },
       { path: "/tastings", label: "Tasting Requests", icon: UtensilsCrossed },
@@ -72,6 +74,8 @@ const navSections = [
       { path: "/team", label: "Team", icon: Users },
       { path: "/analytics", label: "Analytics", icon: BarChart3 },
       { path: "/goals", label: "Goals", icon: Target },
+      { path: "/costs", label: "Costs", icon: DollarSign },
+      { path: "/production", label: "Production", icon: Factory },
       { path: "/prospects", label: "Prospects", icon: Target },
     ],
   },

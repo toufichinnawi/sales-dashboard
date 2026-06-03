@@ -315,3 +315,19 @@ export const salesTargets = mysqlTable("sales_targets", {
 
 export type SalesTarget = typeof salesTargets.$inferSelect;
 export type InsertSalesTarget = typeof salesTargets.$inferInsert;
+
+// ─── Product Costs table ────────────────────────────────────────────────────
+// Per-product unit cost (COGS). Joined to order_items.product to compute
+// profit per customer. Products with no row here are treated as "unknown
+// cost" — their revenue is excluded from profit, not assumed to be zero cost.
+
+export const productCosts = mysqlTable("product_costs", {
+  id: int("id").autoincrement().primaryKey(),
+  productName: varchar("productName", { length: 255 }).notNull().unique(),
+  unitCost: decimal("unitCost", { precision: 10, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull().default("dozen"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProductCost = typeof productCosts.$inferSelect;
+export type InsertProductCost = typeof productCosts.$inferInsert;

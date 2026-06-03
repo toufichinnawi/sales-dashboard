@@ -28,6 +28,14 @@ import {
   listTargets,
   upsertTarget,
   getMonthlyActuals,
+  listProductCosts,
+  upsertProductCost,
+  deleteProductCost,
+  listDistinctOrderProducts,
+  profitByCustomer,
+  profitSummary,
+  productionDemand,
+  productMixByCustomer,
   createRecurringOrder,
   getAllRecurringOrders,
   getRecurringOrderById,
@@ -156,6 +164,79 @@ export const appRouter = router({
         };
       });
     }),
+  }),
+
+  // ─── ACCOUNTING (cost & profit) ───────────────────────────────────────────
+
+  accounting: router({
+    listCosts: protectedProcedure.query(() => listProductCosts()),
+    distinctProducts: protectedProcedure.query(() => listDistinctOrderProducts()),
+    upsertCost: adminProcedure
+      .input(
+        z.object({
+          productName: z.string().min(1).max(255),
+          unitCost: z.number().nonnegative(),
+          unit: z.string().min(1).max(50).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        await upsertProductCost({
+          productName: input.productName.trim(),
+          unitCost: input.unitCost.toFixed(2),
+          unit: input.unit,
+        });
+        return { ok: true };
+      }),
+    deleteCost: adminProcedure
+      .input(z.object({ productName: z.string().min(1).max(255) }))
+      .mutation(async ({ input }) => {
+        await deleteProductCost(input.productName);
+        return { ok: true };
+      }),
+    profitByCustomer: protectedProcedure
+      .input(
+        z
+          .object({
+            startDate: z.string().optional(),
+            endDate: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(({ input }) => profitByCustomer(input)),
+    profitSummary: protectedProcedure
+      .input(
+        z
+          .object({
+            startDate: z.string().optional(),
+            endDate: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(({ input }) => profitSummary(input)),
+  }),
+
+  // ─── PRODUCTION (factory demand + per-client order mix) ───────────────────
+
+  production: router({
+    demand: protectedProcedure
+      .input(
+        z.object({
+          from: z.string().optional(),
+          to: z.string().optional(),
+        })
+      )
+      .query(({ input }) => productionDemand(input)),
+    customerMix: protectedProcedure
+      .input(
+        z.object({
+          customerId: z.number().int().positive(),
+          from: z.string().optional(),
+          to: z.string().optional(),
+        })
+      )
+      .query(({ input }) =>
+        productMixByCustomer(input.customerId, { from: input.from, to: input.to })
+      ),
   }),
 
   // ─── LEADS ────────────────────────────────────────────────────────────────

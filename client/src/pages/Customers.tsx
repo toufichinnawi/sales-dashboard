@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -228,6 +229,13 @@ export default function Customers() {
   const [copied, setCopied] = useState(false);
 
   const { data: customers, isLoading, error } = trpc.customers.listWithStats.useQuery();
+  const { data: profitRows } = trpc.accounting.profitByCustomer.useQuery();
+  const { data: profitTotals } = trpc.accounting.profitSummary.useQuery();
+  const profitByCustomerId = useMemo(() => {
+    const m = new Map<number, NonNullable<typeof profitRows>[number]>();
+    (profitRows ?? []).forEach((r) => m.set(r.customerId, r));
+    return m;
+  }, [profitRows]);
   const utils = trpc.useUtils();
 
   const createMut = trpc.customers.create.useMutation({
@@ -701,6 +709,22 @@ export default function Customers() {
           </Select>
         </div>
 
+        {/* Uncosted-revenue warning — only when some revenue can't be attributed to a cost */}
+        {profitTotals && profitTotals.uncostedRevenue > 0 && (
+          <Card className="border-amber-300 bg-amber-50 py-0">
+            <CardContent className="px-4 py-3">
+              <div className="text-xs text-amber-900">
+                <span className="font-semibold">Profit excludes {formatCurrency(profitTotals.uncostedRevenue)}</span>{" "}
+                ({profitTotals.uncostedRevenueShare}% of revenue) — products without a unit cost set.{" "}
+                <a href="/costs" className="underline font-medium hover:text-amber-950">
+                  Set product costs
+                </a>{" "}
+                to make profit numbers complete.
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Customers table */}
         {filtered.length === 0 ? (
           <Card className="border-border/50">
@@ -734,6 +758,9 @@ export default function Customers() {
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28">Segment</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-20 text-right">Orders</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28 text-right">Revenue</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24 text-right">Cost</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24 text-right">Profit</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-20 text-right">Margin</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-28">Last Order</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24">Status</TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider w-24 text-right">Actions</TableHead>
@@ -752,7 +779,12 @@ export default function Customers() {
                               <SegIcon className="h-4 w-4" />
                             </div>
                             <div>
-                              <div className="text-sm font-medium">{customer.businessName}</div>
+                              <Link
+                                to={`/customers/${customer.id}`}
+                                className="text-sm font-medium hover:text-amber-700 hover:underline"
+                              >
+                                {customer.businessName}
+                              </Link>
                               {customer.notes && (
                                 <div className="text-[10px] text-muted-foreground line-clamp-1 max-w-[180px]">
                                   {customer.notes}
@@ -809,6 +841,37 @@ export default function Customers() {
                             {formatCurrency(customer.totalRevenue)}
                           </span>
                         </TableCell>
+                        {(() => {
+                          const p = profitByCustomerId.get(customer.id);
+                          const hasProfit = p && p.revenue - p.uncostedRevenue > 0;
+                          return (
+                            <>
+                              <TableCell className="text-right">
+                                <span className="font-data text-sm text-muted-foreground">
+                                  {hasProfit ? formatCurrency(p!.cost) : "—"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span
+                                  className={`font-data text-sm font-medium ${
+                                    hasProfit
+                                      ? p!.profit >= 0
+                                        ? "text-emerald-700"
+                                        : "text-red-600"
+                                      : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {hasProfit ? formatCurrency(p!.profit) : "—"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className="font-data text-sm text-muted-foreground">
+                                  {hasProfit && p!.marginPct !== null ? `${p!.marginPct}%` : "—"}
+                                </span>
+                              </TableCell>
+                            </>
+                          );
+                        })()}
                         <TableCell>
                           {customer.lastOrderDate ? (
                             <span className="text-xs text-muted-foreground">{formatDate(customer.lastOrderDate)}</span>
