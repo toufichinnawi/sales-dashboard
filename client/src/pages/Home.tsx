@@ -367,8 +367,8 @@ function KPITicker({ stats, isLoading, hasLiveData }: { stats: any; isLoading: b
           icon: ShoppingBag,
         },
         {
-          label: "Pipeline Value",
-          value: formatCurrency(stats.kpis.pipelineValue),
+          label: "Open Leads",
+          value: String(stats.kpis.pipelineValue),
           change: 0,
           icon: TrendingUp,
         },
@@ -447,7 +447,11 @@ function KPITicker({ stats, isLoading, hasLiveData }: { stats: any; isLoading: b
           <CardContent className="p-3.5">
             <div className="flex items-center justify-between mb-2">
               <kpi.icon className="h-3.5 w-3.5 text-muted-foreground" />
-              {kpi.change !== 0 && <ChangeIndicator value={kpi.change} />}
+              {kpi.change === null ? (
+                <span className="text-[10px] text-muted-foreground">—</span>
+              ) : kpi.change !== 0 ? (
+                <ChangeIndicator value={kpi.change} />
+              ) : null}
             </div>
             <div className="font-data text-lg font-semibold tracking-tight leading-none mb-1">
               {kpi.value}

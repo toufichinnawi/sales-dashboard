@@ -20,6 +20,68 @@ import {
   getQBCompanyInfo,
 } from "./quickbooks";
 
+// ─── Unassigned (QuickBooks) fallback customer ──────────────────────────────
+// When a QB invoice/credit memo/sales receipt cannot be matched to a real
+// customer, we attach it to a dedicated "Unassigned (QuickBooks)" record
+// instead of customerId=1, which previously corrupted per-customer revenue.
+
+const UNASSIGNED_QB_BUSINESS_NAME = "Unassigned (QuickBooks)";
+
+async function getOrCreateUnassignedQBCustomer(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>
+): Promise<number> {
+  const existing = await db
+    .select({ id: customers.id })
+    .from(customers)
+    .where(eq(customers.businessName, UNASSIGNED_QB_BUSINESS_NAME))
+    .limit(1);
+  if (existing.length > 0) return existing[0].id;
+
+  const inserted = await db.insert(customers).values({
+    businessName: UNASSIGNED_QB_BUSINESS_NAME,
+    contactName: "Unassigned",
+    email: "unassigned-qb@local",
+    segment: "other",
+    status: "active",
+    notes: "Auto-created bucket for QuickBooks records that did not match an existing customer.",
+  });
+  return inserted[0].insertId;
+}
+
+// Resolve a QB customer name to a local customer id. Falls back to the
+// Unassigned bucket and records a clear note in `errors` if no match.
+async function resolveQBCustomerId(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  qbCustomerName: string | null | undefined,
+  unassignedId: number,
+  errors: string[],
+  recordLabel: string
+): Promise<number> {
+  if (!qbCustomerName) {
+    errors.push(`${recordLabel}: no QB customer name — assigned to "${UNASSIGNED_QB_BUSINESS_NAME}"`);
+    return unassignedId;
+  }
+
+  const exact = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.businessName, qbCustomerName))
+    .limit(1);
+  if (exact.length > 0) return exact[0].id;
+
+  const partial = await db
+    .select()
+    .from(customers)
+    .where(like(customers.businessName, `%${qbCustomerName.split(" ")[0]}%`))
+    .limit(1);
+  if (partial.length > 0) return partial[0].id;
+
+  errors.push(
+    `${recordLabel}: no match for QB customer "${qbCustomerName}" — assigned to "${UNASSIGNED_QB_BUSINESS_NAME}"`
+  );
+  return unassignedId;
+}
+
 // ─── QB Date Parsing ─────────────────────────────────────────────────────────
 // QB returns dates as "YYYY-MM-DD" strings with no timezone.
 // new Date("2026-03-18") parses as UTC midnight, which shifts back 1 day in EDT/EST.
@@ -193,6 +255,7 @@ export async function syncInvoices(): Promise<{
   let created = 0;
   let updated = 0;
   const errors: string[] = [];
+  const unassignedId = await getOrCreateUnassignedQBCustomer(db);
 
   try {
     // Fetch all invoices from QuickBooks
@@ -223,30 +286,14 @@ export async function syncInvoices(): Promise<{
             .where(eq(orders.orderNumber, orderNumber))
             .limit(1);
 
-          // Find matching customer by QB customer ref
-          let customerId = 1; // default fallback
-          if (inv.CustomerRef?.name) {
-            const custName = inv.CustomerRef.name;
-            const matchedCustomers = await db
-              .select()
-              .from(customers)
-              .where(eq(customers.businessName, custName))
-              .limit(1);
-
-            if (matchedCustomers.length > 0) {
-              customerId = matchedCustomers[0].id;
-            } else {
-              // Try partial match
-              const partialMatch = await db
-                .select()
-                .from(customers)
-                .where(like(customers.businessName, `%${custName.split(" ")[0]}%`))
-                .limit(1);
-              if (partialMatch.length > 0) {
-                customerId = partialMatch[0].id;
-              }
-            }
-          }
+          // Find matching customer; unmatched → Unassigned (QuickBooks).
+          const customerId = await resolveQBCustomerId(
+            db,
+            inv.CustomerRef?.name,
+            unassignedId,
+            errors,
+            `Invoice ${invoiceNum}`
+          );
 
           // Use pre-tax amount to match QB P&L "Total for Income"
           // TotalAmt includes sales tax, but P&L only shows pre-tax income
@@ -427,6 +474,7 @@ export async function syncCreditMemos(): Promise<{
   let created = 0;
   let updated = 0;
   const errors: string[] = [];
+  const unassignedId = await getOrCreateUnassignedQBCustomer(db);
 
   try {
     let startPosition = 1;
@@ -456,29 +504,14 @@ export async function syncCreditMemos(): Promise<{
             .where(eq(orders.orderNumber, orderNumber))
             .limit(1);
 
-          // Find matching customer
-          let customerId = 1;
-          if (cm.CustomerRef?.name) {
-            const custName = cm.CustomerRef.name;
-            const matchedCustomers = await db
-              .select()
-              .from(customers)
-              .where(eq(customers.businessName, custName))
-              .limit(1);
-
-            if (matchedCustomers.length > 0) {
-              customerId = matchedCustomers[0].id;
-            } else {
-              const partialMatch = await db
-                .select()
-                .from(customers)
-                .where(like(customers.businessName, `%${custName.split(" ")[0]}%`))
-                .limit(1);
-              if (partialMatch.length > 0) {
-                customerId = partialMatch[0].id;
-              }
-            }
-          }
+          // Find matching customer; unmatched → Unassigned (QuickBooks).
+          const customerId = await resolveQBCustomerId(
+            db,
+            cm.CustomerRef?.name,
+            unassignedId,
+            errors,
+            `Credit Memo ${memoNum}`
+          );
 
           // Credit memos are stored as NEGATIVE amounts to reduce revenue
           const totalAmt = -Math.abs(Number(cm.TotalAmt || 0));
@@ -542,6 +575,7 @@ export async function syncSalesReceipts(): Promise<{
   let created = 0;
   let updated = 0;
   const errors: string[] = [];
+  const unassignedId = await getOrCreateUnassignedQBCustomer(db);
 
   try {
     let startPosition = 1;
@@ -571,29 +605,14 @@ export async function syncSalesReceipts(): Promise<{
             .where(eq(orders.orderNumber, orderNumber))
             .limit(1);
 
-          // Find matching customer
-          let customerId = 1;
-          if (sr.CustomerRef?.name) {
-            const custName = sr.CustomerRef.name;
-            const matchedCustomers = await db
-              .select()
-              .from(customers)
-              .where(eq(customers.businessName, custName))
-              .limit(1);
-
-            if (matchedCustomers.length > 0) {
-              customerId = matchedCustomers[0].id;
-            } else {
-              const partialMatch = await db
-                .select()
-                .from(customers)
-                .where(like(customers.businessName, `%${custName.split(" ")[0]}%`))
-                .limit(1);
-              if (partialMatch.length > 0) {
-                customerId = partialMatch[0].id;
-              }
-            }
-          }
+          // Find matching customer; unmatched → Unassigned (QuickBooks).
+          const customerId = await resolveQBCustomerId(
+            db,
+            sr.CustomerRef?.name,
+            unassignedId,
+            errors,
+            `Sales Receipt ${receiptNum}`
+          );
 
           const totalAmt = Number(sr.TotalAmt || 0);
           const deliveryDate = parseQBDate(sr.TxnDate);

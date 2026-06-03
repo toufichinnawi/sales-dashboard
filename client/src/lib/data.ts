@@ -595,9 +595,10 @@ export function formatPercent(value: number): string {
 }
 
 export function timeAgo(timestamp: string): string {
-  const now = new Date("2026-03-16T12:00:00");
+  const now = new Date();
   const then = new Date(timestamp);
   const diffMs = now.getTime() - then.getTime();
+  if (diffMs < 0) return "just now";
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);

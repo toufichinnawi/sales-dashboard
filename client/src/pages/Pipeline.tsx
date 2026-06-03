@@ -1,12 +1,15 @@
 /**
  * Pipeline — Hinnawi Bros Bagels Wholesale
- * Wholesale sales pipeline: Lead → Sample Request → Tasting → Negotiation → Signed
+ * Wholesale sales pipeline driven by live leads (status NOT IN won/lost).
+ * Both this page and the Overview "Open Leads" KPI read the same query.
+ * A dollar-based pipeline can replace the count view once per-tier $ estimates exist.
  */
 
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart,
   Bar,
@@ -17,37 +20,89 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import {
-  deals,
-  pipelineStages,
-  leadSources,
-  formatCurrency,
-  stageLabel,
-  stageColor,
-  type Deal,
-} from "@/lib/data";
+import { leadSources } from "@/lib/data";
+import { trpc } from "@/lib/trpc";
 
 const AMBER = "#B45309";
 const AMBER_LIGHT = "#D97706";
-const WARM_BROWN = "#92400E";
 const SLATE = "#78716C";
 
 const WHOLESALE_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663391168179/X4Qkp2kKx9JEdEZTkB9mBy/hinnawi-wholesale-display-BQDXsxqBED2xjEkUfALSkd.webp";
 
+// Open lead statuses in funnel order. Mirrors the leads.status enum minus won/lost.
+const STAGE_ORDER = [
+  "new",
+  "contacted",
+  "interested",
+  "tasting_scheduled",
+  "quote_sent",
+  "negotiation",
+] as const;
+type OpenStatus = (typeof STAGE_ORDER)[number];
+
+const STAGE_LABELS: Record<OpenStatus, string> = {
+  new: "New",
+  contacted: "Contacted",
+  interested: "Interested",
+  tasting_scheduled: "Tasting",
+  quote_sent: "Quote Sent",
+  negotiation: "Negotiation",
+};
+
+const STAGE_COLORS = [SLATE, "#A8A29E", "#D4A574", AMBER_LIGHT, "#C2410C", AMBER];
+
+const STAGE_BADGE: Record<OpenStatus, string> = {
+  new: "bg-stone-100 text-stone-700",
+  contacted: "bg-stone-200 text-stone-800",
+  interested: "bg-amber-100 text-amber-800",
+  tasting_scheduled: "bg-amber-200 text-amber-900",
+  quote_sent: "bg-orange-100 text-orange-800",
+  negotiation: "bg-amber-300 text-amber-900",
+};
+
+const TIER_BADGE: Record<"low" | "medium" | "high", string> = {
+  low: "bg-stone-100 text-stone-700",
+  medium: "bg-amber-100 text-amber-800",
+  high: "bg-amber-200 text-amber-900",
+};
+
 export default function Pipeline() {
-  const pipelineDeals = useMemo(
-    () => deals.filter((d) => d.stage !== "signed" && d.stage !== "lost"),
-    []
-  );
+  const { data: funnel, isLoading: funnelLoading } = trpc.dashboard.openLeadsFunnel.useQuery();
+  const { data: openLeads, isLoading: leadsLoading } = trpc.dashboard.openLeads.useQuery();
 
-  const totalPipelineValue = useMemo(
-    () => pipelineDeals.reduce((sum, d) => sum + d.value, 0),
-    [pipelineDeals]
-  );
+  const stageRows = useMemo(() => {
+    const countByStatus = new Map<string, number>();
+    for (const row of funnel?.byStatus ?? []) {
+      countByStatus.set(row.status, row.count);
+    }
+    return STAGE_ORDER.map((status) => ({
+      status,
+      stage: STAGE_LABELS[status],
+      count: countByStatus.get(status) ?? 0,
+    }));
+  }, [funnel]);
 
-  const weightedValue = useMemo(
-    () => pipelineDeals.reduce((sum, d) => sum + d.value * (d.probability / 100), 0),
-    [pipelineDeals]
+  const tierLine = useMemo(() => {
+    const t = funnel?.byTier;
+    if (!t) return null;
+    const parts: string[] = [];
+    if (t.high) parts.push(`${t.high} high`);
+    if (t.medium) parts.push(`${t.medium} medium`);
+    if (t.low) parts.push(`${t.low} low`);
+    if (t.unset) parts.push(`${t.unset} unset`);
+    return parts.length ? parts.join(" · ") : null;
+  }, [funnel]);
+
+  const totalOpen = funnel?.totalOpen ?? 0;
+  const sortedLeads = useMemo(
+    () =>
+      [...(openLeads ?? [])].sort((a, b) => {
+        const order = { high: 0, medium: 1, low: 2 } as const;
+        const av = a.potentialValue ? order[a.potentialValue] : 3;
+        const bv = b.potentialValue ? order[b.potentialValue] : 3;
+        return av - bv;
+      }),
+    [openLeads]
   );
 
   return (
@@ -61,51 +116,41 @@ export default function Pipeline() {
             Sales Pipeline
           </h1>
           <p className="text-white/80 text-sm mt-0.5">
-            {pipelineDeals.length} prospects · {formatCurrency(totalPipelineValue)} potential monthly revenue
+            {funnelLoading ? "Loading…" : `${totalOpen} open leads${tierLine ? ` · ${tierLine}` : ""}`}
           </p>
         </div>
       </div>
 
       <div className="px-4 md:px-6 space-y-6 pb-6">
         {/* Stage summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {pipelineStages.filter(s => s.stage !== "Signed").map((stage, i) => {
-            return (
-              <Card
-                key={stage.stage}
-                className="animate-cascade border-border/50 py-0"
-                style={{ animationDelay: `${i * 80}ms`, opacity: 0 }}
-              >
-                <CardContent className="p-3.5">
-                  <div className="text-[11px] text-muted-foreground mb-1">{stage.stage}</div>
-                  <div className="font-data text-lg font-semibold">{stage.count}</div>
-                  <div className="font-data text-xs text-muted-foreground mt-0.5">
-                    {formatCurrency(stage.value)}/mo
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-          {/* Weighted pipeline card */}
-          <Card className="animate-cascade border-primary/30 bg-primary/5 py-0" style={{ animationDelay: "320ms", opacity: 0 }}>
-            <CardContent className="p-3.5">
-              <Badge className="bg-amber-100 text-amber-800 text-[10px] mb-2">Weighted</Badge>
-              <div className="font-data text-lg font-semibold">{formatCurrency(weightedValue)}</div>
-              <div className="text-[11px] text-muted-foreground">Expected monthly</div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {stageRows.map((row, i) => (
+            <Card
+              key={row.status}
+              className="animate-cascade border-border/50 py-0"
+              style={{ animationDelay: `${i * 80}ms`, opacity: 0 }}
+            >
+              <CardContent className="p-3.5">
+                <div className="text-[11px] text-muted-foreground mb-1">{row.stage}</div>
+                <div className="font-data text-lg font-semibold">
+                  {funnelLoading ? <Skeleton className="h-5 w-8" /> : row.count}
+                </div>
+                <div className="font-data text-xs text-muted-foreground mt-0.5">leads</div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Pipeline value chart */}
+          {/* Funnel chart — counts per stage */}
           <Card className="border-border/50 py-0">
             <CardHeader className="pb-2 pt-4 px-5">
               <CardTitle className="text-sm font-display font-semibold">Pipeline by Stage</CardTitle>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Monthly value at each stage</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Open leads at each stage</p>
             </CardHeader>
             <CardContent className="px-2 pb-4">
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={pipelineStages.filter(s => s.stage !== "Signed")} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                <BarChart data={stageRows} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
                   <XAxis
                     dataKey="stage"
@@ -117,7 +162,7 @@ export default function Pipeline() {
                     tick={{ fontSize: 10, fill: SLATE, fontFamily: "'IBM Plex Mono', monospace" }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => `$${v.toLocaleString()}`}
+                    allowDecimals={false}
                   />
                   <Tooltip
                     contentStyle={{
@@ -126,11 +171,11 @@ export default function Pipeline() {
                       borderRadius: 6,
                       border: "1px solid #e5e5e5",
                     }}
-                    formatter={(value: number) => [formatCurrency(value), "Monthly Value"]}
+                    formatter={(value: number) => [`${value}`, "Open leads"]}
                   />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={36}>
-                    {pipelineStages.filter(s => s.stage !== "Signed").map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={[SLATE, "#D4A574", AMBER_LIGHT, AMBER][index]} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={36}>
+                    {stageRows.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={STAGE_COLORS[index % STAGE_COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -138,7 +183,7 @@ export default function Pipeline() {
             </CardContent>
           </Card>
 
-          {/* Lead source conversion */}
+          {/* Lead source conversion (still demo data) */}
           <Card className="border-border/50 py-0">
             <CardHeader className="pb-2 pt-4 px-5">
               <CardTitle className="text-sm font-display font-semibold">Lead Source Performance</CardTitle>
@@ -167,11 +212,11 @@ export default function Pipeline() {
           </Card>
         </div>
 
-        {/* Pipeline deals table */}
+        {/* Open leads table */}
         <Card className="border-border/50 py-0">
           <CardHeader className="pb-2 pt-4 px-5">
             <CardTitle className="text-sm font-display font-semibold">Active Pipeline</CardTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">All prospects in the funnel</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">All open leads in the funnel</p>
           </CardHeader>
           <CardContent className="px-0 pb-0">
             <div className="overflow-x-auto">
@@ -180,33 +225,73 @@ export default function Pipeline() {
                   <tr className="border-b border-border/60">
                     <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-5 py-2.5">Account</th>
                     <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">Contact</th>
-                    <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">Segment</th>
+                    <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">Type</th>
                     <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">Stage</th>
-                    <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">Dz/Week</th>
-                    <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">Value/Mo</th>
-                    <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-5 py-2.5">Prob</th>
+                    <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">Est. Weekly</th>
+                    <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">Tier</th>
+                    <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-5 py-2.5">Source</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pipelineDeals
-                    .sort((a, b) => b.value - a.value)
-                    .map((deal) => (
-                      <tr key={deal.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
-                        <td className="px-5 py-2.5 font-medium">{deal.company}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{deal.contact}</td>
-                        <td className="px-3 py-2.5">
-                          <Badge variant="secondary" className="text-[10px] h-5">{deal.segment}</Badge>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge className={`${stageColor(deal.stage)} text-[10px]`}>
-                            {stageLabel(deal.stage)}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-data">{deal.dozenPerWeek} dz</td>
-                        <td className="px-3 py-2.5 text-right font-data font-medium">{formatCurrency(deal.value)}</td>
-                        <td className="px-5 py-2.5 text-right font-data">{deal.probability}%</td>
-                      </tr>
-                    ))}
+                  {leadsLoading && (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-6 text-center text-muted-foreground">
+                        Loading…
+                      </td>
+                    </tr>
+                  )}
+                  {!leadsLoading && sortedLeads.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-6 text-center text-muted-foreground">
+                        No open leads.
+                      </td>
+                    </tr>
+                  )}
+                  {!leadsLoading &&
+                    sortedLeads.map((lead) => {
+                      const stage = STAGE_ORDER.includes(lead.status as OpenStatus)
+                        ? (lead.status as OpenStatus)
+                        : null;
+                      return (
+                        <tr key={lead.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                          <td className="px-5 py-2.5 font-medium">{lead.business}</td>
+                          <td className="px-3 py-2.5 text-muted-foreground">{lead.name}</td>
+                          <td className="px-3 py-2.5">
+                            {lead.businessType ? (
+                              <Badge variant="secondary" className="text-[10px] h-5 capitalize">
+                                {lead.businessType}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            {stage ? (
+                              <Badge className={`${STAGE_BADGE[stage]} text-[10px]`}>
+                                {STAGE_LABELS[stage]}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">{lead.status}</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 font-data text-muted-foreground">
+                            {lead.estimatedWeeklyOrder || "—"}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            {lead.potentialValue ? (
+                              <Badge className={`${TIER_BADGE[lead.potentialValue]} text-[10px] capitalize`}>
+                                {lead.potentialValue}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-5 py-2.5 text-muted-foreground capitalize">
+                            {lead.leadSource ?? lead.source ?? "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>

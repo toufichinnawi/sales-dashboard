@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, sql, desc, count, inArray, or, like } from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, count, inArray, notInArray, or, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -464,11 +464,14 @@ export async function getDashboardStats(dateRange?: { startDate?: string; endDat
       lte(orders.createdAt, filterEnd)
     ));
 
-  // Pipeline value (pending + confirmed orders) — not date-filtered
+  // Pipeline = count of open leads (status NOT IN won/lost). The label and value
+  // are unified with the Pipeline page. A dollar-based pipeline can replace this
+  // once per-tier $ estimates are wired up (potentialValue is currently a
+  // low/medium/high enum, not a numeric amount).
   const pipelineResult = await db
-    .select({ total: sql<string>`COALESCE(SUM(${orders.total}), 0)` })
-    .from(orders)
-    .where(inArray(orders.status, ['pending', 'confirmed', 'preparing']));
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(leads)
+    .where(notInArray(leads.status, ['won', 'lost']));
 
   // Lead conversion rate — not date-filtered
   const totalLeads = await db.select({ count: sql<number>`COUNT(*)` }).from(leads);
@@ -552,9 +555,21 @@ export async function getDashboardStats(dateRange?: { startDate?: string; endDat
     .from(recurringOrders)
     .where(eq(recurringOrders.status, "active"));
 
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const comparisonPeriodMs = compEnd.getTime() - compStart.getTime();
+  const comparisonIsMeaningful = comparisonPeriodMs >= SEVEN_DAYS_MS;
+
+  const clampChange = (current: number, baseline: number): number | null => {
+    if (!comparisonIsMeaningful) return null;
+    if (baseline < 1) return null;
+    const pct = ((current - baseline) / baseline) * 100;
+    if (Math.abs(pct) > 300) return null;
+    return pct;
+  };
+
   const periodRev = Number(periodRevenue[0]?.total ?? 0);
   const compRev = Number(compRevenue[0]?.total ?? 0);
-  const revenueChange = compRev > 0 ? ((periodRev - compRev) / compRev) * 100 : 0;
+  const revenueChange = clampChange(periodRev, compRev);
 
   const periodOrderCount = periodOrders[0]?.count ?? 0;
   const compOrderCount = compOrders[0]?.count ?? 0;
@@ -562,7 +577,7 @@ export async function getDashboardStats(dateRange?: { startDate?: string; endDat
   const avgOrderSize = periodOrderCount > 0 ? periodTotal / periodOrderCount : 0;
   const compTotal = Number(compOrders[0]?.total ?? 0);
   const compAvgOrder = compOrderCount > 0 ? compTotal / compOrderCount : 0;
-  const avgOrderChange = compAvgOrder > 0 ? ((avgOrderSize - compAvgOrder) / compAvgOrder) * 100 : 0;
+  const avgOrderChange = clampChange(avgOrderSize, compAvgOrder);
 
   const totalLeadCount = totalLeads[0]?.count ?? 0;
   const convertedCount = convertedLeads[0]?.count ?? 0;
@@ -571,12 +586,12 @@ export async function getDashboardStats(dateRange?: { startDate?: string; endDat
   return {
     kpis: {
       monthlyRevenue: periodRev,
-      revenueChange: Math.round(revenueChange * 10) / 10,
+      revenueChange: revenueChange === null ? null : Math.round(revenueChange * 10) / 10,
       weeklyDozens: Math.round(Number(dozensResult[0]?.total ?? 0)),
       activeAccounts: activeCustomersResult[0]?.count ?? 0,
       avgOrderSize: Math.round(avgOrderSize * 100) / 100,
-      avgOrderChange: Math.round(avgOrderChange * 10) / 10,
-      pipelineValue: Number(pipelineResult[0]?.total ?? 0),
+      avgOrderChange: avgOrderChange === null ? null : Math.round(avgOrderChange * 10) / 10,
+      pipelineValue: Number(pipelineResult[0]?.count ?? 0),
       conversionRate: Math.round(conversionRate * 10) / 10,
       totalOrders: periodOrderCount,
       activeRecurring: activeRecurring[0]?.count ?? 0,
@@ -602,6 +617,55 @@ export async function getDashboardStats(dateRange?: { startDate?: string; endDat
       orderCount: tc.orderCount,
     })),
   };
+}
+
+// Pipeline funnel — counts of open leads grouped by status and by tier.
+// "Open" = status NOT IN (won, lost). Both Overview and the Pipeline page consume this.
+export async function getOpenLeadsFunnel() {
+  const db = await getDb();
+  if (!db) return null;
+
+  const openCondition = notInArray(leads.status, ['won', 'lost']);
+
+  const byStatusRows = await db
+    .select({ status: leads.status, count: sql<number>`COUNT(*)` })
+    .from(leads)
+    .where(openCondition)
+    .groupBy(leads.status);
+
+  const byTierRows = await db
+    .select({ tier: leads.potentialValue, count: sql<number>`COUNT(*)` })
+    .from(leads)
+    .where(openCondition)
+    .groupBy(leads.potentialValue);
+
+  const byTier = { low: 0, medium: 0, high: 0, unset: 0 };
+  for (const row of byTierRows) {
+    const c = Number(row.count);
+    if (row.tier === 'low') byTier.low = c;
+    else if (row.tier === 'medium') byTier.medium = c;
+    else if (row.tier === 'high') byTier.high = c;
+    else byTier.unset += c;
+  }
+
+  const totalOpen = byStatusRows.reduce((sum, r) => sum + Number(r.count), 0);
+
+  return {
+    totalOpen,
+    byStatus: byStatusRows.map(r => ({ status: r.status, count: Number(r.count) })),
+    byTier,
+  };
+}
+
+// List open leads for the Pipeline page table.
+export async function getOpenLeads() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(leads)
+    .where(notInArray(leads.status, ['won', 'lost']))
+    .orderBy(desc(leads.createdAt));
 }
 
 // ─── Recurring Order queries ─────────────────────────────────────────────

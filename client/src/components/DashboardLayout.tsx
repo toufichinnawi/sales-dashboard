@@ -45,8 +45,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { kpiData, formatCurrency, formatPercent } from "@/lib/data";
+import { formatCurrency, formatPercent } from "@/lib/data";
+import { trpc } from "@/lib/trpc";
 import NotificationsPanel from "@/components/NotificationsPanel";
 
 const navSections = [
@@ -84,6 +86,11 @@ const allNavItems = navSections.flatMap((s) => s.items);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { data: stats, isLoading: statsLoading } = trpc.dashboard.stats.useQuery(
+    undefined,
+    { refetchInterval: 30000 }
+  );
+  const kpis = stats?.kpis;
 
   return (
     <SidebarProvider>
@@ -135,9 +142,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="px-2 space-y-3 group-data-[collapsible=icon]:hidden">
-                <QuickStat label="Revenue" value={formatCurrency(kpiData.monthlyRevenue)} change={formatPercent(kpiData.revenueChange)} positive />
-                <QuickStat label="Accounts" value={String(kpiData.activeAccounts)} change={formatPercent(kpiData.accountsChange)} positive />
-                <QuickStat label="Dz/Week" value={String(kpiData.weeklyDozens)} change={formatPercent(kpiData.dozensChange)} positive />
+                <QuickStat
+                  label="Revenue"
+                  value={kpis ? formatCurrency(kpis.monthlyRevenue) : "—"}
+                  change={kpis?.revenueChange ?? null}
+                  loading={statsLoading}
+                />
+                <QuickStat
+                  label="Accounts"
+                  value={kpis ? String(kpis.activeAccounts) : "—"}
+                  loading={statsLoading}
+                />
+                <QuickStat
+                  label="Dz/Week"
+                  value={kpis ? String(kpis.weeklyDozens) : "—"}
+                  loading={statsLoading}
+                />
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -234,26 +254,34 @@ function QuickStat({
   label,
   value,
   change,
-  positive,
+  loading,
 }: {
   label: string;
   value: string;
-  change: string;
-  positive: boolean;
+  change?: number | null;
+  loading?: boolean;
 }) {
+  const showBadge = !loading && change !== null && change !== undefined;
+  const positive = showBadge && (change as number) >= 0;
   return (
     <div className="flex items-center justify-between">
       <span className="text-[11px] text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1.5">
-        <span className="font-data text-xs font-medium">{value}</span>
-        <Badge
-          variant="secondary"
-          className={`h-4 px-1 text-[9px] font-medium ${
-            positive ? "text-amber-700 bg-amber-50" : "text-red-600 bg-red-50"
-          }`}
-        >
-          {change}
-        </Badge>
+        {loading ? (
+          <Skeleton className="h-3 w-12" />
+        ) : (
+          <span className="font-data text-xs font-medium">{value}</span>
+        )}
+        {showBadge && (
+          <Badge
+            variant="secondary"
+            className={`h-4 px-1 text-[9px] font-medium ${
+              positive ? "text-amber-700 bg-amber-50" : "text-red-600 bg-red-50"
+            }`}
+          >
+            {formatPercent(change as number)}
+          </Badge>
+        )}
       </div>
     </div>
   );

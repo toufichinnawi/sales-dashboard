@@ -22,6 +22,8 @@ import {
   deleteOrder,
   getOrdersByCustomerId,
   getDashboardStats,
+  getOpenLeadsFunnel,
+  getOpenLeads,
   createRecurringOrder,
   getAllRecurringOrders,
   getRecurringOrderById,
@@ -107,6 +109,8 @@ export const appRouter = router({
         const stats = await getDashboardStats(input ?? undefined);
         return stats;
       }),
+    openLeadsFunnel: protectedProcedure.query(() => getOpenLeadsFunnel()),
+    openLeads: protectedProcedure.query(() => getOpenLeads()),
   }),
 
   // ─── LEADS ────────────────────────────────────────────────────────────────
