@@ -1309,31 +1309,42 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    // Trigger full sync
+    // Trigger full sync — runs as a background job to avoid HTTP timeout
     sync: protectedProcedure.mutation(async () => {
-      const result = await runFullSync();
+      // Check there is an active connection before starting
+      const conn = await getActiveQBConnection();
+      if (!conn) throw new Error("No active QuickBooks connection");
 
-      // Notify owner about sync results
-      try {
-        await notifyOwner({
-          title: `QuickBooks Sync ${result.success ? "Complete" : "Failed"}`,
-          content: [
-            `Customers: ${result.customers.created} created, ${result.customers.updated} updated`,
-            `Invoices: ${result.invoices.created} created, ${result.invoices.updated} updated`,
-            `Credit Memos: ${result.creditMemos.created} created, ${result.creditMemos.updated} updated`,
-            `Sales Receipts: ${result.salesReceipts.created} created, ${result.salesReceipts.updated} updated`,
-            `Income Deposits: ${result.incomeDeposits.created} created, ${result.incomeDeposits.updated} updated`,
-            `Payments: ${result.payments.processed} processed`,
-            result.errors.length > 0
-              ? `Errors: ${result.errors.length} (check sync logs)`
-              : "No errors",
-          ].join("\n"),
-        });
-      } catch (e) {
-        console.warn("[QB] Failed to notify owner about sync:", e);
-      }
+      // Fire-and-forget: start the sync in the background so the HTTP request
+      // returns immediately. The sync log tracks progress independently.
+      setImmediate(async () => {
+        try {
+          const result = await runFullSync();
+          // Notify owner about sync results
+          try {
+            await notifyOwner({
+              title: `QuickBooks Sync ${result.success ? "Complete" : "Failed"}`,
+              content: [
+                `Customers: ${result.customers.created} created, ${result.customers.updated} updated`,
+                `Invoices: ${result.invoices.created} created, ${result.invoices.updated} updated`,
+                `Credit Memos: ${result.creditMemos.created} created, ${result.creditMemos.updated} updated`,
+                `Sales Receipts: ${result.salesReceipts.created} created, ${result.salesReceipts.updated} updated`,
+                `Income Deposits: ${result.incomeDeposits.created} created, ${result.incomeDeposits.updated} updated`,
+                `Payments: ${result.payments.processed} processed`,
+                result.errors.length > 0
+                  ? `Errors: ${result.errors.length} (check sync logs)`
+                  : "No errors",
+              ].join("\n"),
+            });
+          } catch (e) {
+            console.warn("[QB] Failed to notify owner about sync:", e);
+          }
+        } catch (err: any) {
+          console.error("[QB] Background sync failed:", err.message);
+        }
+      });
 
-      return result;
+      return { started: true, message: "Sync started in background. Check sync history for progress." };
     }),
 
     // Get sync logs

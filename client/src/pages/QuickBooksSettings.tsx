@@ -62,17 +62,27 @@ export default function QuickBooksSettings() {
   });
 
   const syncMutation = trpc.quickbooks.sync.useMutation({
-    onSuccess: (result) => {
-      setIsSyncing(false);
-      if (result.success) {
-        toast.success(
-          `Sync complete: ${result.customers.created + result.customers.updated} customers, ${result.invoices.created + result.invoices.updated} invoices, ${result.payments.processed} payments`
-        );
-      } else {
-        toast.error("Sync completed with errors. Check sync logs for details.");
-      }
-      refetchStatus();
-      refetchLogs();
+    onSuccess: () => {
+      toast.success("Sync started in background. Refreshing logs every 5 seconds...");
+      // Poll every 5 seconds for up to 3 minutes to detect completion
+      let attempts = 0;
+      const maxAttempts = 36;
+      const poll = setInterval(async () => {
+        attempts++;
+        await refetchLogs();
+        await refetchStatus();
+        if (attempts >= maxAttempts) {
+          clearInterval(poll);
+          setIsSyncing(false);
+        }
+        // Check if the latest log is no longer running
+        // (refetchLogs is async so we rely on the component re-render)
+      }, 5000);
+      // Stop spinner after 3 minutes max
+      setTimeout(() => {
+        clearInterval(poll);
+        setIsSyncing(false);
+      }, 180000);
     },
     onError: (err) => {
       setIsSyncing(false);

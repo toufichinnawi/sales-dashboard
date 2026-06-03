@@ -440,3 +440,11 @@
 - [x] Record activity "Lead converted to client" on conversion
 - [x] Do not delete converted leads (keep for history)
 - [x] Verify TypeScript/build passes (0 errors, 227 tests passing)
+
+## QuickBooks Sync Fix
+- [x] Mark 3 stuck "running" sync log entries as "failed" in the database
+- [x] Diagnose root cause: sync ran synchronously inside HTTP request, timed out before completing, left log stuck at "running"
+- [x] Fix: make sync fire-and-forget (setImmediate background job) so HTTP request returns immediately
+- [x] Update QB connection with fresh access token (expires Aug 16, 2026) and refresh token (expires Sep 12, 2026)
+- [x] Update QuickBooksSettings.tsx to poll sync logs every 5s after triggering sync (up to 3 min)
+- [x] Verify TypeScript/build passes (0 errors)
