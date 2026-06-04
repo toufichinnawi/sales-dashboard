@@ -85,6 +85,7 @@ import {
   getRecentSyncLogs,
 } from "./quickbooks";
 import { runFullSync } from "./qb-sync";
+import { syncDailyBagelOrders } from "./daily-orders-sync";
 import { sendBrochureEmail, getBrochureEmailContent, buildMailtoUrl, buildGmailUrl, buildOutlookUrl, composeBrochureEmail, composeBrochureSms, buildSmsUrl, getBrochureShareUrl, BROCHURE_URL, BROCHURE_SHARE_PATH } from "./brochure-email";
 import {
   parseFileBuffer,
@@ -1481,6 +1482,27 @@ export const appRouter = router({
     syncLogs: protectedProcedure.query(async () => {
       return getRecentSyncLogs(50);
     }),
+  }),
+
+  // ─── DAILY ORDERS SYNC ──────────────────────────────────────────────────
+
+  dailyOrders: router({
+    syncBagels: protectedProcedure
+      .input(
+        z
+          .object({
+            fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+            toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+            pricePerDozen: z.number().positive(),
+          })
+          .refine((input) => input.fromDate <= input.toDate, {
+            message: "Start date must be before or equal to end date",
+            path: ["toDate"],
+          })
+      )
+      .mutation(async ({ input }) => {
+        return syncDailyBagelOrders(input);
+      }),
   }),
 
   // ─── BULK IMPORT (QuickBooks CSV) ────────────────────────────────────

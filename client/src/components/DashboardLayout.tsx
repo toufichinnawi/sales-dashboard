@@ -25,6 +25,7 @@ import {
   FileText,
   DollarSign,
   Factory,
+  Database,
 } from "lucide-react";
 import {
   Sidebar,
@@ -83,6 +84,7 @@ const navSections = [
     label: "Settings",
     items: [
       { path: "/quickbooks", label: "QuickBooks", icon: Link2 },
+      { path: "/daily-orders-sync", label: "Daily Orders Sync", icon: Database },
     ],
   },
 ];
