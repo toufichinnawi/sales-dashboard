@@ -462,3 +462,6 @@
 - [x] Properly structure syncWork as self-contained async function with inner try/catch
 - [x] Outer try/catch around Promise.race catches timeout and marks sync log as failed
 - [x] All 227 tests passing, 0 TypeScript errors
+
+## Sidebar UI Overlap Fix
+- [x] Fix sidebar nav items overlapping on shorter viewports — consolidate nav, remove redundant items, use compact sizing, remove "This Month" stats

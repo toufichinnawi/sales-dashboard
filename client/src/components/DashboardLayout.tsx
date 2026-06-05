@@ -7,13 +7,10 @@ import { useLocation, Link } from "wouter";
 import {
   LayoutDashboard,
   GitBranch,
-  Briefcase,
-  Users,
   BarChart3,
   Target,
   Inbox,
   Settings,
-  Bell,
   Search,
   ChevronRight,
   Cookie,
@@ -45,13 +42,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { formatCurrency, formatPercent } from "@/lib/data";
-import { trpc } from "@/lib/trpc";
 import NotificationsPanel from "@/components/NotificationsPanel";
 
 const navSections = [
@@ -60,31 +52,28 @@ const navSections = [
     items: [
       { path: "/", label: "Overview", icon: LayoutDashboard },
       { path: "/leads", label: "Leads", icon: Inbox },
-      { path: "/customers", label: "Customers", icon: Building2 },
+      { path: "/customers", label: "Accounts", icon: Building2 },
       { path: "/orders", label: "Orders", icon: ShoppingBag },
       { path: "/recurring", label: "Standing Orders", icon: Repeat },
-      { path: "/tastings", label: "Tasting Requests", icon: UtensilsCrossed },
+      { path: "/tastings", label: "Tastings", icon: UtensilsCrossed },
       { path: "/documents", label: "Documents", icon: FileText },
     ],
   },
   {
-    label: "Analytics & Pipeline",
+    label: "Analytics",
     items: [
       { path: "/pipeline", label: "Pipeline", icon: GitBranch },
-      { path: "/deals", label: "Accounts", icon: Briefcase },
-      { path: "/team", label: "Team", icon: Users },
-      { path: "/analytics", label: "Analytics", icon: BarChart3 },
+      { path: "/analytics", label: "Reports", icon: BarChart3 },
       { path: "/goals", label: "Goals", icon: Target },
       { path: "/costs", label: "Costs", icon: DollarSign },
       { path: "/production", label: "Production", icon: Factory },
-      { path: "/prospects", label: "Prospects", icon: Target },
     ],
   },
   {
     label: "Settings",
     items: [
       { path: "/quickbooks", label: "QuickBooks", icon: Link2 },
-      { path: "/daily-orders-sync", label: "Daily Orders Sync", icon: Database },
+      { path: "/daily-orders-sync", label: "Orders Sync", icon: Database },
     ],
   },
 ];
@@ -93,11 +82,6 @@ const allNavItems = navSections.flatMap((s) => s.items);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { data: stats, isLoading: statsLoading } = trpc.dashboard.stats.useQuery(
-    undefined,
-    { refetchInterval: 30000 }
-  );
-  const kpis = stats?.kpis;
 
   return (
     <SidebarProvider>
@@ -118,8 +102,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <SidebarContent className="pt-2">
           {navSections.map((section) => (
-            <SidebarGroup key={section.label}>
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground/70">
+            <SidebarGroup key={section.label} className="py-1">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground/70 h-7">
                 {section.label}
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -128,12 +112,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton
                         asChild
+                        size="sm"
                         isActive={location === item.path}
                         tooltip={item.label}
                       >
                         <Link to={item.path}>
                           <item.icon className="h-4 w-4" />
-                          <span className="text-[13px]">{item.label}</span>
+                          <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -142,32 +127,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SidebarGroupContent>
             </SidebarGroup>
           ))}
-
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground/70">
-              This Month
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="px-2 space-y-3 group-data-[collapsible=icon]:hidden">
-                <QuickStat
-                  label="Revenue"
-                  value={kpis ? formatCurrency(kpis.monthlyRevenue) : "—"}
-                  change={kpis?.revenueChange ?? null}
-                  loading={statsLoading}
-                />
-                <QuickStat
-                  label="Accounts"
-                  value={kpis ? String(kpis.activeAccounts) : "—"}
-                  loading={statsLoading}
-                />
-                <QuickStat
-                  label="Dz/Week"
-                  value={kpis ? String(kpis.weeklyDozens) : "—"}
-                  loading={statsLoading}
-                />
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter className="pb-3">
@@ -257,39 +216,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 }
 
-function QuickStat({
-  label,
-  value,
-  change,
-  loading,
-}: {
-  label: string;
-  value: string;
-  change?: number | null;
-  loading?: boolean;
-}) {
-  const showBadge = !loading && change !== null && change !== undefined;
-  const positive = showBadge && (change as number) >= 0;
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-[11px] text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5">
-        {loading ? (
-          <Skeleton className="h-3 w-12" />
-        ) : (
-          <span className="font-data text-xs font-medium">{value}</span>
-        )}
-        {showBadge && (
-          <Badge
-            variant="secondary"
-            className={`h-4 px-1 text-[9px] font-medium ${
-              positive ? "text-amber-700 bg-amber-50" : "text-red-600 bg-red-50"
-            }`}
-          >
-            {formatPercent(change as number)}
-          </Badge>
-        )}
-      </div>
-    </div>
-  );
-}
+
