@@ -23,6 +23,7 @@ import {
   DollarSign,
   Factory,
   Database,
+  Store,
 } from "lucide-react";
 import {
   Sidebar,
@@ -73,6 +74,7 @@ const navSections = [
     label: "Settings",
     items: [
       { path: "/quickbooks", label: "QuickBooks", icon: Link2 },
+      { path: "/shopify", label: "Shopify", icon: Store },
       { path: "/daily-orders-sync", label: "Orders Sync", icon: Database },
     ],
   },
@@ -215,5 +217,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
 

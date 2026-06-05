@@ -86,6 +86,7 @@ import {
 } from "./quickbooks";
 import { runFullSync } from "./qb-sync";
 import { syncDailyBagelOrders } from "./daily-orders-sync";
+import { getShopifyStatus, getShopifySyncLogs, runShopifyOrdersSync } from "./shopify-sync";
 import { sendBrochureEmail, getBrochureEmailContent, buildMailtoUrl, buildGmailUrl, buildOutlookUrl, composeBrochureEmail, composeBrochureSms, buildSmsUrl, getBrochureShareUrl, BROCHURE_URL, BROCHURE_SHARE_PATH } from "./brochure-email";
 import {
   parseFileBuffer,
@@ -1481,6 +1482,22 @@ export const appRouter = router({
     // Get sync logs
     syncLogs: protectedProcedure.query(async () => {
       return getRecentSyncLogs(50);
+    }),
+  }),
+
+  // ─── SHOPIFY INTEGRATION ─────────────────────────────────────────────
+
+  shopify: router({
+    status: protectedProcedure.query(async () => {
+      return getShopifyStatus();
+    }),
+
+    sync: protectedProcedure.mutation(async () => {
+      return runShopifyOrdersSync();
+    }),
+
+    syncLogs: protectedProcedure.query(async () => {
+      return getShopifySyncLogs(50);
     }),
   }),
 

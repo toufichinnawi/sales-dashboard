@@ -19,6 +19,7 @@ import Customers from "./pages/Customers";
 import Orders from "./pages/Orders";
 import RecurringOrders from "./pages/RecurringOrders";
 import QuickBooksSettings from "./pages/QuickBooksSettings";
+import ShopifySettings from "./pages/ShopifySettings";
 import DailyOrdersSync from "./pages/DailyOrdersSync";
 import WholesaleLanding from "./pages/WholesaleLanding";
 import TastingRequest from "./pages/TastingRequest";
@@ -56,6 +57,7 @@ function DashboardRouter() {
         <Route path={"/orders"} component={Orders} />
         <Route path={"/recurring"} component={RecurringOrders} />
         <Route path={"/quickbooks"} component={QuickBooksSettings} />
+        <Route path={"/shopify"} component={ShopifySettings} />
         <Route path={"/daily-orders-sync"} component={DailyOrdersSync} />
         <Route path={"/tastings"} component={TastingRequests} />
         <Route path={"/documents"} component={Documents} />

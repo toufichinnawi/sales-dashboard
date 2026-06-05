@@ -9,4 +9,7 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   qbClientId: process.env.QB_CLIENT_ID ?? "",
   qbClientSecret: process.env.QB_CLIENT_SECRET ?? "",
+  shopifyShopDomain: process.env.SHOPIFY_SHOP_DOMAIN ?? "",
+  shopifyAdminAccessToken: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN ?? "",
+  shopifyApiVersion: process.env.SHOPIFY_API_VERSION ?? "2026-04",
 };
