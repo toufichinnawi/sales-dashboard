@@ -198,9 +198,10 @@ export async function disconnectQB(connectionId: number) {
 }
 
 /**
- * Get a valid access token, refreshing if needed
+ * Get a valid access token, refreshing if needed.
+ * If forceRefresh=true, always refresh regardless of expiry time.
  */
-export async function getValidAccessToken(): Promise<{
+export async function getValidAccessToken(forceRefresh = false): Promise<{
   accessToken: string;
   realmId: string;
 } | null> {
@@ -210,8 +211,8 @@ export async function getValidAccessToken(): Promise<{
   const now = new Date();
   const bufferMs = 5 * 60 * 1000; // 5 minute buffer
 
-  // Check if access token is still valid
-  if (conn.accessTokenExpiresAt.getTime() - bufferMs > now.getTime()) {
+  // Check if access token is still valid (skip if force-refreshing)
+  if (!forceRefresh && conn.accessTokenExpiresAt.getTime() - bufferMs > now.getTime()) {
     return { accessToken: conn.accessToken, realmId: conn.realmId };
   }
 
@@ -224,6 +225,7 @@ export async function getValidAccessToken(): Promise<{
 
   // Refresh the access token
   try {
+    console.log("[QB] Refreshing access token...");
     const tokens = await refreshAccessToken(conn.refreshToken);
     const db = await getDb();
     if (!db) return null;
@@ -241,6 +243,7 @@ export async function getValidAccessToken(): Promise<{
       })
       .where(eq(qbConnections.id, conn.id));
 
+    console.log("[QB] Token refreshed successfully, new expiry:", newAccessExpiry.toISOString());
     return { accessToken: tokens.access_token, realmId: conn.realmId };
   } catch (err) {
     console.error("[QB] Failed to refresh token:", err);
@@ -251,19 +254,33 @@ export async function getValidAccessToken(): Promise<{
 // ─── API Helpers ──────────────────────────────────────────────────────────────
 
 /**
- * Make an authenticated GET request to QuickBooks API
+ * Make an authenticated GET request to QuickBooks API.
+ * Automatically retries once with a force-refreshed token on 401.
  */
 export async function qbApiGet(endpoint: string): Promise<any> {
-  const auth = await getValidAccessToken();
+  let auth = await getValidAccessToken();
   if (!auth) throw new Error("No active QuickBooks connection");
 
   const url = `${API_BASE}/v3/company/${auth.realmId}${endpoint}`;
-  const resp = await fetch(url, {
+  let resp = await fetch(url, {
     headers: {
       Authorization: `Bearer ${auth.accessToken}`,
       Accept: "application/json",
     },
   });
+
+  // Retry once with force-refreshed token on 401
+  if (resp.status === 401) {
+    console.warn("[QB] Got 401, force-refreshing token and retrying...");
+    auth = await getValidAccessToken(true);
+    if (!auth) throw new Error("QuickBooks token refresh failed — please re-authorize");
+    resp = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${auth.accessToken}`,
+        Accept: "application/json",
+      },
+    });
+  }
 
   if (!resp.ok) {
     const errText = await resp.text();
@@ -274,19 +291,34 @@ export async function qbApiGet(endpoint: string): Promise<any> {
 }
 
 /**
- * Query QuickBooks using their SQL-like query syntax
+ * Query QuickBooks using their SQL-like query syntax.
+ * Automatically retries once with a force-refreshed token on 401.
  */
 export async function qbQuery(query: string): Promise<any> {
-  const auth = await getValidAccessToken();
+  let auth = await getValidAccessToken();
   if (!auth) throw new Error("No active QuickBooks connection");
 
   const url = `${API_BASE}/v3/company/${auth.realmId}/query?query=${encodeURIComponent(query)}`;
-  const resp = await fetch(url, {
+  let resp = await fetch(url, {
     headers: {
       Authorization: `Bearer ${auth.accessToken}`,
       Accept: "application/json",
     },
   });
+
+  // Retry once with force-refreshed token on 401
+  if (resp.status === 401) {
+    console.warn("[QB] Got 401 on query, force-refreshing token and retrying...");
+    auth = await getValidAccessToken(true);
+    if (!auth) throw new Error("QuickBooks token refresh failed — please re-authorize");
+    const retryUrl = `${API_BASE}/v3/company/${auth.realmId}/query?query=${encodeURIComponent(query)}`;
+    resp = await fetch(retryUrl, {
+      headers: {
+        Authorization: `Bearer ${auth.accessToken}`,
+        Accept: "application/json",
+      },
+    });
+  }
 
   if (!resp.ok) {
     const errText = await resp.text();

@@ -448,3 +448,10 @@
 - [x] Update QB connection with fresh access token (expires Aug 16, 2026) and refresh token (expires Sep 12, 2026)
 - [x] Update QuickBooksSettings.tsx to poll sync logs every 5s after triggering sync (up to 3 min)
 - [x] Verify TypeScript/build passes (0 errors)
+
+## QuickBooks Sync Fix v2 (401 Retry Logic)
+- [x] Add forceRefresh parameter to getValidAccessToken()
+- [x] Add automatic retry-on-401 to qbApiGet() (force-refreshes token and retries once)
+- [x] Add automatic retry-on-401 to qbQuery() (force-refreshes token and retries once)
+- [x] Clear all stuck "running" sync log entries (marked as failed)
+- [x] All 227 tests passing, 0 TypeScript errors
