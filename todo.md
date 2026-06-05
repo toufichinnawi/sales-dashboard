@@ -455,3 +455,10 @@
 - [x] Add automatic retry-on-401 to qbQuery() (force-refreshes token and retries once)
 - [x] Clear all stuck "running" sync log entries (marked as failed)
 - [x] All 227 tests passing, 0 TypeScript errors
+
+## QuickBooks Sync Fix v3 (Timeout Safety)
+- [x] Add 30-second AbortSignal.timeout to all fetch calls in quickbooks.ts (prevents individual API calls from hanging)
+- [x] Add global 5-minute timeout to runFullSync using Promise.race (prevents entire sync from running forever)
+- [x] Properly structure syncWork as self-contained async function with inner try/catch
+- [x] Outer try/catch around Promise.race catches timeout and marks sync log as failed
+- [x] All 227 tests passing, 0 TypeScript errors

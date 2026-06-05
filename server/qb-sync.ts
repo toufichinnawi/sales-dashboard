@@ -800,6 +800,8 @@ export async function syncIncomeDeposits(): Promise<{
 
 // ─── Full Sync Orchestrator ───────────────────────────────────────────────────
 
+const SYNC_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes max for entire sync
+
 export async function runFullSync(): Promise<{
   success: boolean;
   logId: number;
@@ -817,99 +819,126 @@ export async function runFullSync(): Promise<{
   const logId = await createSyncLog(conn.id, "full");
   const allErrors: string[] = [];
 
-  try {
-    // Update company name if not set
-    if (!conn.companyName) {
-      try {
-        const companyInfo = await getQBCompanyInfo();
-        const name = companyInfo?.CompanyInfo?.CompanyName;
-        if (name) {
-          const db = await getDb();
-          if (db) {
-            await db
-              .update(qbConnections)
-              .set({ companyName: name })
-              .where(eq(qbConnections.id, conn.id));
+  // Global timeout: if sync takes longer than 5 minutes, abort and mark as failed
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error("Sync timed out after 5 minutes")), SYNC_TIMEOUT_MS);
+  });
+
+  const syncWork = async () => {
+    try {
+      // Update company name if not set
+      if (!conn.companyName) {
+        try {
+          const companyInfo = await getQBCompanyInfo();
+          const name = companyInfo?.CompanyInfo?.CompanyName;
+          if (name) {
+            const db = await getDb();
+            if (db) {
+              await db
+                .update(qbConnections)
+                .set({ companyName: name })
+                .where(eq(qbConnections.id, conn.id));
+            }
           }
+        } catch (e) {
+          console.warn("[QB Sync] Could not fetch company info:", e);
         }
-      } catch (e) {
-        console.warn("[QB Sync] Could not fetch company info:", e);
       }
+
+      // 1. Sync customers first
+      console.log("[QB Sync] Starting customer sync...");
+      const custResult = await syncCustomers();
+      allErrors.push(...custResult.errors);
+
+      // 2. Sync invoices (needs customers to exist for matching)
+      console.log("[QB Sync] Starting invoice sync...");
+      const invResult = await syncInvoices();
+      allErrors.push(...invResult.errors);
+
+      // 3. Sync credit memos (refunds/adjustments as negative revenue)
+      console.log("[QB Sync] Starting credit memo sync...");
+      const cmResult = await syncCreditMemos();
+      allErrors.push(...cmResult.errors);
+
+      // 4. Sync sales receipts (direct sales not through invoices)
+      console.log("[QB Sync] Starting sales receipt sync...");
+      const srResult = await syncSalesReceipts();
+      allErrors.push(...srResult.errors);
+
+      // 5. Sync income deposits (bank deposits posting to income accounts)
+      console.log("[QB Sync] Starting income deposit sync...");
+      const depResult = await syncIncomeDeposits();
+      allErrors.push(...depResult.errors);
+
+      // 6. Sync payments (updates order statuses)
+      console.log("[QB Sync] Starting payment sync...");
+      const pmtResult = await syncPayments();
+      allErrors.push(...pmtResult.errors);
+
+      // Update sync log
+      await updateSyncLog(logId, {
+        status: "completed",
+        customersCreated: custResult.created,
+        customersUpdated: custResult.updated,
+        ordersCreated: invResult.created + cmResult.created + srResult.created + depResult.created,
+        ordersUpdated: invResult.updated + cmResult.updated + srResult.updated + depResult.updated,
+        paymentsProcessed: pmtResult.processed,
+        errorMessage: allErrors.length > 0 ? allErrors.join("\n") : undefined,
+        completedAt: new Date(),
+      });
+
+      // Update last sync time on connection
+      const db = await getDb();
+      if (db) {
+        await db
+          .update(qbConnections)
+          .set({ lastSyncAt: new Date() })
+          .where(eq(qbConnections.id, conn.id));
+      }
+
+      console.log(
+        `[QB Sync] Complete: ${custResult.created} customers created, ${custResult.updated} updated, ${invResult.created} invoices created, ${invResult.updated} updated, ${cmResult.created} credit memos created, ${cmResult.updated} updated, ${srResult.created} sales receipts created, ${srResult.updated} updated, ${depResult.created} deposits created, ${depResult.updated} updated, ${pmtResult.processed} payments processed`
+      );
+
+      return {
+        success: true,
+        logId,
+        customers: { created: custResult.created, updated: custResult.updated },
+        invoices: { created: invResult.created, updated: invResult.updated },
+        creditMemos: { created: cmResult.created, updated: cmResult.updated },
+        salesReceipts: { created: srResult.created, updated: srResult.updated },
+        incomeDeposits: { created: depResult.created, updated: depResult.updated },
+        payments: { processed: pmtResult.processed },
+        errors: allErrors,
+      };
+    } catch (err: any) {
+      await updateSyncLog(logId, {
+        status: "failed",
+        errorMessage: err.message,
+        completedAt: new Date(),
+      });
+      return {
+        success: false,
+        logId,
+        customers: { created: 0, updated: 0 },
+        invoices: { created: 0, updated: 0 },
+        creditMemos: { created: 0, updated: 0 },
+        salesReceipts: { created: 0, updated: 0 },
+        incomeDeposits: { created: 0, updated: 0 },
+        payments: { processed: 0 },
+        errors: [err.message],
+      };
     }
+  };
 
-    // 1. Sync customers first
-    console.log("[QB Sync] Starting customer sync...");
-    const custResult = await syncCustomers();
-    allErrors.push(...custResult.errors);
-
-    // 2. Sync invoices (needs customers to exist for matching)
-    console.log("[QB Sync] Starting invoice sync...");
-    const invResult = await syncInvoices();
-    allErrors.push(...invResult.errors);
-
-    // 3. Sync credit memos (refunds/adjustments as negative revenue)
-    console.log("[QB Sync] Starting credit memo sync...");
-    const cmResult = await syncCreditMemos();
-    allErrors.push(...cmResult.errors);
-
-    // 4. Sync sales receipts (direct sales not through invoices)
-    console.log("[QB Sync] Starting sales receipt sync...");
-    const srResult = await syncSalesReceipts();
-    allErrors.push(...srResult.errors);
-
-    // 5. Sync income deposits (bank deposits posting to income accounts)
-    console.log("[QB Sync] Starting income deposit sync...");
-    const depResult = await syncIncomeDeposits();
-    allErrors.push(...depResult.errors);
-
-    // 6. Sync payments (updates order statuses)
-    console.log("[QB Sync] Starting payment sync...");
-    const pmtResult = await syncPayments();
-    allErrors.push(...pmtResult.errors);
-
-    // Update sync log
-    await updateSyncLog(logId, {
-      status: allErrors.length > 0 ? "completed" : "completed",
-      customersCreated: custResult.created,
-      customersUpdated: custResult.updated,
-      ordersCreated: invResult.created + cmResult.created + srResult.created + depResult.created,
-      ordersUpdated: invResult.updated + cmResult.updated + srResult.updated + depResult.updated,
-      paymentsProcessed: pmtResult.processed,
-      errorMessage: allErrors.length > 0 ? allErrors.join("\n") : undefined,
-      completedAt: new Date(),
-    });
-
-    // Update last sync time on connection
-    const db = await getDb();
-    if (db) {
-      await db
-        .update(qbConnections)
-        .set({ lastSyncAt: new Date() })
-        .where(eq(qbConnections.id, conn.id));
-    }
-
-    console.log(
-      `[QB Sync] Complete: ${custResult.created} customers created, ${custResult.updated} updated, ${invResult.created} invoices created, ${invResult.updated} updated, ${cmResult.created} credit memos created, ${cmResult.updated} updated, ${srResult.created} sales receipts created, ${srResult.updated} updated, ${depResult.created} deposits created, ${depResult.updated} updated, ${pmtResult.processed} payments processed`
-    );
-
-    return {
-      success: true,
-      logId,
-      customers: { created: custResult.created, updated: custResult.updated },
-      invoices: { created: invResult.created, updated: invResult.updated },
-      creditMemos: { created: cmResult.created, updated: cmResult.updated },
-      salesReceipts: { created: srResult.created, updated: srResult.updated },
-      incomeDeposits: { created: depResult.created, updated: depResult.updated },
-      payments: { processed: pmtResult.processed },
-      errors: allErrors,
-    };
+  try {
+    return await Promise.race([syncWork(), timeoutPromise]);
   } catch (err: any) {
     await updateSyncLog(logId, {
       status: "failed",
       errorMessage: err.message,
       completedAt: new Date(),
     });
-
     return {
       success: false,
       logId,

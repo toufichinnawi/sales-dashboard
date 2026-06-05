@@ -102,6 +102,7 @@ export async function refreshAccessToken(
       grant_type: "refresh_token",
       refresh_token: refreshToken,
     }),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!resp.ok) {
@@ -267,6 +268,7 @@ export async function qbApiGet(endpoint: string): Promise<any> {
       Authorization: `Bearer ${auth.accessToken}`,
       Accept: "application/json",
     },
+    signal: AbortSignal.timeout(30_000),
   });
 
   // Retry once with force-refreshed token on 401
@@ -279,6 +281,7 @@ export async function qbApiGet(endpoint: string): Promise<any> {
         Authorization: `Bearer ${auth.accessToken}`,
         Accept: "application/json",
       },
+      signal: AbortSignal.timeout(30_000),
     });
   }
 
@@ -304,6 +307,7 @@ export async function qbQuery(query: string): Promise<any> {
       Authorization: `Bearer ${auth.accessToken}`,
       Accept: "application/json",
     },
+    signal: AbortSignal.timeout(30_000),
   });
 
   // Retry once with force-refreshed token on 401
@@ -317,6 +321,7 @@ export async function qbQuery(query: string): Promise<any> {
         Authorization: `Bearer ${auth.accessToken}`,
         Accept: "application/json",
       },
+      signal: AbortSignal.timeout(30_000),
     });
   }
 
