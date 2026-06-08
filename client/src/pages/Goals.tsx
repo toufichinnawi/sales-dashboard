@@ -78,7 +78,7 @@ export default function Goals() {
   const thisMonth = currentPeriodMonth();
 
   const { data: progress, isLoading: progressLoading } = trpc.targets.progress.useQuery(
-    { monthsBack: 12, futureMonths: 6 }
+    { monthsBack: 12, futureMonths: 12 }
   );
   const { data: allTargets } = trpc.targets.list.useQuery();
   const { data: thisMonthTarget, isLoading: targetLoading } = trpc.targets.get.useQuery({

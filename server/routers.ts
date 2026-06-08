@@ -154,7 +154,7 @@ export const appRouter = router({
         return { ok: true };
       }),
     progress: protectedProcedure
-      .input(z.object({ monthsBack: z.number().int().min(1).max(24).optional(), futureMonths: z.number().int().min(0).max(12).optional() }).optional())
+      .input(z.object({ monthsBack: z.number().int().min(1).max(24).optional(), futureMonths: z.number().int().min(0).max(24).optional() }).optional())
       .query(async ({ input }) => {
         const months = input?.monthsBack ?? 6;
         const futureCount = input?.futureMonths ?? 6;
