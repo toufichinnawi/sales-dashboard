@@ -1,6 +1,7 @@
 /**
  * Goals — Hinnawi Bros Bagels Wholesale
  * Company-level monthly sales targets and progress vs actuals.
+ * Each month's target is editable inline via a pencil icon.
  */
 
 import { useMemo, useState } from "react";
@@ -30,7 +31,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { Target } from "lucide-react";
+import { Target, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/data";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -55,12 +56,16 @@ export default function Goals() {
   const utils = trpc.useUtils();
   const thisMonth = currentPeriodMonth();
 
-  const { data: progress, isLoading: progressLoading } = trpc.targets.progress.useQuery();
+  const { data: progress, isLoading: progressLoading } = trpc.targets.progress.useQuery(
+    { monthsBack: 12 }
+  );
   const { data: thisMonthTarget, isLoading: targetLoading } = trpc.targets.get.useQuery({
     periodMonth: thisMonth,
   });
 
+  // Dialog state for editing a specific month's target
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingMonth, setEditingMonth] = useState<string>(thisMonth);
   const [revenueInput, setRevenueInput] = useState("");
   const [dozensInput, setDozensInput] = useState("");
 
@@ -68,7 +73,7 @@ export default function Goals() {
     onSuccess: async () => {
       await Promise.all([
         utils.targets.progress.invalidate(),
-        utils.targets.get.invalidate({ periodMonth: thisMonth }),
+        utils.targets.get.invalidate({ periodMonth: editingMonth }),
         utils.targets.list.invalidate(),
       ]);
       toast.success("Target saved");
@@ -77,13 +82,15 @@ export default function Goals() {
     onError: (err) => toast.error(err.message || "Failed to save target"),
   });
 
-  const openDialog = () => {
-    setRevenueInput(thisMonthTarget ? String(Number(thisMonthTarget.targetRevenue)) : "");
-    setDozensInput(
-      thisMonthTarget?.targetDozens ? String(Number(thisMonthTarget.targetDozens)) : ""
-    );
+  const openDialogForMonth = (periodMonth: string) => {
+    setEditingMonth(periodMonth);
+    const row = progress?.find((p) => p.periodMonth === periodMonth);
+    setRevenueInput(row?.targetRevenue !== null && row?.targetRevenue !== undefined ? String(row.targetRevenue) : "");
+    setDozensInput(row?.targetDozens !== null && row?.targetDozens !== undefined ? String(row.targetDozens) : "");
     setDialogOpen(true);
   };
+
+  const openDialog = () => openDialogForMonth(thisMonth);
 
   const handleSave = () => {
     const revenue = Number(revenueInput);
@@ -97,7 +104,7 @@ export default function Goals() {
       return;
     }
     upsert.mutate({
-      periodMonth: thisMonth,
+      periodMonth: editingMonth,
       targetRevenue: revenue,
       targetDozens: dozens,
     });
@@ -140,7 +147,7 @@ export default function Goals() {
           </div>
           {isAdmin && (
             <Button onClick={openDialog} variant="default">
-              {thisMonthTarget ? "Edit Target" : "Set Target"}
+              {thisMonthTarget ? "Edit This Month" : "Set This Month"}
             </Button>
           )}
         </div>
@@ -220,11 +227,11 @@ export default function Goals() {
           </CardContent>
         </Card>
 
-        {/* 6-month chart */}
+        {/* 12-month chart */}
         <Card className="border-border/50 py-0">
           <CardHeader className="pb-2 pt-4 px-5">
             <CardTitle className="text-sm font-display font-semibold">
-              Actual vs Target — Last 6 Months
+              Actual vs Target — Last 12 Months
             </CardTitle>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               Delivered + paid revenue compared to monthly target
@@ -270,7 +277,7 @@ export default function Goals() {
           </CardContent>
         </Card>
 
-        {/* 6-month table */}
+        {/* Monthly breakdown table with editable targets */}
         <Card className="border-border/50 py-0">
           <CardHeader className="pb-2 pt-4 px-5">
             <CardTitle className="text-sm font-display font-semibold">Monthly Breakdown</CardTitle>
@@ -289,15 +296,20 @@ export default function Goals() {
                     <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">
                       Target
                     </th>
-                    <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-5 py-2.5">
+                    <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">
                       %
                     </th>
+                    {isAdmin && (
+                      <th className="text-center font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5 w-12">
+                        Edit
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {progressLoading && (
                     <tr>
-                      <td colSpan={4} className="px-5 py-6 text-center text-muted-foreground">
+                      <td colSpan={isAdmin ? 5 : 4} className="px-5 py-6 text-center text-muted-foreground">
                         Loading…
                       </td>
                     </tr>
@@ -326,13 +338,26 @@ export default function Goals() {
                               <span className="text-muted-foreground">—</span>
                             )}
                           </td>
-                          <td className="px-5 py-2.5 text-right font-data">
+                          <td className="px-3 py-2.5 text-right font-data">
                             {rowPct !== null ? (
-                              `${rowPct.toFixed(0)}%`
+                              <span className={rowPct >= 100 ? "text-green-700" : ""}>
+                                {rowPct.toFixed(0)}%
+                              </span>
                             ) : (
                               <span className="text-muted-foreground">—</span>
                             )}
                           </td>
+                          {isAdmin && (
+                            <td className="px-3 py-2.5 text-center">
+                              <button
+                                onClick={() => openDialogForMonth(row.periodMonth)}
+                                className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                                title={`Set target for ${formatPeriodLabel(row.periodMonth)}`}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -343,15 +368,15 @@ export default function Goals() {
         </Card>
       </div>
 
-      {/* Set/Edit target dialog */}
+      {/* Set/Edit target dialog — works for any month */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {thisMonthTarget ? "Edit" : "Set"} target — {formatPeriodLabel(thisMonth)}
+              Set Target — {formatPeriodLabel(editingMonth)}
             </DialogTitle>
             <DialogDescription>
-              Company-level revenue target for the current month. Dozens is optional.
+              Revenue target for {formatPeriodLabel(editingMonth)}. Dozens is optional.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">

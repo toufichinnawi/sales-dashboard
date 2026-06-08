@@ -153,19 +153,23 @@ export const appRouter = router({
         });
         return { ok: true };
       }),
-    progress: protectedProcedure.query(async () => {
-      const actuals = await getMonthlyActuals(6);
-      const targets = await listTargets();
-      const targetByMonth = new Map(targets.map((t) => [t.periodMonth, t]));
-      return actuals.map((a) => {
-        const t = targetByMonth.get(a.periodMonth);
-        return {
-          periodMonth: a.periodMonth,
-          actualRevenue: a.actualRevenue,
-          targetRevenue: t ? Number(t.targetRevenue) : null,
-        };
-      });
-    }),
+    progress: protectedProcedure
+      .input(z.object({ monthsBack: z.number().int().min(1).max(24).optional() }).optional())
+      .query(async ({ input }) => {
+        const months = input?.monthsBack ?? 6;
+        const actuals = await getMonthlyActuals(months);
+        const targets = await listTargets();
+        const targetByMonth = new Map(targets.map((t) => [t.periodMonth, t]));
+        return actuals.map((a) => {
+          const t = targetByMonth.get(a.periodMonth);
+          return {
+            periodMonth: a.periodMonth,
+            actualRevenue: a.actualRevenue,
+            targetRevenue: t ? Number(t.targetRevenue) : null,
+            targetDozens: t?.targetDozens ? Number(t.targetDozens) : null,
+          };
+        });
+      }),
   }),
 
   // ─── ACCOUNTING (cost & profit) ───────────────────────────────────────────

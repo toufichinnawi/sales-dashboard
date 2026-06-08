@@ -449,6 +449,7 @@
 - [x] Update QuickBooksSettings.tsx to poll sync logs every 5s after triggering sync (up to 3 min)
 - [x] Verify TypeScript/build passes (0 errors)
 
+<<<<<<< Updated upstream
 ## QuickBooks Sync Fix v2 (401 Retry Logic)
 - [x] Add forceRefresh parameter to getValidAccessToken()
 - [x] Add automatic retry-on-401 to qbApiGet() (force-refreshes token and retries once)
@@ -465,3 +466,14 @@
 
 ## Sidebar UI Overlap Fix
 - [x] Fix sidebar nav items overlapping on shorter viewports — consolidate nav, remove redundant items, use compact sizing, remove "This Month" stats
+=======
+## Editable Monthly Revenue Targets (Goals Page)
+- [x] Make Target column editable for every month in the Monthly Breakdown table
+- [x] Add edit icon/action per month row to open inline edit or dialog
+- [x] Save monthly target to database via existing upsertTarget procedure
+- [x] Auto-calculate % column (Actual ÷ Target) when target is set
+- [x] Update progress bar and chart based on per-month targets
+- [x] Show "—" when no target is set for a month (no percentage calculation)
+- [x] Keep current design style exactly the same
+- [x] Write vitest tests for monthly targets feature (12/12 passed, 239 total)
+>>>>>>> Stashed changes
