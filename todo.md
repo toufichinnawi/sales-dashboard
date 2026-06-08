@@ -477,3 +477,8 @@
 - [x] Keep current design style exactly the same
 - [x] Write vitest tests for monthly targets feature (12/12 passed, 239 total)
 >>>>>>> Stashed changes
+
+## Allow Setting Targets for Future Months
+- [x] Add ability to set revenue targets for any month including future months (not just months with actuals)
+- [x] Add a "Set Target" button/action that lets user pick any month (past or future)
+- [x] Extend the Monthly Breakdown table to include future months that have targets set

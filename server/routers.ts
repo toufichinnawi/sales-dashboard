@@ -154,13 +154,16 @@ export const appRouter = router({
         return { ok: true };
       }),
     progress: protectedProcedure
-      .input(z.object({ monthsBack: z.number().int().min(1).max(24).optional() }).optional())
+      .input(z.object({ monthsBack: z.number().int().min(1).max(24).optional(), futureMonths: z.number().int().min(0).max(12).optional() }).optional())
       .query(async ({ input }) => {
         const months = input?.monthsBack ?? 6;
+        const futureCount = input?.futureMonths ?? 6;
         const actuals = await getMonthlyActuals(months);
         const targets = await listTargets();
         const targetByMonth = new Map(targets.map((t) => [t.periodMonth, t]));
-        return actuals.map((a) => {
+
+        // Build result from past actuals
+        const result = actuals.map((a) => {
           const t = targetByMonth.get(a.periodMonth);
           return {
             periodMonth: a.periodMonth,
@@ -169,6 +172,24 @@ export const appRouter = router({
             targetDozens: t?.targetDozens ? Number(t.targetDozens) : null,
           };
         });
+
+        // Add future months (after the last actuals month)
+        const now = new Date();
+        const lastActualMonth = actuals.length > 0 ? actuals[actuals.length - 1].periodMonth : null;
+        for (let i = 1; i <= futureCount; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          if (lastActualMonth && key <= lastActualMonth) continue;
+          const t = targetByMonth.get(key);
+          result.push({
+            periodMonth: key,
+            actualRevenue: 0,
+            targetRevenue: t ? Number(t.targetRevenue) : null,
+            targetDozens: t?.targetDozens ? Number(t.targetDozens) : null,
+          });
+        }
+
+        return result;
       }),
   }),
 

@@ -231,7 +231,7 @@ describe("targets.upsert", () => {
 describe("targets.progress", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns progress with targets merged for default 6 months", async () => {
+  it("returns progress with targets merged for default 6 months plus future months", async () => {
     const actuals = [
       { periodMonth: "2026-01", actualRevenue: 12000 },
       { periodMonth: "2026-02", actualRevenue: 15000 },
@@ -244,6 +244,7 @@ describe("targets.progress", () => {
       { id: 1, periodMonth: "2026-01", targetRevenue: "15000.00", targetDozens: "800.00", createdAt: new Date(), updatedAt: new Date() },
       { id: 2, periodMonth: "2026-03", targetRevenue: "20000.00", targetDozens: null, createdAt: new Date(), updatedAt: new Date() },
       { id: 3, periodMonth: "2026-06", targetRevenue: "25000.00", targetDozens: "1200.00", createdAt: new Date(), updatedAt: new Date() },
+      { id: 4, periodMonth: "2026-08", targetRevenue: "30000.00", targetDozens: "1500.00", createdAt: new Date(), updatedAt: new Date() },
     ];
 
     vi.mocked(getMonthlyActuals).mockResolvedValue(actuals);
@@ -252,7 +253,8 @@ describe("targets.progress", () => {
     const caller = appRouter.createCaller(createAdminContext());
     const result = await caller.targets.progress();
 
-    expect(result).toHaveLength(6);
+    // Should have 6 actuals + 6 future months = 12
+    expect(result.length).toBeGreaterThanOrEqual(6);
     // Month with target
     expect(result[0]).toEqual({
       periodMonth: "2026-01",
@@ -281,6 +283,14 @@ describe("targets.progress", () => {
       targetRevenue: 25000,
       targetDozens: 1200,
     });
+    // Future month with target (2026-08)
+    const aug = result.find((r) => r.periodMonth === "2026-08");
+    expect(aug).toEqual({
+      periodMonth: "2026-08",
+      actualRevenue: 0,
+      targetRevenue: 30000,
+      targetDozens: 1500,
+    });
   });
 
   it("accepts custom monthsBack parameter for 12 months", async () => {
@@ -293,14 +303,16 @@ describe("targets.progress", () => {
     expect(getMonthlyActuals).toHaveBeenCalledWith(12);
   });
 
-  it("defaults to 6 months when no input provided", async () => {
+  it("defaults to 6 months back and 6 future months when no input provided", async () => {
     vi.mocked(getMonthlyActuals).mockResolvedValue([]);
     vi.mocked(listTargets).mockResolvedValue([]);
 
     const caller = appRouter.createCaller(createAdminContext());
-    await caller.targets.progress();
+    const result = await caller.targets.progress();
 
     expect(getMonthlyActuals).toHaveBeenCalledWith(6);
+    // Should include 6 future months even with no actuals
+    expect(result.length).toBe(6);
   });
 
   it("returns null targetRevenue for months without a target", async () => {
@@ -311,7 +323,7 @@ describe("targets.progress", () => {
     vi.mocked(listTargets).mockResolvedValue([]);
 
     const caller = appRouter.createCaller(createAdminContext());
-    const result = await caller.targets.progress({ monthsBack: 1 });
+    const result = await caller.targets.progress({ monthsBack: 1, futureMonths: 0 });
 
     expect(result[0]).toEqual({
       periodMonth: "2026-06",
@@ -319,6 +331,45 @@ describe("targets.progress", () => {
       targetRevenue: null,
       targetDozens: null,
     });
+  });
+
+  it("includes future months with targets set", async () => {
+    const actuals = [
+      { periodMonth: "2026-06", actualRevenue: 8000 },
+    ];
+    const targets = [
+      { id: 1, periodMonth: "2026-09", targetRevenue: "35000.00", targetDozens: "1800.00", createdAt: new Date(), updatedAt: new Date() },
+    ];
+    vi.mocked(getMonthlyActuals).mockResolvedValue(actuals);
+    vi.mocked(listTargets).mockResolvedValue(targets);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.targets.progress({ monthsBack: 1, futureMonths: 6 });
+
+    // Should include the actual month + 6 future months
+    expect(result.length).toBe(7);
+    // The September future month should have the target
+    const sep = result.find((r) => r.periodMonth === "2026-09");
+    expect(sep).toEqual({
+      periodMonth: "2026-09",
+      actualRevenue: 0,
+      targetRevenue: 35000,
+      targetDozens: 1800,
+    });
+  });
+
+  it("allows setting futureMonths to 0 to exclude future months", async () => {
+    const actuals = [
+      { periodMonth: "2026-06", actualRevenue: 8000 },
+    ];
+    vi.mocked(getMonthlyActuals).mockResolvedValue(actuals);
+    vi.mocked(listTargets).mockResolvedValue([]);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.targets.progress({ monthsBack: 1, futureMonths: 0 });
+
+    expect(result.length).toBe(1);
+    expect(result[0].periodMonth).toBe("2026-06");
   });
 });
 

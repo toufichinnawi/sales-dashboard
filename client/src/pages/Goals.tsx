@@ -2,6 +2,7 @@
  * Goals — Hinnawi Bros Bagels Wholesale
  * Company-level monthly sales targets and progress vs actuals.
  * Each month's target is editable inline via a pencil icon.
+ * Supports setting targets for any month including future months.
  */
 
 import { useMemo, useState } from "react";
@@ -22,6 +23,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -31,7 +39,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { Target, Pencil } from "lucide-react";
+import { Target, Pencil, Plus } from "lucide-react";
 import { formatCurrency } from "@/lib/data";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -50,6 +58,19 @@ function formatPeriodLabel(periodMonth: string): string {
   return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
+/** Generate month options from 12 months ago to 12 months ahead */
+function getMonthOptions(): Array<{ value: string; label: string }> {
+  const now = new Date();
+  const options: Array<{ value: string; label: string }> = [];
+  for (let i = -12; i <= 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    options.push({ value, label });
+  }
+  return options;
+}
+
 export default function Goals() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -57,8 +78,9 @@ export default function Goals() {
   const thisMonth = currentPeriodMonth();
 
   const { data: progress, isLoading: progressLoading } = trpc.targets.progress.useQuery(
-    { monthsBack: 12 }
+    { monthsBack: 12, futureMonths: 6 }
   );
+  const { data: allTargets } = trpc.targets.list.useQuery();
   const { data: thisMonthTarget, isLoading: targetLoading } = trpc.targets.get.useQuery({
     periodMonth: thisMonth,
   });
@@ -68,6 +90,9 @@ export default function Goals() {
   const [editingMonth, setEditingMonth] = useState<string>(thisMonth);
   const [revenueInput, setRevenueInput] = useState("");
   const [dozensInput, setDozensInput] = useState("");
+  const [monthPickerMode, setMonthPickerMode] = useState(false);
+
+  const monthOptions = useMemo(() => getMonthOptions(), []);
 
   const upsert = trpc.targets.upsert.useMutation({
     onSuccess: async () => {
@@ -84,13 +109,37 @@ export default function Goals() {
 
   const openDialogForMonth = (periodMonth: string) => {
     setEditingMonth(periodMonth);
+    setMonthPickerMode(false);
+    // Pre-fill from progress data or allTargets
     const row = progress?.find((p) => p.periodMonth === periodMonth);
-    setRevenueInput(row?.targetRevenue !== null && row?.targetRevenue !== undefined ? String(row.targetRevenue) : "");
-    setDozensInput(row?.targetDozens !== null && row?.targetDozens !== undefined ? String(row.targetDozens) : "");
+    const targetRow = allTargets?.find((t) => t.periodMonth === periodMonth);
+    const targetRev = row?.targetRevenue ?? (targetRow ? Number(targetRow.targetRevenue) : null);
+    const targetDoz = row?.targetDozens ?? (targetRow?.targetDozens ? Number(targetRow.targetDozens) : null);
+    setRevenueInput(targetRev !== null ? String(targetRev) : "");
+    setDozensInput(targetDoz !== null ? String(targetDoz) : "");
     setDialogOpen(true);
   };
 
-  const openDialog = () => openDialogForMonth(thisMonth);
+  const openNewTargetDialog = () => {
+    setEditingMonth(thisMonth);
+    setMonthPickerMode(true);
+    setRevenueInput("");
+    setDozensInput("");
+    setDialogOpen(true);
+  };
+
+  const handleMonthChange = (month: string) => {
+    setEditingMonth(month);
+    // Pre-fill if target exists for selected month
+    const targetRow = allTargets?.find((t) => t.periodMonth === month);
+    if (targetRow) {
+      setRevenueInput(String(Number(targetRow.targetRevenue)));
+      setDozensInput(targetRow.targetDozens ? String(Number(targetRow.targetDozens)) : "");
+    } else {
+      setRevenueInput("");
+      setDozensInput("");
+    }
+  };
 
   const handleSave = () => {
     const revenue = Number(revenueInput);
@@ -146,9 +195,15 @@ export default function Goals() {
             </p>
           </div>
           {isAdmin && (
-            <Button onClick={openDialog} variant="default">
-              {thisMonthTarget ? "Edit This Month" : "Set This Month"}
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={openNewTargetDialog} variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Set Any Month
+              </Button>
+              <Button onClick={() => openDialogForMonth(thisMonth)} variant="default" size="sm">
+                {thisMonthTarget ? "Edit This Month" : "Set This Month"}
+              </Button>
+            </div>
           )}
         </div>
 
@@ -179,7 +234,7 @@ export default function Goals() {
                 {isAdmin ? (
                   <button
                     className="underline text-amber-800 hover:text-amber-900"
-                    onClick={openDialog}
+                    onClick={() => openDialogForMonth(thisMonth)}
                   >
                     Set one now
                   </button>
@@ -227,14 +282,14 @@ export default function Goals() {
           </CardContent>
         </Card>
 
-        {/* 12-month chart */}
+        {/* Chart */}
         <Card className="border-border/50 py-0">
           <CardHeader className="pb-2 pt-4 px-5">
             <CardTitle className="text-sm font-display font-semibold">
-              Actual vs Target — Last 12 Months
+              Actual vs Target — 12 Months + Upcoming
             </CardTitle>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Delivered + paid revenue compared to monthly target
+              Delivered + paid revenue compared to monthly target (future months show target only)
             </p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
@@ -280,7 +335,12 @@ export default function Goals() {
         {/* Monthly breakdown table with editable targets */}
         <Card className="border-border/50 py-0">
           <CardHeader className="pb-2 pt-4 px-5">
-            <CardTitle className="text-sm font-display font-semibold">Monthly Breakdown</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-display font-semibold">Monthly Breakdown</CardTitle>
+              <p className="text-[11px] text-muted-foreground">
+                Past 12 months + upcoming months
+              </p>
+            </div>
           </CardHeader>
           <CardContent className="px-0 pb-0">
             <div className="overflow-x-auto">
@@ -316,20 +376,37 @@ export default function Goals() {
                   )}
                   {!progressLoading &&
                     [...(progress ?? [])].reverse().map((row) => {
+                      const isFuture = row.periodMonth > thisMonth;
                       const rowPct =
-                        row.targetRevenue && row.targetRevenue > 0
+                        row.targetRevenue && row.targetRevenue > 0 && row.actualRevenue > 0
                           ? (row.actualRevenue / row.targetRevenue) * 100
                           : null;
                       return (
                         <tr
                           key={row.periodMonth}
-                          className="border-b border-border/30 hover:bg-muted/30 transition-colors"
+                          className={`border-b border-border/30 hover:bg-muted/30 transition-colors ${isFuture ? "opacity-75" : ""}`}
                         >
                           <td className="px-5 py-2.5 font-medium">
-                            {formatPeriodLabel(row.periodMonth)}
+                            <span className="flex items-center gap-1.5">
+                              {formatPeriodLabel(row.periodMonth)}
+                              {isFuture && (
+                                <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                  Future
+                                </Badge>
+                              )}
+                              {row.periodMonth === thisMonth && (
+                                <Badge variant="default" className="text-[9px] h-4 px-1 bg-amber-700">
+                                  Current
+                                </Badge>
+                              )}
+                            </span>
                           </td>
                           <td className="px-3 py-2.5 text-right font-data">
-                            {formatCurrency(row.actualRevenue)}
+                            {isFuture ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : (
+                              formatCurrency(row.actualRevenue)
+                            )}
                           </td>
                           <td className="px-3 py-2.5 text-right font-data">
                             {row.targetRevenue !== null ? (
@@ -368,18 +445,37 @@ export default function Goals() {
         </Card>
       </div>
 
-      {/* Set/Edit target dialog — works for any month */}
+      {/* Set/Edit target dialog — works for any month including future */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Set Target — {formatPeriodLabel(editingMonth)}
+              {monthPickerMode ? "Set Target for Any Month" : `Set Target — ${formatPeriodLabel(editingMonth)}`}
             </DialogTitle>
             <DialogDescription>
-              Revenue target for {formatPeriodLabel(editingMonth)}. Dozens is optional.
+              {monthPickerMode
+                ? "Choose a month and set the revenue target. You can set targets for past or future months."
+                : `Revenue target for ${formatPeriodLabel(editingMonth)}. Dozens is optional.`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {monthPickerMode && (
+              <div className="space-y-1.5">
+                <Label htmlFor="monthSelect">Month</Label>
+                <Select value={editingMonth} onValueChange={handleMonthChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="targetRevenue">Revenue target ($)</Label>
               <Input
