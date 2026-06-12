@@ -243,7 +243,7 @@ export default function Leads() {
     createLeadMut.mutate({
       name: form.name,
       business: form.business,
-      email: form.email,
+      email: form.email || undefined,
       phone: form.phone || undefined,
       message: form.message || undefined,
       source: "manual",
