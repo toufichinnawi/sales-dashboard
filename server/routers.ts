@@ -198,6 +198,19 @@ export const appRouter = router({
   accounting: router({
     listCosts: protectedProcedure.query(() => listProductCosts()),
     distinctProducts: protectedProcedure.query(() => listDistinctOrderProducts()),
+    // Full product catalog for order/standing-order pickers: the curated
+    // product_costs list unioned with every product name that has appeared on
+    // a real order line, deduped and alphabetized.
+    productCatalog: protectedProcedure.query(async () => {
+      const [costs, distinct] = await Promise.all([
+        listProductCosts(),
+        listDistinctOrderProducts(),
+      ]);
+      const names = new Set<string>();
+      for (const c of costs) names.add(c.productName);
+      for (const d of distinct) names.add(d);
+      return Array.from(names).sort((a, b) => a.localeCompare(b));
+    }),
     upsertCost: adminProcedure
       .input(
         z.object({
@@ -956,7 +969,7 @@ export const appRouter = router({
           recurringOrderId: z.number().optional(),
           items: z.array(
             z.object({
-              product: z.enum(["plain", "sesame", "everything"]),
+              product: z.string().min(1),
               quantity: z.number().min(0.5, "Minimum 0.5"),
               unitPrice: z.number().min(0),
             })
@@ -1112,7 +1125,7 @@ export const appRouter = router({
           discount: z.number().min(0).default(0),
           items: z.array(
             z.object({
-              product: z.enum(["plain", "sesame", "everything"]),
+              product: z.string().min(1),
               quantity: z.number().min(0.5, "Minimum 0.5"),
               unitPrice: z.number().min(0),
             })
@@ -1286,7 +1299,7 @@ export const appRouter = router({
           notes: z.string().optional(),
           items: z.array(
             z.object({
-              product: z.enum(["plain", "sesame", "everything"]),
+              product: z.string().min(1),
               quantity: z.number().min(0.5),
               unitPrice: z.number().min(0),
             })

@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -123,7 +124,7 @@ const statusConfig: Record<
 };
 
 type OrderItem = {
-  product: "plain" | "sesame" | "everything";
+  product: string;
   quantity: number;
   unitPrice: number;
 };
@@ -158,10 +159,33 @@ export default function Orders() {
 
   const { data: orders, isLoading, error } = trpc.orders.list.useQuery(dateFilters);
   const { data: customers } = trpc.customers.list.useQuery();
+  const { data: catalog } = trpc.accounting.productCatalog.useQuery();
   const { data: orderDetail } = trpc.orders.getById.useQuery(
     { id: viewOrderId! },
     { enabled: viewOrderId !== null }
   );
+
+  const customerOptions = useMemo(
+    () =>
+      (customers ?? []).map((c) => ({
+        value: String(c.id),
+        label: c.contactName ? `${c.businessName} — ${c.contactName}` : c.businessName,
+      })),
+    [customers]
+  );
+  const productOptions = useMemo(() => {
+    // Legacy products keep their short ids (known prices auto-fill); every other
+    // catalog product name is appended so the full catalog is selectable.
+    const opts = PRODUCTS.map((p) => ({ value: p.id as string, label: p.name }));
+    const seen = new Set(opts.map((o) => o.value));
+    for (const name of catalog ?? []) {
+      if (!seen.has(name)) {
+        opts.push({ value: name, label: name });
+        seen.add(name);
+      }
+    }
+    return opts.sort((a, b) => a.label.localeCompare(b.label));
+  }, [catalog]);
   const utils = trpc.useUtils();
 
   const createMut = trpc.orders.create.useMutation({
@@ -364,18 +388,15 @@ export default function Orders() {
                       No customers yet. Add a customer first from the Customers page.
                     </p>
                   ) : (
-                    <Select value={customerId} onValueChange={setCustomerId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a customer..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(customers ?? []).map((c) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.businessName} — {c.contactName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={customerOptions}
+                      value={customerId}
+                      onChange={setCustomerId}
+                      placeholder="Select a customer..."
+                      searchPlaceholder="Search customers..."
+                      emptyText="No customer found."
+                      className="w-full"
+                    />
                   )}
                 </div>
 
@@ -424,21 +445,16 @@ export default function Orders() {
                         className="flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-muted/30"
                       >
                         <div className="flex-1">
-                          <Select
+                          <Combobox
+                            options={productOptions}
                             value={item.product}
-                            onValueChange={(v) => updateItem(index, "product", v)}
-                          >
-                            <SelectTrigger className="h-8 text-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {PRODUCTS.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name} — ${p.price.toFixed(2)}/dz
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            onChange={(v) => updateItem(index, "product", v)}
+                            placeholder="Select product..."
+                            searchPlaceholder="Search products..."
+                            emptyText="No product found."
+                            allowCustom
+                            className="h-8 w-full text-sm"
+                          />
                         </div>
                         <div className="w-24">
                           <Input

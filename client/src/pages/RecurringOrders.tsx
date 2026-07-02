@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,7 +73,7 @@ const statusColors: Record<string, string> = {
 };
 
 type OrderItem = {
-  product: "plain" | "sesame" | "everything";
+  product: string;
   quantity: number;
   unitPrice: number;
 };
@@ -360,6 +361,24 @@ function CreateStandingOrderDialog({
   customers: Array<{ id: number; businessName: string; address: string | null }>;
 }) {
   const utils = trpc.useUtils();
+  const { data: catalog } = trpc.accounting.productCatalog.useQuery();
+  const productOptions = useMemo(() => {
+    // Keep the 3 legacy products' short ids (so known prices still auto-fill),
+    // then append every catalog product name that isn't already covered.
+    const opts = PRODUCTS.map((p) => ({ value: p.value as string, label: p.label as string }));
+    const seen = new Set(opts.map((o) => o.value));
+    for (const name of catalog ?? []) {
+      if (!seen.has(name)) {
+        opts.push({ value: name, label: name });
+        seen.add(name);
+      }
+    }
+    return opts.sort((a, b) => a.label.localeCompare(b.label));
+  }, [catalog]);
+  const customerOptions = useMemo(
+    () => customers.map((c) => ({ value: String(c.id), label: c.businessName })),
+    [customers],
+  );
   const [customerId, setCustomerId] = useState<string>("");
   const [dayOfWeek, setDayOfWeek] = useState<string>("tuesday");
   const [frequency, setFrequency] = useState<string>("weekly");
@@ -402,7 +421,13 @@ function CreateStandingOrderDialog({
     const updated = [...items];
     if (field === "product") {
       const prod = PRODUCTS.find((p) => p.value === value);
-      updated[index] = { ...updated[index], product: value, unitPrice: prod?.price ?? 8.0 };
+      // Auto-fill price only for the known legacy products; otherwise keep the
+      // current price so a catalog/custom pick doesn't clobber a typed price.
+      updated[index] = {
+        ...updated[index],
+        product: value,
+        unitPrice: prod ? prod.price : updated[index].unitPrice,
+      };
     } else {
       updated[index] = { ...updated[index], [field]: value };
     }
@@ -447,18 +472,15 @@ function CreateStandingOrderDialog({
           {/* Customer */}
           <div>
             <Label className="text-xs mb-1.5">Customer</Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select customer..." />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.businessName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={customerOptions}
+              value={customerId}
+              onChange={setCustomerId}
+              placeholder="Select customer..."
+              searchPlaceholder="Search customers..."
+              emptyText="No customer found."
+              className="w-full"
+            />
           </div>
 
           {/* Schedule */}
@@ -515,21 +537,16 @@ function CreateStandingOrderDialog({
             <div className="space-y-2">
               {items.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Select
+                  <Combobox
+                    options={productOptions}
                     value={item.product}
-                    onValueChange={(v) => updateItem(i, "product", v)}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRODUCTS.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => updateItem(i, "product", v)}
+                    placeholder="Select product..."
+                    searchPlaceholder="Search products..."
+                    emptyText="No product found."
+                    allowCustom
+                    className="flex-1"
+                  />
                   <Input
                     type="number"
                     min={0.5}
