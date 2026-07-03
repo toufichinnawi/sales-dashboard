@@ -1290,8 +1290,11 @@ function periodFilters(range: PeriodRange) {
 
 // Aggregate all order-line dozens + revenue in the period, grouped by canonical
 // product (same case-insensitive substring rule as profitByCustomer: longest
-// canonical name wins, alphabetical tiebreak). Lines matching no canonical
-// collapse into a single "Uncategorized" bucket. Cancelled orders excluded —
+// canonical name wins, alphabetical tiebreak). Lines matching no canonical get
+// their OWN row keyed by the raw order-line product name (flagged isCanonical:
+// false) so the bake sheet shows every distinct product — they just lack cost
+// data until a canonical row is added on /costs. Only genuinely blank product
+// names fall back to the "Uncategorized" label. Cancelled orders excluded —
 // they don't represent real factory demand. Returns rows sorted by dozens desc
 // plus a grand-total dozens for KPI display.
 export async function productionDemand(range: PeriodRange) {
@@ -1337,7 +1340,10 @@ export async function productionDemand(range: PeriodRange) {
 
     const lower = r.product.toLowerCase();
     const match = canonical.find(c => lower.includes(c.productNameLower));
-    const key = match?.productName ?? UNCATEGORIZED;
+    // Matched → canonical name. Unmatched → keep the raw product name so each
+    // distinct product is its own bake-sheet row; only truly blank names use
+    // the "Uncategorized" fallback.
+    const key = match?.productName ?? (r.product?.trim() || UNCATEGORIZED);
     const isCanonical = !!match;
 
     const bucket = buckets.get(key) ?? { product: key, dozens: 0, revenue: 0, isCanonical };

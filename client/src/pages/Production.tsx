@@ -53,7 +53,9 @@ export default function Production() {
 
   const rows = data?.rows ?? [];
   const totalDozens = data?.totalDozens ?? 0;
-  const uncategorized = rows.find((r) => !r.isCanonical);
+  const uncostedRows = rows.filter((r) => !r.isCanonical);
+  const uncostedDozens = uncostedRows.reduce((sum, r) => sum + r.dozens, 0);
+  const uncostedRevenue = uncostedRows.reduce((sum, r) => sum + r.revenue, 0);
 
   return (
     <div className="space-y-6">
@@ -154,7 +156,7 @@ export default function Production() {
                             <span className="font-medium">{row.product}</span>
                             {!row.isCanonical && (
                               <Badge className="bg-amber-100 text-amber-800 text-[10px]">
-                                Uncategorized
+                                No cost data
                               </Badge>
                             )}
                           </div>
@@ -170,14 +172,14 @@ export default function Production() {
                 </tbody>
               </table>
             </div>
-            {uncategorized && (
+            {uncostedRows.length > 0 && (
               <div className="px-5 py-3 border-t border-border/40 text-[11px] text-amber-800 bg-amber-50/60">
-                {formatDozens(uncategorized.dozens)} ({formatCurrency(uncategorized.revenue)}) of
-                demand is uncategorized.{" "}
+                {uncostedRows.length} product{uncostedRows.length === 1 ? "" : "s"} (
+                {formatDozens(uncostedDozens)}, {formatCurrency(uncostedRevenue)}) have no cost data.{" "}
                 <Link to="/costs" className="underline font-medium hover:text-amber-900">
-                  Add canonical products on /costs
+                  Add them on /costs
                 </Link>{" "}
-                whose names appear in those order lines to fold them in.
+                to track profit — they still count toward your bake totals above.
               </div>
             )}
           </CardContent>
