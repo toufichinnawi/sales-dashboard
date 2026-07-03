@@ -27,6 +27,27 @@ import {
 
 const UNASSIGNED_QB_BUSINESS_NAME = "Unassigned (QuickBooks)";
 
+// QuickBooks encodes the sales unit in the product name, and the read-side
+// dozens math (unit === "each" ? qty/12 : qty) depends on us labelling it
+// right:
+//   • "… Dozen" items are sold by the dozen        → Qty is already dozens
+//   • "Half dozen …" items by the half-dozen       → Qty × 0.5 dozens, price ×2
+//   • everything else (pastries, coffee, drinks…)  → genuinely per-item ("each")
+// Mislabelling non-dozen items as "dozen" would skip the ÷12 and overcount them
+// ~12×; the earlier blanket "dozen" fix did exactly that, so derive per-line.
+function normalizeQbLineUnit(productName: string, qty: number, unitPrice: number) {
+  const name = productName.toLowerCase();
+  const hasDozen = name.includes("dozen");
+  const isHalfDozen = hasDozen && name.includes("half");
+  if (isHalfDozen) {
+    return { quantity: qty * 0.5, unit: "dozen", unitPrice: unitPrice * 2 };
+  }
+  if (hasDozen) {
+    return { quantity: qty, unit: "dozen", unitPrice };
+  }
+  return { quantity: qty, unit: "each", unitPrice };
+}
+
 async function getOrCreateUnassignedQBCustomer(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>
 ): Promise<number> {
@@ -360,15 +381,13 @@ export async function syncInvoices(): Promise<{
               const unitPrice = detail.UnitPrice || 0;
               const lineTotal = Number(line.Amount || 0);
 
+              const norm = normalizeQbLineUnit(productName, qty, unitPrice);
               await db.insert(orderItems).values({
                 orderId,
                 product: productName,
-                quantity: String(qty),
-                // QuickBooks Qty is a count of DOZENS (items are named "… Dozen"
-                // and UnitPrice is per-dozen), so store unit "dozen". Storing
-                // "each" made the read-side ÷12 undercount dozens ~12×.
-                unit: "dozen",
-                unitPrice: String(unitPrice.toFixed(2)),
+                quantity: String(norm.quantity),
+                unit: norm.unit,
+                unitPrice: String(norm.unitPrice.toFixed(2)),
                 lineTotal: String(lineTotal.toFixed(2)),
               });
             }
@@ -661,15 +680,13 @@ export async function syncSalesReceipts(): Promise<{
               const unitPrice = detail.UnitPrice || 0;
               const lineTotal = Number(line.Amount || 0);
 
+              const norm = normalizeQbLineUnit(productName, qty, unitPrice);
               await db.insert(orderItems).values({
                 orderId,
                 product: productName,
-                quantity: String(qty),
-                // QuickBooks Qty is a count of DOZENS (items are named "… Dozen"
-                // and UnitPrice is per-dozen), so store unit "dozen". Storing
-                // "each" made the read-side ÷12 undercount dozens ~12×.
-                unit: "dozen",
-                unitPrice: String(unitPrice.toFixed(2)),
+                quantity: String(norm.quantity),
+                unit: norm.unit,
+                unitPrice: String(norm.unitPrice.toFixed(2)),
                 lineTotal: String(lineTotal.toFixed(2)),
               });
             }
