@@ -52,17 +52,24 @@ export default function Costs() {
 
   const { data: costs, isLoading: costsLoading } = trpc.accounting.listCosts.useQuery();
   const { data: summary } = trpc.accounting.profitSummary.useQuery();
+  const { data: orderProducts, isLoading: orderProductsLoading } =
+    trpc.accounting.orderProducts.useQuery();
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  // Inline "cost per dozen" drafts, keyed by product name, for the worklist.
+  const [costDrafts, setCostDrafts] = useState<Record<string, string>>({});
 
   const invalidateAll = () =>
     Promise.all([
       utils.accounting.listCosts.invalidate(),
+      utils.accounting.orderProducts.invalidate(),
       utils.accounting.profitByCustomer.invalidate(),
       utils.accounting.profitSummary.invalidate(),
     ]);
+
+  const uncostedProducts = (orderProducts ?? []).filter((p) => !p.isCosted);
 
   const upsert = trpc.accounting.upsertCost.useMutation({
     onSuccess: async () => {
@@ -121,6 +128,23 @@ export default function Costs() {
 
   const handleDeleteConfirm = () => {
     if (deleteTarget) remove.mutate({ productName: deleteTarget });
+  };
+
+  // Add a cost straight from the worklist row (no dialog). Uses the exact order
+  // product name as the canonical name so it matches only that product.
+  const handleQuickAdd = (productName: string) => {
+    const raw = costDrafts[productName] ?? "";
+    const cost = Number(raw);
+    if (raw.trim() === "" || !Number.isFinite(cost) || cost < 0) {
+      toast.error("Enter a valid unit cost");
+      return;
+    }
+    setCostDrafts((prev) => {
+      const next = { ...prev };
+      delete next[productName];
+      return next;
+    });
+    upsert.mutate({ productName, unitCost: cost, unit: "dozen" });
   };
 
   return (
@@ -257,6 +281,107 @@ export default function Costs() {
           </CardContent>
         </Card>
 
+        {/* Worklist: real order products, ready to cost (admins only) */}
+        {isAdmin && (
+          <Card className="border-border/50 py-0">
+            <CardHeader className="pb-2 pt-4 px-5">
+              <CardTitle className="text-sm font-display font-semibold">
+                Add Costs for Your Products
+              </CardTitle>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {orderProductsLoading
+                  ? "Loading…"
+                  : uncostedProducts.length === 0
+                    ? "Every product from your orders is costed. 🎉"
+                    : `${uncostedProducts.length} uncosted product${
+                        uncostedProducts.length === 1 ? "" : "s"
+                      } from your orders — highest revenue first. Enter a cost per dozen and click Add.`}
+              </p>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/60">
+                      <th className="text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-5 py-2.5">
+                        Product
+                      </th>
+                      <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">
+                        Revenue
+                      </th>
+                      <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">
+                        Dozens
+                      </th>
+                      <th className="text-right font-semibold text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-2.5">
+                        Cost / dozen ($)
+                      </th>
+                      <th className="px-5 py-2.5"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderProductsLoading && (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-6">
+                          <Skeleton className="h-4 w-40" />
+                        </td>
+                      </tr>
+                    )}
+                    {!orderProductsLoading && uncostedProducts.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">
+                          Nothing left to cost.
+                        </td>
+                      </tr>
+                    )}
+                    {!orderProductsLoading &&
+                      uncostedProducts.map((p) => (
+                        <tr
+                          key={p.product}
+                          className="border-b border-border/30 hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-5 py-2 font-medium">{p.product}</td>
+                          <td className="px-3 py-2 text-right font-data text-muted-foreground">
+                            {formatCurrency(p.revenue)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-data text-muted-foreground">
+                            {p.dozens.toLocaleString()}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              className="h-7 w-24 ml-auto text-right"
+                              placeholder="0.00"
+                              value={costDrafts[p.product] ?? ""}
+                              onChange={(e) =>
+                                setCostDrafts((prev) => ({ ...prev, [p.product]: e.target.value }))
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleQuickAdd(p.product);
+                              }}
+                            />
+                          </td>
+                          <td className="px-5 py-2 text-right">
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs"
+                              disabled={upsert.isPending || (costDrafts[p.product] ?? "").trim() === ""}
+                              onClick={() => handleQuickAdd(p.product)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Add/Edit dialog */}

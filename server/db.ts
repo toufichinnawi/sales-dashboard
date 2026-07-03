@@ -1366,6 +1366,56 @@ export async function productionDemand(range: PeriodRange) {
   return { rows, totalDozens };
 }
 
+// Every distinct order-line product with its total dozens + revenue, flagged by
+// whether a canonical product_costs row already matches it (same case-insensitive
+// substring rule as productionDemand). Powers the Costs page worklist: "here are
+// your real products, add a cost for each", sorted by revenue so the biggest
+// uncosted lines float to the top. Cancelled orders excluded.
+export async function listOrderProductsForCosting() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const [lines, catalog] = await Promise.all([
+    db
+      .select({
+        product: orderItems.product,
+        quantity: orderItems.quantity,
+        unit: orderItems.unit,
+        lineTotal: orderItems.lineTotal,
+      })
+      .from(orders)
+      .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+      .where(notInArray(orders.status, ['cancelled'])),
+    listProductCosts(),
+  ]);
+
+  const canonical = catalog.map(c => c.productName.toLowerCase()).filter(Boolean);
+
+  const buckets = new Map<string, { product: string; dozens: number; revenue: number }>();
+  for (const r of lines) {
+    if (!r.product) continue;
+    const rawQty = Number(r.quantity);
+    const dozens = r.unit === "each" ? rawQty / 12 : rawQty;
+    const revenue = Number(r.lineTotal);
+    const b = buckets.get(r.product) ?? { product: r.product, dozens: 0, revenue: 0 };
+    b.dozens += dozens;
+    b.revenue += revenue;
+    buckets.set(r.product, b);
+  }
+
+  return Array.from(buckets.values())
+    .map(b => {
+      const lower = b.product.toLowerCase();
+      return {
+        product: b.product,
+        dozens: Math.round(b.dozens * 100) / 100,
+        revenue: Math.round(b.revenue * 100) / 100,
+        isCosted: canonical.some(c => lower.includes(c)),
+      };
+    })
+    .sort((a, b) => b.revenue - a.revenue);
+}
+
 // What does this client order — grouped by the RAW order-line product name
 // (no canonical rewriting; the user wants to see what the customer literally
 // orders). Cancelled orders excluded.

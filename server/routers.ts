@@ -32,6 +32,7 @@ import {
   upsertProductCost,
   deleteProductCost,
   listDistinctOrderProducts,
+  listOrderProductsForCosting,
   profitByCustomer,
   profitSummary,
   productionDemand,
@@ -198,6 +199,9 @@ export const appRouter = router({
   accounting: router({
     listCosts: protectedProcedure.query(() => listProductCosts()),
     distinctProducts: protectedProcedure.query(() => listDistinctOrderProducts()),
+    // Worklist for the Costs page: every real order product with revenue/dozens
+    // and whether it's already costed, so uncosted big sellers surface first.
+    orderProducts: protectedProcedure.query(() => listOrderProductsForCosting()),
     // Full product catalog for order/standing-order pickers: the curated
     // product_costs list unioned with every product name that has appeared on
     // a real order line, deduped and alphabetized.
