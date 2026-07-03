@@ -1404,6 +1404,9 @@ export async function listOrderProductsForCosting() {
   }
 
   return Array.from(buckets.values())
+    // Drop QuickBooks-deleted items: they keep appearing on historical invoice
+    // lines tagged "(deleted)" but can never be sold or costed — pure noise.
+    .filter(b => !/\(deleted\)/i.test(b.product))
     .map(b => {
       const lower = b.product.toLowerCase();
       return {
