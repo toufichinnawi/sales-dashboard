@@ -364,7 +364,10 @@ export async function syncInvoices(): Promise<{
                 orderId,
                 product: productName,
                 quantity: String(qty),
-                unit: "each",
+                // QuickBooks Qty is a count of DOZENS (items are named "… Dozen"
+                // and UnitPrice is per-dozen), so store unit "dozen". Storing
+                // "each" made the read-side ÷12 undercount dozens ~12×.
+                unit: "dozen",
                 unitPrice: String(unitPrice.toFixed(2)),
                 lineTotal: String(lineTotal.toFixed(2)),
               });
@@ -662,7 +665,10 @@ export async function syncSalesReceipts(): Promise<{
                 orderId,
                 product: productName,
                 quantity: String(qty),
-                unit: "each",
+                // QuickBooks Qty is a count of DOZENS (items are named "… Dozen"
+                // and UnitPrice is per-dozen), so store unit "dozen". Storing
+                // "each" made the read-side ÷12 undercount dozens ~12×.
+                unit: "dozen",
                 unitPrice: String(unitPrice.toFixed(2)),
                 lineTotal: String(lineTotal.toFixed(2)),
               });
