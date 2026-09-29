@@ -33,6 +33,7 @@ import Documents from "./pages/Documents";
 import Goals from "./pages/Goals";
 import Costs from "./pages/Costs";
 import Production from "./pages/Production";
+import LivePerformance from "./pages/LivePerformance";
 import CustomerDetail from "./pages/CustomerDetail";
 import PortalDocuments from "./pages/portal/PortalDocuments";
 
@@ -45,6 +46,7 @@ function DashboardRouter() {
         <Route path={"/deals"} component={Deals} />
         <Route path={"/team"} component={Team} />
         <Route path={"/analytics"} component={Analytics} />
+        <Route path={"/live-performance"} component={LivePerformance} />
         <Route path={"/goals"} component={Goals} />
         <Route path={"/costs"} component={Costs} />
         <Route path={"/production"} component={Production} />

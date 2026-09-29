@@ -18,6 +18,11 @@ import {
   productCosts, InsertProductCost, ProductCost,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import {
+  buildLivePerformanceSnapshot,
+  getLivePerformanceMonthKey,
+  getLivePerformanceQueryStart,
+} from "./live-performance";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -619,6 +624,68 @@ export async function getDashboardStats(dateRange?: { startDate?: string; endDat
       orderCount: tc.orderCount,
     })),
   };
+}
+
+/**
+ * Consolidated, Toronto-time snapshot for the Live Performance page. The
+ * calculation itself stays in live-performance.ts, where it can be tested with
+ * deterministic timestamps independent of MySQL server timezone settings.
+ */
+export async function getLivePerformanceSnapshot(now = new Date()) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const queryStart = getLivePerformanceQueryStart(now);
+  const targetMonth = getLivePerformanceMonthKey(now);
+
+  const [orderRows, itemRows, customerRows, target] = await Promise.all([
+    db
+      .select({
+        id: orders.id,
+        customerId: orders.customerId,
+        customerName: customers.businessName,
+        orderNumber: orders.orderNumber,
+        status: orders.status,
+        total: orders.total,
+        createdAt: orders.createdAt,
+      })
+      .from(orders)
+      .leftJoin(customers, eq(customers.id, orders.customerId))
+      .where(gte(orders.createdAt, queryStart)),
+    db
+      .select({
+        orderId: orderItems.orderId,
+        quantity: orderItems.quantity,
+        unit: orderItems.unit,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .where(gte(orders.createdAt, queryStart)),
+    db
+      .select({ id: customers.id, createdAt: customers.createdAt })
+      .from(customers)
+      .where(gte(customers.createdAt, queryStart)),
+    getTarget(targetMonth),
+  ]);
+
+  return buildLivePerformanceSnapshot({
+    now,
+    orders: orderRows.map((order) => ({
+      ...order,
+      total: Number(order.total),
+    })),
+    orderItems: itemRows.map((item) => ({
+      ...item,
+      quantity: Number(item.quantity),
+    })),
+    customers: customerRows,
+    target: target
+      ? {
+          targetRevenue: Number(target.targetRevenue),
+          targetDozens: target.targetDozens === null ? null : Number(target.targetDozens),
+        }
+      : null,
+  });
 }
 
 // Pipeline funnel — counts of open leads grouped by status and by tier.
