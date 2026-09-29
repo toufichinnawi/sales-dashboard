@@ -1503,7 +1503,7 @@ export const appRouter = router({
                 `Invoices: ${result.invoices.created} created, ${result.invoices.updated} updated`,
                 `Credit Memos: ${result.creditMemos.created} created, ${result.creditMemos.updated} updated`,
                 `Sales Receipts: ${result.salesReceipts.created} created, ${result.salesReceipts.updated} updated`,
-                `Income Deposits: ${result.incomeDeposits.created} created, ${result.incomeDeposits.updated} updated`,
+                `Bank deposits: excluded from sales reporting`,
                 `Payments: ${result.payments.processed} processed`,
                 result.errors.length > 0
                   ? `Errors: ${result.errors.length} (check sync logs)`

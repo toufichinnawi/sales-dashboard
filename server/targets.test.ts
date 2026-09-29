@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock the db module
 vi.mock("./db", () => ({
@@ -229,7 +229,15 @@ describe("targets.upsert", () => {
 });
 
 describe("targets.progress", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("returns progress with targets merged for default 6 months plus future months", async () => {
     const actuals = [

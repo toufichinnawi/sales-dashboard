@@ -711,114 +711,19 @@ export async function syncSalesReceipts(): Promise<{
 }
 
 // ─── Income Deposit Sync ─────────────────────────────────────────────────────
-// Syncs bank deposits that have line items posting to income accounts
-// (e.g., "Sales of Product Income"). These are direct income entries, not invoices.
-
-const INCOME_ACCOUNT_NAMES = [
-  "sales of product income",
-  "sales",
-  "service income",
-  "other income",
-];
+//
+// QuickBooks deposits are bank-account movements that may aggregate payments for
+// invoices or sales receipts already imported above. They lack reliable customer
+// attribution and must not be treated as customer orders or sales revenue. Keep
+// the public function as an intentional no-op for backward compatibility, but do
+// not fetch or create deposit records in the sales dashboard.
 
 export async function syncIncomeDeposits(): Promise<{
   created: number;
   updated: number;
   errors: string[];
 }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  let created = 0;
-  let updated = 0;
-  const errors: string[] = [];
-
-  try {
-    let startPosition = 1;
-    const pageSize = 1000;
-    let hasMore = true;
-
-    while (hasMore) {
-      const result = await qbQuery(
-        `SELECT * FROM Deposit STARTPOSITION ${startPosition} MAXRESULTS ${pageSize}`
-      );
-
-      const qbDeposits = result?.QueryResponse?.Deposit ?? [];
-      if (qbDeposits.length === 0) {
-        hasMore = false;
-        break;
-      }
-
-      for (const dep of qbDeposits) {
-        try {
-          // Check if any line items post to an income account
-          const incomeLines = (dep.Line || []).filter((line: any) => {
-            const acctName = line.DepositLineDetail?.AccountRef?.name?.toLowerCase() || "";
-            return INCOME_ACCOUNT_NAMES.some(name => acctName.includes(name));
-          });
-
-          if (incomeLines.length === 0) continue; // Skip non-income deposits
-
-          // Sum only the income line amounts
-          const incomeTotal = incomeLines.reduce(
-            (sum: number, line: any) => sum + Number(line.Amount || 0),
-            0
-          );
-
-          if (incomeTotal <= 0) continue;
-
-          const depNum = dep.DocNumber || `DEP${dep.Id}`;
-          const orderNumber = `DEP-${depNum}`;
-
-          const existingOrder = await db
-            .select()
-            .from(orders)
-            .where(eq(orders.orderNumber, orderNumber))
-            .limit(1);
-
-          const deliveryDate = parseQBDate(dep.TxnDate);
-
-          if (existingOrder.length > 0) {
-            await db
-              .update(orders)
-              .set({
-                deliveryDate,
-                total: String(incomeTotal.toFixed(2)),
-                subtotal: String(incomeTotal.toFixed(2)),
-              })
-              .where(eq(orders.id, existingOrder[0].id));
-            updated++;
-          } else {
-            await db.insert(orders).values({
-              customerId: 1, // Deposits don't always have a customer
-              orderNumber,
-              status: "paid",
-              deliveryDate,
-              deliveryAddress: null,
-              subtotal: String(incomeTotal.toFixed(2)),
-              discount: "0.00",
-              total: String(incomeTotal.toFixed(2)),
-              notes: `QB Deposit #${depNum} | QB ID: ${dep.Id} | Income account deposit`,
-              recurringOrderId: null,
-              createdAt: deliveryDate,
-            });
-            created++;
-          }
-        } catch (depErr: any) {
-          errors.push(
-            `Deposit ${dep.DocNumber || dep.Id}: ${depErr.message}`
-          );
-        }
-      }
-
-      startPosition += pageSize;
-      if (qbDeposits.length < pageSize) hasMore = false;
-    }
-  } catch (err: any) {
-    errors.push(`Income Deposit sync error: ${err.message}`);
-  }
-
-  return { created, updated, errors };
+  return { created: 0, updated: 0, errors: [] };
 }
 
 // ─── Full Sync Orchestrator ───────────────────────────────────────────────────
