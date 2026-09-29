@@ -16,16 +16,25 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
+  AlertTriangle,
+  CalendarDays,
   CheckCircle2,
+  CircleDot,
   Clock3,
   DollarSign,
+  MessageCircle,
   PackageCheck,
-  ShoppingBag,
+  PhoneCall,
+  Target,
+  Timer,
+  Trophy,
   Truck,
   UserPlus,
+  UserCheck,
   Users,
   Wifi,
   WifiOff,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +88,7 @@ function KpiCard({
   const Arrow = positive ? ArrowUpRight : ArrowDownRight;
 
   return (
-    <article className={cn("tv-card relative flex min-w-0 flex-col justify-between overflow-hidden px-4 py-3", featured && "tv-card-featured")}>
+    <article className={cn("tv-card relative flex min-w-0 flex-col justify-between overflow-hidden px-3 py-2 min-[1600px]:px-4 min-[1600px]:py-3", featured && "tv-card-featured")}>
       <div className="flex items-start justify-between gap-2">
         <p className="tv-eyebrow truncate">{label}</p>
         {comparison.percentChange !== null && comparison.difference !== 0 && (
@@ -89,10 +98,10 @@ function KpiCard({
           </span>
         )}
       </div>
-      <p className={cn("mt-1 font-mono text-[2rem] font-semibold leading-none tracking-[-0.05em] text-white", featured && "text-[#ff7658]")}>
+      <p className={cn("mt-1 font-mono text-2xl font-semibold leading-none tracking-[-0.05em] text-white min-[1600px]:text-[2rem]", featured && "text-[#ff7658]")}>
         {formatMetric(comparison.current, kind)}
       </p>
-      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#676361]">
+      <div className="mt-1 flex items-center gap-1.5 text-[9px] text-[#676361] min-[1600px]:mt-2 min-[1600px]:text-[10px]">
         <span className={cn("rounded bg-white/[0.045] px-1.5 py-0.5 font-medium", positive && "text-emerald-400", negative && "text-rose-400")}>
           {formatPercent(comparison.percentChange)}
         </span>
@@ -100,6 +109,86 @@ function KpiCard({
       </div>
       <div className={cn("absolute inset-x-0 bottom-0 h-[2px]", positive ? "bg-emerald-400" : negative ? "bg-[#ff6847]" : "bg-white/10")} />
     </article>
+  );
+}
+
+function LeadKpiCard({
+  label,
+  value,
+  today,
+  month,
+  icon: Icon,
+  valueSuffix,
+  tracked = true,
+  inverse = false,
+}: {
+  label: string;
+  value: number | null;
+  today?: Comparison;
+  month?: Comparison;
+  icon: React.ElementType;
+  valueSuffix?: string;
+  tracked?: boolean;
+  inverse?: boolean;
+}) {
+  const trend = month?.difference ?? today?.difference ?? 0;
+  const favorable = inverse ? trend < 0 : trend > 0;
+  const unfavorable = inverse ? trend > 0 : trend < 0;
+  return (
+    <article className="tv-card flex min-w-0 items-center gap-3 overflow-hidden px-3 py-2">
+      <div className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
+        favorable ? "border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-400" :
+        unfavorable ? "border-rose-400/15 bg-rose-400/[0.06] text-rose-400" :
+        "border-[#ff6847]/15 bg-[#ff6847]/[0.06] text-[#ff8066]"
+      )}>
+        <Icon className="h-3.5 w-3.5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="tv-mini-label truncate">{label}</p>
+        <div className="mt-1 flex items-end justify-between gap-2">
+          <p className="truncate font-mono text-lg font-semibold leading-none text-white">
+            {!tracked || value === null ? "Not tracked" : `${number.format(value)}${valueSuffix ?? ""}`}
+          </p>
+          {tracked && (today || month) && (
+            <div className="shrink-0 text-right text-[7px] leading-[1.35] text-[#66615e]">
+              {today && <p><span className="text-[#b8b2ae]">{today.current}</span> today · {formatPercent(today.percentChange)}</p>}
+              {month && <p><span className="text-[#b8b2ae]">{month.current}</span> month · {formatPercent(month.percentChange)}</p>}
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function FunnelStage({
+  label,
+  current,
+  entered,
+  exited,
+  final = false,
+}: {
+  label: string;
+  current: number | null;
+  entered: number | null;
+  exited: number | null;
+  final?: boolean;
+}) {
+  return (
+    <div className="relative flex min-w-0 flex-1 items-center">
+      <div className={cn("flex h-full min-w-0 flex-1 flex-col justify-center rounded-lg border px-2.5", final ? "border-[#ff6847]/20 bg-[#ff6847]/[0.045]" : "border-white/[0.055] bg-white/[0.024]")}>
+        <p className="truncate text-[7px] font-semibold uppercase tracking-[0.12em] text-[#77716d]">{label}</p>
+        <div className="mt-1 flex items-end justify-between gap-2">
+          <p className="font-mono text-xl font-semibold leading-none text-white">{current === null ? "—" : current}</p>
+          <div className="text-right text-[7px] leading-[1.35]">
+            <p className="text-emerald-400">+{entered === null ? "—" : entered} in</p>
+            <p className="text-rose-400">−{exited === null ? "—" : exited} out</p>
+          </div>
+        </div>
+      </div>
+      {!final && <div className="mx-1 h-px w-3 shrink-0 bg-gradient-to-r from-[#ff6847]/70 to-white/10" />}
+    </div>
   );
 }
 
@@ -224,17 +313,19 @@ export default function GrowthDashboard() {
   if (!query.data) return <DataUnavailable retry={() => void query.refetch()} message={query.error?.message} />;
 
   const data = query.data;
+  if (!data.leadPerformance) return <LoadingScreen />;
   const target = data.month.target;
   const targetProgress = target.revenueProgress ?? 0;
   const month = data.month.comparedWithPreviousFullMonth;
   const mtd = data.month.monthToDate;
   const recentOrders = data.recentOrders.slice(0, 5);
   const maxCustomerRevenue = Math.max(1, ...data.topCustomers.map((customer) => customer.revenue));
+  const lead = data.leadPerformance;
   const stale = query.isError;
 
   return (
     <div className="h-screen min-h-[620px] w-screen min-w-[1000px] overflow-hidden bg-[#0d0c0b] font-sans text-[#f5f3f2]">
-      <div className="relative grid h-full grid-rows-[62px_128px_minmax(0,1.12fr)_minmax(0,0.82fr)] gap-3 overflow-hidden p-4">
+      <div className="relative grid h-full grid-rows-[48px_82px_minmax(0,1fr)_54px_126px_108px] gap-2 overflow-hidden p-3 min-[1600px]:grid-rows-[54px_96px_minmax(0,1fr)_62px_170px_150px]">
         <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_15%_0%,rgba(255,104,71,0.12),transparent_28%),radial-gradient(circle_at_90%_15%,rgba(255,159,67,0.06),transparent_26%)]" />
 
         <header className="relative z-10 flex items-center justify-between gap-6">
@@ -273,7 +364,7 @@ export default function GrowthDashboard() {
           <KpiCard label="Monthly dozens" comparison={month.dozens} kind="dozens" />
         </section>
 
-        <section className="relative z-10 grid min-h-0 grid-cols-[1.42fr_1fr_0.78fr] gap-3">
+        <section className="relative z-10 grid min-h-0 grid-cols-[1.42fr_1fr_0.78fr] gap-2">
           <Panel title="Revenue progression" meta="current month · recognized revenue">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={data.charts.dailyRevenue} margin={{ top: 12, right: 10, bottom: 2, left: -12 }}>
@@ -349,7 +440,49 @@ export default function GrowthDashboard() {
           </Panel>
         </section>
 
-        <section className="relative z-10 grid min-h-0 grid-cols-[1.2fr_1.12fr_0.88fr] gap-3">
+        <section className="relative z-10 grid grid-cols-9 gap-2">
+          <LeadKpiCard label="New leads" value={lead.performance.month.newLeads.current} today={lead.performance.today.newLeads} month={lead.performance.month.newLeads} icon={UserPlus} />
+          <LeadKpiCard label="Leads contacted" value={lead.performance.month.contacted.current} today={lead.performance.today.contacted} month={lead.performance.month.contacted} icon={PhoneCall} />
+          <LeadKpiCard label="Awaiting response" value={lead.snapshot.contactedAwaitingResponse} icon={MessageCircle} />
+          <LeadKpiCard label="Tastings scheduled" value={lead.snapshot.tastingsScheduled} today={lead.performance.today.tastingScheduled} month={lead.performance.month.tastingScheduled} icon={CalendarDays} />
+          <LeadKpiCard label="Tastings completed" value={lead.snapshot.completedTastingRequests} icon={CheckCircle2} />
+          <LeadKpiCard label="Leads won" value={lead.snapshot.won} today={lead.performance.today.won} month={lead.performance.month.won} icon={Trophy} />
+          <LeadKpiCard label="Leads lost" value={lead.snapshot.lost} today={lead.performance.today.lost} month={lead.performance.month.lost} icon={XCircle} inverse />
+          <LeadKpiCard label="Open leads" value={lead.snapshot.openLeads} icon={CircleDot} />
+          <LeadKpiCard label="Lead conversion" value={lead.snapshot.conversionRate} valueSuffix="%" icon={Target} />
+        </section>
+
+        <section className="relative z-10 grid min-h-0 grid-cols-[1.75fr_0.8fr] gap-2">
+          <Panel title="Wholesale lead pipeline" meta="large number = current snapshot · +in / −out = this month">
+            <div className="flex h-full min-h-0 items-stretch">
+              {lead.funnel.map((stage, index) => (
+                <FunnelStage
+                  key={stage.key}
+                  label={stage.label}
+                  current={stage.current}
+                  entered={stage.enteredThisMonth}
+                  exited={stage.exitedThisMonth}
+                  final={index === lead.funnel.length - 1}
+                />
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Sales team activity" meta="today / current queue">
+            <div className="grid h-full grid-cols-4 grid-rows-2 gap-2">
+              <ActivityItem icon={PhoneCall} label="Contacted today" value={lead.salesActivity.leadsContactedToday} />
+              <ActivityItem icon={CalendarDays} label="Follow-ups due" value={lead.salesActivity.followUpsDueToday} />
+              <ActivityItem icon={AlertTriangle} label="Overdue" value={lead.salesActivity.overdueFollowUps} tone="danger" />
+              <ActivityItem icon={MessageCircle} label="Upcoming tastings" value={lead.salesActivity.upcomingTastings} />
+              <ActivityItem icon={CheckCircle2} label="Tastings completed MTD" value={null} />
+              <ActivityItem icon={UserCheck} label="Converted MTD" value={lead.salesActivity.leadsConvertedThisMonth} tone="success" />
+              <ActivityItem icon={Timer} label="Avg. conversion time" value={lead.snapshot.averageTimeToConversionDays} suffix="d" />
+              <ActivityItem icon={Target} label="MTD close rate" value={lead.performance.month.decisionConversionRate.current} suffix="%" />
+            </div>
+          </Panel>
+        </section>
+
+        <section className="relative z-10 grid min-h-0 grid-cols-[1.2fr_1.12fr_0.88fr] gap-2">
           <Panel title="Recent orders" meta="latest 5 wholesale orders">
             <div className="grid h-full grid-rows-5 divide-y divide-white/[0.055]">
               {recentOrders.map((order) => (
@@ -357,7 +490,7 @@ export default function GrowthDashboard() {
                   <span className="font-mono font-semibold text-[#ff8066]">{order.orderNumber}</span>
                   <div className="min-w-0">
                     <p className="truncate text-[10px] font-medium text-[#dfdcda]">{order.customerName}</p>
-                    <p className="truncate text-[8px] text-[#5f5b58]"><Quantity values={order.quantityByUnit} /></p>
+                    <p className="hidden truncate text-[8px] text-[#5f5b58] min-[1600px]:block"><Quantity values={order.quantityByUnit} /></p>
                   </div>
                   <StatusTag status={order.status} />
                   <span className="text-right font-mono text-[10px] font-semibold text-white">{money.format(order.total)}</span>
@@ -374,9 +507,9 @@ export default function GrowthDashboard() {
                   <div className="min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-[10px] font-medium text-[#dfdcda]">{customer.customerName}</p>
-                      <span className="shrink-0 text-[8px] text-[#65615e]">{customer.orders} orders</span>
+                      <span className="hidden shrink-0 text-[8px] text-[#65615e] min-[1600px]:inline">{customer.orders} orders</span>
                     </div>
-                    <div className="mt-1 h-[3px] overflow-hidden rounded-full bg-white/[0.05]">
+                    <div className="mt-1 hidden h-[3px] overflow-hidden rounded-full bg-white/[0.05] min-[1600px]:block">
                       <div className="h-full rounded-full bg-gradient-to-r from-[#ff6847] to-[#ff9f43]" style={{ width: `${(customer.revenue / maxCustomerRevenue) * 100}%` }} />
                     </div>
                   </div>
@@ -387,7 +520,7 @@ export default function GrowthDashboard() {
           </Panel>
 
           <Panel title="Operational summary" meta="current business activity">
-            <div className="grid h-full grid-cols-2 grid-rows-3 gap-2">
+            <div className="grid h-full grid-cols-3 grid-rows-2 gap-1.5 min-[1600px]:grid-cols-2 min-[1600px]:grid-rows-3 min-[1600px]:gap-2">
               <SummaryItem icon={Users} label="Ordering customers" value={number.format(data.operationalSummary.activeOrderingCustomers)} />
               <SummaryItem icon={UserPlus} label="New customers" value={number.format(data.operationalSummary.newCustomers)} />
               <SummaryItem icon={Clock3} label="Awaiting fulfillment" value={number.format(data.operationalSummary.awaitingFulfillment)} tone={data.operationalSummary.awaitingFulfillment > 0 ? "amber" : "neutral"} />
@@ -398,6 +531,32 @@ export default function GrowthDashboard() {
           </Panel>
         </section>
       </div>
+    </div>
+  );
+}
+
+function ActivityItem({
+  icon: Icon,
+  label,
+  value,
+  suffix = "",
+  tone = "neutral",
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: number | null;
+  suffix?: string;
+  tone?: "neutral" | "danger" | "success";
+}) {
+  return (
+    <div className="flex min-h-0 flex-col justify-between rounded-lg border border-white/[0.055] bg-white/[0.024] p-2">
+      <div className="flex items-center justify-between gap-1">
+        <p className="truncate text-[7px] font-semibold uppercase tracking-[0.1em] text-[#716c68]">{label}</p>
+        <Icon className={cn("h-3 w-3 shrink-0 text-[#625e5a]", tone === "danger" && "text-rose-400", tone === "success" && "text-emerald-400")} />
+      </div>
+      <p className={cn("font-mono text-lg font-semibold leading-none text-white", value === null && "text-[10px] text-[#817b77]")}>
+        {value === null ? "Not tracked" : `${number.format(value)}${suffix}`}
+      </p>
     </div>
   );
 }
@@ -414,12 +573,12 @@ function SummaryItem({
   tone?: "neutral" | "amber" | "green";
 }) {
   return (
-    <div className="flex min-h-0 flex-col justify-between rounded-lg border border-white/[0.055] bg-white/[0.025] p-2.5">
+    <div className="flex min-h-0 flex-col justify-between rounded-lg border border-white/[0.055] bg-white/[0.025] p-1.5 min-[1600px]:p-2.5">
       <div className="flex items-center justify-between gap-2">
         <p className="tv-mini-label truncate">{label}</p>
         <Icon className={cn("h-3.5 w-3.5 shrink-0 text-[#625e5a]", tone === "amber" && "text-amber-400", tone === "green" && "text-emerald-400")} />
       </div>
-      <p className="font-mono text-xl font-semibold leading-none text-white">{value}</p>
+      <p className="font-mono text-base font-semibold leading-none text-white min-[1600px]:text-xl">{value}</p>
     </div>
   );
 }

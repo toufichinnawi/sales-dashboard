@@ -23,6 +23,7 @@ import {
   getLivePerformanceMonthKey,
   getLivePerformanceQueryStart,
 } from "./live-performance";
+import { buildLeadPerformanceSnapshot } from "./lead-performance";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -638,7 +639,7 @@ export async function getLivePerformanceSnapshot(now = new Date()) {
   const queryStart = getLivePerformanceQueryStart(now);
   const targetMonth = getLivePerformanceMonthKey(now);
 
-  const [orderRows, itemRows, customerRows, target] = await Promise.all([
+  const [orderRows, itemRows, customerRows, target, leadRows, activityRows, tastingRows] = await Promise.all([
     db
       .select({
         id: orders.id,
@@ -669,9 +670,36 @@ export async function getLivePerformanceSnapshot(now = new Date()) {
       .from(customers)
       .where(gte(customers.createdAt, queryStart)),
     getTarget(targetMonth),
+    db
+      .select({
+        id: leads.id,
+        status: leads.status,
+        lastContactDate: leads.lastContactDate,
+        nextFollowUpDate: leads.nextFollowUpDate,
+        followUpStatus: leads.followUpStatus,
+        createdAt: leads.createdAt,
+      })
+      .from(leads),
+    db
+      .select({
+        leadId: leadActivities.leadId,
+        activityType: leadActivities.activityType,
+        metadata: leadActivities.metadata,
+        createdAt: leadActivities.createdAt,
+      })
+      .from(leadActivities)
+      .innerJoin(leads, eq(leads.id, leadActivities.leadId)),
+    db
+      .select({
+        id: tastingRequests.id,
+        status: tastingRequests.status,
+        createdAt: tastingRequests.createdAt,
+        updatedAt: tastingRequests.updatedAt,
+      })
+      .from(tastingRequests),
   ]);
 
-  return buildLivePerformanceSnapshot({
+  const salesPerformance = buildLivePerformanceSnapshot({
     now,
     orders: orderRows.map((order) => ({
       ...order,
@@ -689,6 +717,16 @@ export async function getLivePerformanceSnapshot(now = new Date()) {
         }
       : null,
   });
+
+  return {
+    ...salesPerformance,
+    leadPerformance: buildLeadPerformanceSnapshot({
+      now,
+      leads: leadRows,
+      activities: activityRows,
+      tastings: tastingRows,
+    }),
+  };
 }
 
 // Pipeline funnel — counts of open leads grouped by status and by tier.
