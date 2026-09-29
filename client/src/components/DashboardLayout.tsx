@@ -24,7 +24,6 @@ import {
   Factory,
   Database,
   Store,
-  MonitorDot,
 } from "lucide-react";
 import {
   Sidebar,
@@ -64,7 +63,6 @@ const navSections = [
   {
     label: "Analytics",
     items: [
-      { path: "/live-performance", label: "Live Performance", icon: MonitorDot },
       { path: "/pipeline", label: "Pipeline", icon: GitBranch },
       { path: "/analytics", label: "Reports", icon: BarChart3 },
       { path: "/goals", label: "Goals", icon: Target },
@@ -219,3 +217,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+

@@ -22,7 +22,6 @@ import {
   deleteOrder,
   getOrdersByCustomerId,
   getDashboardStats,
-  getLivePerformanceSnapshot,
   getOpenLeadsFunnel,
   getOpenLeads,
   getTarget,
@@ -127,12 +126,6 @@ export const appRouter = router({
       }),
     openLeadsFunnel: protectedProcedure.query(() => getOpenLeadsFunnel()),
     openLeads: protectedProcedure.query(() => getOpenLeads()),
-  }),
-
-  // ─── LIVE PERFORMANCE ────────────────────────────────────────────────────
-
-  livePerformance: router({
-    snapshot: protectedProcedure.query(() => getLivePerformanceSnapshot()),
   }),
 
   // ─── TARGETS ──────────────────────────────────────────────────────────────
