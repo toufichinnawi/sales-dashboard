@@ -35,6 +35,7 @@ import Costs from "./pages/Costs";
 import Production from "./pages/Production";
 import CustomerDetail from "./pages/CustomerDetail";
 import PortalDocuments from "./pages/portal/PortalDocuments";
+import GrowthDashboard from "./pages/GrowthDashboard";
 
 function DashboardRouter() {
   return (
@@ -87,6 +88,7 @@ function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      <Route path={"/growth"} component={GrowthDashboard} />
       <Route path={"/wholesale"} component={WholesaleLanding} />
       <Route path={"/tasting"} component={TastingRequest} />
       <Route path={"/portal/accept-invite"} component={PortalAcceptInvite} />

@@ -228,4 +228,41 @@
   .stagger-4 { animation-delay: 240ms; }
   .stagger-5 { animation-delay: 320ms; }
   .stagger-6 { animation-delay: 400ms; }
+
+  .tv-card {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)),
+      #11100f;
+    border: 1px solid #2a2725;
+    border-radius: 15px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.018),
+      0 12px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .tv-card-featured {
+    border-color: rgba(255, 104, 71, 0.34);
+    background:
+      radial-gradient(circle at 8% 5%, rgba(255, 104, 71, 0.1), transparent 52%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+      #11100f;
+  }
+
+  .tv-eyebrow {
+    color: #9a9591;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .tv-mini-label {
+    color: #716c68;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
 }
